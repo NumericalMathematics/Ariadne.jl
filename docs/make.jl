@@ -49,6 +49,7 @@ examples = [
     "Implicit -- Heat 1D" => "heat_1D",
     "Implicit -- Heat 1D DG" => "heat_1D_DG",
     "Implicit -- Heat 2D" => "heat_2D",
+    "Trixi" => "trixi",
 ]
 
 for (_, name) in examples

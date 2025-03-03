@@ -1,8 +1,6 @@
 # # [Implicit schemes](@id implicit_schemes)
 using Ariadne
 
-using Ariadne
-
 # ## Implicit Euler
 
 function G_Euler!(res, uₙ, Δt, f!, du, u, p, t)
