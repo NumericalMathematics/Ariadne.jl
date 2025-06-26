@@ -173,9 +173,9 @@ function (::RKImplicitEuler)(res, uₙ, Δt, f!, du, u, p, t, stages, stage, RK)
 
 end
 
-struct KS2 <: DIRK{2} end
-struct QZ2 <: DIRK{2} end
-struct Crouzeix <: DIRK{2} end
+struct KS22 <: DIRK{2} end
+struct QZ22 <: DIRK{2} end
+struct C23 <: DIRK{2} end
 
 function (::DIRK{2})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, RK)
 	if stage == 1
@@ -186,6 +186,25 @@ function (::DIRK{2})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, RK)
 	 	return	res .= u .- uₙ .- RK.a[stage, 1] * Δt .* stages[1] - RK.a[stage,2] * Δt .* du
 		else
 		@. u = uₙ +  Δt * (RK.b[1]  * stages[1] + RK.b[2] * stages[2])
+	end
+
+end
+
+struct C34 <: DIRK{3} end
+struct L33 <: DIRK{3} end
+
+function (::DIRK{3})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, RK)
+	if stage == 1
+		f!(du, u, p, t + RK.c[stage] * Δt)
+	 	return	res .= u .- uₙ .- RK.a[stage, stage] * Δt .* du
+	elseif stage == 2
+		f!(du, u, p, t + RK.c[stage] * Δt)
+	 	return	res .= u .- uₙ .- RK.a[stage, 1] * Δt .* stages[1] - RK.a[stage,2] * Δt .* du
+		elseif stage == 3 	
+		f!(du, u, p, t + RK.c[stage] * Δt)
+	 	return	res .= u .- uₙ .- RK.a[stage, 1] * Δt .* stages[1] - RK.a[stage,2] * Δt .* stages[2] - RK.a[stage,3] *  Δt .* du
+		else	
+		@. u = uₙ +  Δt * (RK.b[1]  * stages[1] + RK.b[2] * stages[2] + RK.b[3] * stages[3])
 	end
 
 end
@@ -272,7 +291,7 @@ function ImplicitEulerTableau()
 end
 
 # Kraaijevanger and Spijker's two-stage Diagonally Implicit Runge–Kutta method: 
-function KS2Tableau()
+function KS22Tableau()
 		nstage = 2
 	a = zeros(Float64, nstage, nstage)
 	a[1,1] = 1/2 
@@ -289,7 +308,7 @@ function KS2Tableau()
 
 end
 # Qin and Zhang's two-stage, 2nd order, symplectic Diagonally Implicit Runge–Kutta method: 
-function QZ2Tableau()
+function QZ22Tableau()
 	nstage = 2
 	a = zeros(Float64, nstage, nstage)
 	a[1,1] = 1/4
@@ -306,7 +325,7 @@ function QZ2Tableau()
 end
 
 # Crouzeix's two-stage, 3rd order Diagonally Implicit Runge–Kutta method
-function CrouzeixTableau()
+function C23Tableau()
 	nstage = 2
 	a = zeros(Float64, nstage, nstage)
 	a[1,1] = 1/2 + sqrt(3)/6
@@ -321,7 +340,52 @@ function CrouzeixTableau()
 	c[2] = 1/2 - sqrt(3)/6
 	return DIRKButcher(a,b,c)
 end
+# Crouzeix's three-stage, 4th order Diagonally Implicit Runge–Kutta method: 
+function C34Tableau()
+	nstage = 3
+	alpha = 2/sqrt(3)*cospi(1/18)
+	a = zeros(Float64, nstage, nstage)
+	a[1,1] = (1+alpha)/2
+	a[2,1] = -alpha/2
+	a[2,2] = a[1,1]
+	a[3,1] = 1+ alpha
+	a[3,2] = -(1+2*alpha)
+	a[3,3] = (1+alpha)/2
+	b = zeros(Float64, nstage)
+	b[1] = 1/(6*alpha^2)
+	b[2] = 1-1/(3*alpha^2)
+	b[3] = 1/(6*alpha^2)
 
+	c = zeros(Float64, nstage)
+	c[1] = a[1,1]
+	c[2] = a[2,1] + a[2,2]
+	c[3] = a[3,1] + a[3,2] + a[3,3]
+	return DIRKButcher(a,b,c)
+end
+
+# L-Stable third order, FSAL! It can be optmized, because of the FSAL.
+function L33Tableau()
+	nstage = 3
+	x = 0.4368665215
+	alpha = 2/sqrt(3)*cospi(1/18)
+	a = zeros(Float64, nstage, nstage)
+	a[1,1] = x
+	a[2,1] = (1-x)/2
+	a[2,2] = x
+	a[3,1] = -3*x^2/2 + 4*x - 1/4
+	a[3,2] = 3*x^2/2 -5*x + 5/4
+	a[3,3] = x
+	b = zeros(Float64, nstage)
+	b[1] = a[3,1]
+	b[2] = a[3,2]
+	b[3] = a[3,3]
+
+	c = zeros(Float64, nstage)
+	c[1] = a[1,1]
+	c[2] = a[2,1] + a[2,2]
+	c[3] = a[3,1] + a[3,2] + a[3,3]
+	return DIRKButcher(a,b,c)
+end
 
 function RKTableau(alg::Direct)
 	return RosenbrockTableau()
@@ -335,16 +399,24 @@ function RKTableau(alg::RKImplicitEuler)
 	return ImplicitEulerTableau()
 end
 
-function RKTableau(alg::KS2)
+function RKTableau(alg::KS22)
 	return KS2Tableau()
 end
 
-function RKTableau(alg::QZ2)
+function RKTableau(alg::QZ22)
 	return QZ2Tableau()
 end
 
-function RKTableau(alg::Crouzeix)
-	return CrouzeixTableau()
+function RKTableau(alg::C23)
+	return C23Tableau()
+end
+
+function RKTableau(alg::C34)
+	return C34Tableau()
+end
+
+function RKTableau(alg::L33)
+	return L33Tableau()
 end
 
 function nonlinear_problem(alg::SimpleImplicitAlgorithm, f::F) where {F}

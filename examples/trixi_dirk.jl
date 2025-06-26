@@ -27,8 +27,9 @@ trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.
 sol = solve(
 	ode, 
     # Implicit.RKImplicitEuler();
-    # Implicit.KS2();
-    Implicit.Crouzeix();
+    # Implicit.KS22();
+    # Implicit.C23();
+    Implicit.L33();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
 	ode_default_options()..., callback = callbacks,
 	# verbose=1,
