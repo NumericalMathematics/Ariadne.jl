@@ -2,6 +2,26 @@ module Theseus
 
 using UnPack
 import Ariadne
+using LinearAlgebra
+import Ariadne: JacobianOperator, MOperator
+using Krylov
+
+struct MOperator{JOp}
+    J::JOp
+    dt::Float64
+end
+
+Base.size(M::MOperator) = size(M.J)
+Base.eltype(M::MOperator) = eltype(M.J)
+Base.length(M::MOperator) = length(M.J)
+
+import LinearAlgebra: mul!
+function mul!(out::AbstractVector, M::MOperator, v::AbstractVector)
+    # out = (I/dt - J(f,x,p)) * v
+    mul!(out, M.J, v)
+    @. out = v / M.dt - out
+    return nothing
+end
 
 # Wrapper type for solutions from Theseus.jl's own time integrators, partially mimicking
 # SciMLBase.ODESolution
@@ -51,10 +71,12 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
 
 # Abstract base type for time integration schemes
 abstract type SimpleImplicitAlgorithm{N} end
+abstract type NonDirect{N} <: SimpleImplicitAlgorithm{N} end
+abstract type Direct{N} <: SimpleImplicitAlgorithm{N} end
 
 stages(::SimpleImplicitAlgorithm{N}) where {N} = N
 
-struct ImplicitEuler <: SimpleImplicitAlgorithm{1} end
+struct ImplicitEuler <: NonDirect{1} end
 function (::ImplicitEuler)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
     f!(du, u, p, t + Δt) # t = t0 + c_1 * Δt
 
@@ -136,6 +158,70 @@ function (::TRBDF2)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
     end
 end
 
+struct Rosenbrock <: Direct{3} end
+
+function (::Rosenbrock)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
+    invdt = inv(Δt) 
+    alpha, c, m, _ = RosenbrockTableau()
+        @. u = uₙ
+        @. res = 0
+    for j in 1:stage-1    
+        @. u = u + alpha[stage, j] * stages[j]
+        @. res = res + c[stage, j] * stages[j] * invdt
+    end
+
+    ## IT DOES NOT WORK FOR NON-AUTONOMOUS SYSTEMS, THUS T + DT IS USELESS IN THE RHS CALL.
+    f!(du, u, p, t + Δt)
+    F!(du, uₙ, p) = f!(du, uₙ, p, t)
+
+    J = JacobianOperator(F!, du, u, p)
+    M = MOperator(J, Δt)
+    kc = KrylovConstructor(res)
+    workspace = krylov_workspace(:gmres, kc)
+    krylov_solve!(workspace, M, copy(du .+ res))
+    stages[stage] .= workspace.x
+        
+    if stage == 3
+        @. u = uₙ
+        for j in 1:stage
+            @. u = u + m[j] * stages[j]
+        end     
+    end
+
+end
+
+	function RosenbrockTableau()
+
+        # SSP - Knoth
+
+			nstage = 3
+			alpha = zeros(Float64, nstage, nstage)
+			alpha[2, 1] = 1
+			alpha[3, 1] = 1 / 4
+			alpha[3, 2] = 1 / 4
+
+			b = zeros(Float64, nstage)
+			b[1] = 1 / 6
+			b[2] = 1 / 6
+			b[3] = 2 / 3
+
+			gamma = zeros(Float64, nstage, nstage)
+			gamma[1, 1] = 1
+			gamma[2, 2] = 1
+			gamma[3, 1] = -3 / 4
+			gamma[3, 2] = -3 / 4
+			gamma[3, 3] = 1
+
+			a = alpha * inv(gamma)
+			m = transpose(b) * inv(gamma)
+			c = diagm(inv.(diag(gamma))) - inv(gamma)
+
+		return a, c, m, nstage # alpha, c, m
+
+	end
+
+
+
 function nonlinear_problem(alg::SimpleImplicitAlgorithm, f::F) where {F}
     return (res, u, (uₙ, Δt, du, p, t, stages, stage)) -> alg(res, uₙ, Δt, f, du, u, p, t, stages, stage)
 end
@@ -205,7 +291,7 @@ function init(
     du = zero(u)
     res = zero(u)
     u_tmp = similar(u)
-    stages = ntuple(_ -> similar(u), Val(N - 1))
+    stages = ntuple(_ -> similar(u), Val(N))
     t = first(ode.tspan)
     iter = 0
     integrator = SimpleImplicit(
@@ -259,6 +345,27 @@ function solve!(integrator::SimpleImplicit)
     )
 end
 
+function stage!(integrator, alg::NonDirect, stage)
+     F! = nonlinear_problem(alg, integrator.f)
+        # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
+        _, stats = Ariadne.newton_krylov!(
+            F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.du, integrator.p, integrator.t, integrator.stages, stage), integrator.res;
+            verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
+            algo = integrator.opts.algo, tol_abs = 6.0e-6
+        )
+        @assert stats.solved
+            if stage < stages(alg)
+            # Store the solution for each stage in stages
+            integrator.stages[stage] .= integrator.u_tmp
+            end
+end
+
+function stage!(integrator, alg::Direct, stage)
+
+        alg(integrator.res, integrator.u, integrator.dt, integrator.f, integrator.du, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, stage)
+
+end
+
 function step!(integrator::SimpleImplicit)
     @unpack prob = integrator.sol
     @unpack alg = integrator
@@ -280,18 +387,7 @@ function step!(integrator::SimpleImplicit)
     # one time step
     integrator.u_tmp .= integrator.u
     for stage in 1:stages(alg)
-        F! = nonlinear_problem(alg, integrator.f)
-        # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
-        _, stats = Ariadne.newton_krylov!(
-            F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.du, integrator.p, integrator.t, integrator.stages, stage), integrator.res;
-            verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
-            algo = integrator.opts.algo, tol_abs = 6.0e-6
-        )
-        @assert stats.solved
-        if stage < stages(alg)
-            # Store the solution for each stage in stages
-            integrator.stages[stage] .= integrator.u_tmp
-        end
+            stage!(integrator, alg, stage)
     end
     integrator.u .= integrator.u_tmp
 
