@@ -160,14 +160,13 @@ end
 
 struct Rosenbrock <: Direct{3} end
 
-function (::Rosenbrock)(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, M)
+function (::Rosenbrock)(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, M, RK)
 	invdt = inv(Δt)
-	alpha, c, m, _ = RosenbrockTableau()
 	@. u = uₙ
 	@. res = 0
 	for j in 1:(stage-1)
-		@. u = u + alpha[stage, j] * stages[j]
-		@. res = res + c[stage, j] * stages[j] * invdt
+		@. u = u + RK.a[stage, j] * stages[j]
+		@. res = res + RK.c[stage, j] * stages[j] * invdt
 	end
 
 	## It does not work for non-autonomous systems.
@@ -179,10 +178,17 @@ function (::Rosenbrock)(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspac
 	if stage == 3
 		@. u = uₙ
 		for j in 1:stage
-			@. u = u + m[j] * stages[j]
+			@. u = u + RK.m[j] * stages[j]
 		end
 	end
 
+end
+abstract type RKTableau end
+
+struct RosenbrockButcher{T1 <: AbstractArray, T2 <: AbstractArray} <: RKTableau
+	a::T1
+	c::T1
+	m::T2
 end
 
 function RosenbrockTableau()
@@ -209,11 +215,17 @@ function RosenbrockTableau()
 	a = alpha * inv(gamma)
 	m = transpose(b) * inv(gamma)
 	c = diagm(inv.(diag(gamma))) - inv(gamma)
-
-	return a, c, m, nstage # alpha, c, m
+	return RosenbrockButcher(a, c, vec(m))
 
 end
 
+function RKTableau(alg::Direct)
+	return RosenbrockTableau()
+end
+
+function RKTableau(alg::NonDirect)
+	return RosenbrockTableau()
+end
 
 
 function nonlinear_problem(alg::SimpleImplicitAlgorithm, f::F) where {F}
@@ -249,7 +261,7 @@ end
 # which are used in Trixi.jl.
 mutable struct SimpleImplicit{
 	RealT <: Real, uType, Params, Sol, F, M, Alg <: SimpleImplicitAlgorithm,
-	SimpleImplicitOptions,
+	SimpleImplicitOptions, RKTableau,
 } <: AbstractTimeIntegrator
 	u::uType
 	du::uType
@@ -266,6 +278,7 @@ mutable struct SimpleImplicit{
 	alg::Alg # SimpleImplicitAlgorithm
 	opts::SimpleImplicitOptions
 	finalstep::Bool # added for convenience
+	RK::RKTableau
 end
 
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
@@ -294,8 +307,7 @@ function init(
 		SimpleImplicitOptions(
 			callback, ode.tspan;
 			kwargs...,
-		), false,
-	)
+		), false, RKTableau(alg))
 
 	# initialize callbacks
 	if callback isa CallbackSet
@@ -365,8 +377,9 @@ function stage!(integrator, alg::Direct)
 	workspace = krylov_workspace(:gmres, kc)
 
 	for stage in 1:stages(alg)
-		alg(integrator.res, integrator.u, integrator.dt, integrator.f, integrator.du, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, stage, workspace, M)
+		alg(integrator.res, integrator.u, integrator.dt, integrator.f, integrator.du, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, stage, workspace, M, integrator.RK)
 	end
+
 end
 
 function step!(integrator::SimpleImplicit)
@@ -389,6 +402,7 @@ function step!(integrator::SimpleImplicit)
 
 	# one time step
 	integrator.u_tmp .= integrator.u
+
 	stage!(integrator, alg)
 
 	integrator.u .= integrator.u_tmp
