@@ -145,7 +145,7 @@ function (::TRBDF2)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
 		# after Bonaventura2021
 		# They define the second stage as:
 		# u - γ₂ * Δt * f(u, t+Δt) = (1-γ₃)uₙ + γ₃u₁
-		# Which differs from Bank1985
+		# Which differs from Bank1985)
 		# (2-γ)u + (1-γ)Δt * f(u, t+Δt) = 1/γ * u₁ - 1/γ * (1-γ)^2 * uₙ
 		# In the sign of u - γ₂ * Δt
 		# a₁ == (1-γ₃)
@@ -156,6 +156,38 @@ function (::TRBDF2)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
 
 		res .= (1 - γ₃) .* uₙ .+ γ₃ .* u₁ + (γ₂ * Δt) .* du .- u
 	end
+end
+
+abstract type DIRK{N} <: SimpleImplicitAlgorithm{N} end
+
+struct RKImplicitEuler <: DIRK{1} end
+
+function (::RKImplicitEuler)(res, uₙ, Δt, f!, du, u, p, t, stages, stage, RK)
+	if stage == 1
+		# Stage 1: 
+		f!(du, u, p, t + RK.c[stage] * Δt)
+	 	return	res .= u .- uₙ .- RK.a[stage, stage] * Δt .* du
+	else
+		@. u = uₙ + RK.b[1] * Δt * stages[1]
+	end
+
+end
+
+struct KS2 <: DIRK{2} end
+struct QZ2 <: DIRK{2} end
+struct Crouzeix <: DIRK{2} end
+
+function (::DIRK{2})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, RK)
+	if stage == 1
+		f!(du, u, p, t + RK.c[stage] * Δt)
+	 	return	res .= u .- uₙ .- RK.a[stage, stage] * Δt .* du
+	elseif stage == 2
+		f!(du, u, p, t + RK.c[stage] * Δt)
+	 	return	res .= u .- uₙ .- RK.a[stage, 1] * Δt .* stages[1] - RK.a[stage,2] * Δt .* du
+		else
+		@. u = uₙ +  Δt * (RK.b[1]  * stages[1] + RK.b[2] * stages[2])
+	end
+
 end
 
 struct Rosenbrock <: Direct{3} end
@@ -191,6 +223,12 @@ struct RosenbrockButcher{T1 <: AbstractArray, T2 <: AbstractArray} <: RKTableau
 	m::T2
 end
 
+struct DIRKButcher{T1 <: AbstractArray, T2 <: AbstractArray} <: RKTableau
+	a::T1
+	b::T2
+	c::T2
+end
+
 function RosenbrockTableau()
 
 	# SSP - Knoth
@@ -219,6 +257,72 @@ function RosenbrockTableau()
 
 end
 
+function ImplicitEulerTableau()
+
+	nstage = 1
+	a = zeros(Float64, nstage, nstage)
+	a[1,1] = 1 
+
+	b = zeros(Float64, nstage)
+	b[1] = 1
+
+	c = zeros(Float64, nstage)
+	c[1] = 1
+	return DIRKButcher(a,b,c)
+end
+
+# Kraaijevanger and Spijker's two-stage Diagonally Implicit Runge–Kutta method: 
+function KS2Tableau()
+		nstage = 2
+	a = zeros(Float64, nstage, nstage)
+	a[1,1] = 1/2 
+	a[2,1] = -1/2
+	a[2,2] = 2
+	b = zeros(Float64, nstage)
+	b[1] = -1/2
+	b[2] = 3/2
+
+	c = zeros(Float64, nstage)
+	c[1] = 1/2
+	c[2] = 3/2
+	return DIRKButcher(a,b,c)
+
+end
+# Qin and Zhang's two-stage, 2nd order, symplectic Diagonally Implicit Runge–Kutta method: 
+function QZ2Tableau()
+	nstage = 2
+	a = zeros(Float64, nstage, nstage)
+	a[1,1] = 1/4
+	a[2,1] = 1/2
+	a[2,2] = 1/4
+	b = zeros(Float64, nstage)
+	b[1] = 1/2
+	b[2] = 1/2
+
+	c = zeros(Float64, nstage)
+	c[1] = 1/4
+	c[2] = 3/4
+	return DIRKButcher(a,b,c)
+end
+
+# Crouzeix's two-stage, 3rd order Diagonally Implicit Runge–Kutta method
+function CrouzeixTableau()
+	nstage = 2
+	a = zeros(Float64, nstage, nstage)
+	a[1,1] = 1/2 + sqrt(3)/6
+	a[2,1] = -sqrt(3)/3
+	a[2,2] = 1/2 + sqrt(3)/6
+	b = zeros(Float64, nstage)
+	b[1] = 1/2
+	b[2] = 1/2
+
+	c = zeros(Float64, nstage)
+	c[1] = 1/2 + sqrt(3)/6
+	c[2] = 1/2 - sqrt(3)/6
+	return DIRKButcher(a,b,c)
+end
+
+
 function RKTableau(alg::Direct)
 	return RosenbrockTableau()
 end
@@ -227,9 +331,28 @@ function RKTableau(alg::NonDirect)
 	return RosenbrockTableau()
 end
 
+function RKTableau(alg::RKImplicitEuler)
+	return ImplicitEulerTableau()
+end
+
+function RKTableau(alg::KS2)
+	return KS2Tableau()
+end
+
+function RKTableau(alg::QZ2)
+	return QZ2Tableau()
+end
+
+function RKTableau(alg::Crouzeix)
+	return CrouzeixTableau()
+end
 
 function nonlinear_problem(alg::SimpleImplicitAlgorithm, f::F) where {F}
 	return (res, u, (uₙ, Δt, du, p, t, stages, stage)) -> alg(res, uₙ, Δt, f, du, u, p, t, stages, stage)
+end
+
+function nonlinear_problem(alg::DIRK, f::F) where {F}
+	return (res, u, (uₙ, Δt, du, p, t, stages, stage, RK)) -> alg(res, uₙ, Δt, f, du, u, p, t, stages, stage, RK)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
@@ -365,6 +488,27 @@ function stage!(integrator, alg::NonDirect)
 			# Store the solution for each stage in stages
 			integrator.stages[stage] .= integrator.u_tmp
 		end
+	end
+end
+
+function stage!(integrator, alg::DIRK)
+	for stage in 1:stages(alg)
+		F! = nonlinear_problem(alg, integrator.f)
+		# TODO: Pass in `stages[1:(stage-1)]` or full tuple?
+		_, stats = Ariadne.newton_krylov!(
+			F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.du, integrator.p, integrator.t, integrator.stages, stage, integrator.RK), integrator.res;
+			verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
+			algo = integrator.opts.algo, tol_abs = 6.0e-6,
+		)
+		@assert stats.solved
+
+			# Store the solution for each stage in stages
+			integrator.f(integrator.du, integrator.u_tmp, integrator.p, integrator.t + integrator.RK.c[stage] * integrator.dt)
+			integrator.stages[stage] .= integrator.du
+		if stage == stages(alg)	
+			alg(integrator.res, integrator.u, integrator.dt, integrator.f, integrator.du, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, stage+1, integrator.RK)
+		end
+		
 	end
 end
 
