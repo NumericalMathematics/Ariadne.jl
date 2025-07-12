@@ -22,7 +22,7 @@ let x₀ = [3.0, 5.0]
     @test stats.solved
 end
 
-import Ariadne: JacobianOperator
+import Ariadne: JacobianOperator, BatchedJacobianOperator
 using Enzyme, LinearAlgebra
 
 @testset "Jacobian" begin
@@ -55,6 +55,8 @@ using Enzyme, LinearAlgebra
 
     # Batched
     if VERSION >= v"1.11.0"
+        J = BatchedJacobianOperator{2}(F!, zeros(2), [3.0, 5.0], nothing)
+
         V = [1.0 0.0; 0.0 1.0]
         Out = similar(V)
         mul!(Out, J, V)
@@ -62,6 +64,7 @@ using Enzyme, LinearAlgebra
         @test Out == J_Enz
 
         mul!(Out, transpose(J), V)
-        @test Out == collect(transpose(J))
+        @test Out == J_Enz'
+        # @test Out == collect(transpose(J))
     end
 end

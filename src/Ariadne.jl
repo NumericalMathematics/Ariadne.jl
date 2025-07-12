@@ -11,50 +11,129 @@ using Enzyme
 ##
 import LinearAlgebra: mul!
 
-function maybe_duplicated(x, ::Val{N} = Val(1)) where {N}
-    # TODO cache?
+function init_cache(x)
     if !Enzyme.Compiler.guaranteed_const(typeof(x))
-        if N == 1
-            return Duplicated(x, Enzyme.make_zero(x))
-        else
-            return BatchDuplicated(x, ntuple(_ -> Enzyme.make_zero(x), Val(N)))
-        end
+        Enzyme.make_zero(x)
     else
-        return Const(x)
+        return nothing
     end
 end
 
-# TODO: JacobianOperator with thunk
+function maybe_duplicated(x::T, x′::Union{Nothing, T}) where {T}
+    if x′ === nothing
+        return Const(x)
+    else
+        Enzyme.remake_zero!(x′)
+        return Duplicated(x, x′)
+    end
+end
+
+abstract type AbstractJacobianOperator end
+
 
 """
     JacobianOperator
 
 Efficient implementation of `J(f,x,p) * v` and `v * J(f, x,p)'`
 """
-struct JacobianOperator{F, A, P}
+struct JacobianOperator{F, A, P} <: AbstractJacobianOperator
     f::F # F!(res, u, p)
+    f′::Union{Nothing, F} # cache
     res::A
     u::A
     p::P
+    p′::Union{Nothing, P} # cache
     function JacobianOperator(f::F, res, u, p) where {F}
-        return new{F, typeof(u), typeof(p)}(f, res, u, p)
+        f′ = init_cache(f)
+        p′ = init_cache(p)
+        return new{F, typeof(u), typeof(p)}(f, f′, res, u, p, p′)
     end
 end
+
+batch_size(::JacobianOperator) = 1
 
 Base.size(J::JacobianOperator) = (length(J.res), length(J.u))
 Base.eltype(J::JacobianOperator) = eltype(J.u)
 Base.length(J::JacobianOperator) = prod(size(J))
 
-function mul!(out::AbstractVector, J::JacobianOperator, v::AbstractVector)
+function mul!(out, J::JacobianOperator, v)
     autodiff(
         Forward,
-        maybe_duplicated(J.f), Const,
+        maybe_duplicated(J.f, J.f′), Const,
         Duplicated(J.res, reshape(out, size(J.res))),
         Duplicated(J.u, reshape(v, size(J.u))),
-        maybe_duplicated(J.p)
+        maybe_duplicated(J.p, J.p′)
     )
     return nothing
 end
+
+LinearAlgebra.adjoint(J::JacobianOperator) = Adjoint(J)
+LinearAlgebra.transpose(J::JacobianOperator) = Transpose(J)
+
+# Jᵀ(y, u) = ForwardDiff.gradient!(y, x -> dot(F(x), u), xk)
+# or just reverse mode
+
+function mul!(out, J′::Union{Adjoint{<:Any, <:JacobianOperator}, Transpose{<:Any, <:JacobianOperator}}, v)
+    J = parent(J′)
+    # TODO: provide cache for `copy(v)`
+    # Enzyme zeros input derivatives and that confuses the solvers.
+    # If `out` is non-zero we might get spurious gradients
+    fill!(out, 0)
+    autodiff(
+        Reverse,
+        maybe_duplicated(J.f, J.f′), Const,
+        Duplicated(J.res, reshape(copy(v), size(J.res))),
+        Duplicated(J.u, reshape(out, size(J.u))),
+        maybe_duplicated(J.p, J.p′)
+    )
+    return nothing
+end
+
+
+function init_cache(x, ::Val{N}) where {N}
+    if !Enzyme.Compiler.guaranteed_const(typeof(x))
+        return ntuple(_ -> Enzyme.make_zero(x), Val(N))
+    else
+        return nothing
+    end
+end
+
+function maybe_duplicated(x::T, x′::Union{Nothing, NTuple{N, T}}, ::Val{N}) where {T, N}
+    if x′ === nothing
+        return Const(x)
+    else
+        Enzyme.remake_zero!(x′)
+        return BatchDuplicated(x, x′)
+    end
+end
+
+"""
+    BatchedJacobianOperator{N}
+
+
+"""
+struct BatchedJacobianOperator{N, F, A, P} <: AbstractJacobianOperator
+    f::F # F!(res, u, p)
+    f′::Union{Nothing, NTuple{N, F}} # cache
+    res::A
+    u::A
+    p::P
+    p′::Union{Nothing, NTuple{N, P}} # cache
+    function BatchedJacobianOperator{N}(f::F, res, u, p) where {F, N}
+        f′ = init_cache(f, Val(N))
+        p′ = init_cache(p, Val(N))
+        return new{N, F, typeof(u), typeof(p)}(f, f′, res, u, p, p′)
+    end
+end
+
+batch_size(::BatchedJacobianOperator{N}) where {N} = N
+
+Base.size(J::BatchedJacobianOperator) = (length(J.res), length(J.u))
+Base.eltype(J::BatchedJacobianOperator) = eltype(J.u)
+Base.length(J::BatchedJacobianOperator) = prod(size(J))
+
+LinearAlgebra.adjoint(J::BatchedJacobianOperator) = Adjoint(J)
+LinearAlgebra.transpose(J::BatchedJacobianOperator) = Transpose(J)
 
 if VERSION >= v"1.11.0"
 
@@ -66,49 +145,23 @@ if VERSION >= v"1.11.0"
         end
     end
 
-    function mul!(Out::AbstractMatrix, J::JacobianOperator, V::AbstractMatrix)
+    function mul!(Out, J::BatchedJacobianOperator{N}, V) where {N}
         @assert size(Out, 2) == size(V, 2)
         out = tuple_of_vectors(Out, size(J.res))
         v = tuple_of_vectors(V, size(J.u))
 
-        N = length(out)
+        @assert N == length(out)
         autodiff(
             Forward,
-            maybe_duplicated(J.f, Val(N)), Const,
+            maybe_duplicated(J.f, J.f′, Val(N)), Const,
             BatchDuplicated(J.res, out),
             BatchDuplicated(J.u, v),
-            maybe_duplicated(J.p, Val(N))
+            maybe_duplicated(J.p, J.p′, Val(N))
         )
         return nothing
     end
 
-end # VERSION >= v"1.11.0"
-
-LinearAlgebra.adjoint(J::JacobianOperator) = Adjoint(J)
-LinearAlgebra.transpose(J::JacobianOperator) = Transpose(J)
-
-# Jᵀ(y, u) = ForwardDiff.gradient!(y, x -> dot(F(x), u), xk)
-# or just reverse mode
-
-function mul!(out::AbstractVector, J′::Union{Adjoint{<:Any, <:JacobianOperator}, Transpose{<:Any, <:JacobianOperator}}, v::AbstractVector)
-    J = parent(J′)
-    # TODO: provide cache for `copy(v)`
-    # Enzyme zeros input derivatives and that confuses the solvers.
-    # If `out` is non-zero we might get spurious gradients
-    fill!(out, 0)
-    autodiff(
-        Reverse,
-        maybe_duplicated(J.f), Const,
-        Duplicated(J.res, reshape(copy(v), size(J.res))),
-        Duplicated(J.u, reshape(out, size(J.u))),
-        maybe_duplicated(J.p)
-    )
-    return nothing
-end
-
-if VERSION >= v"1.11.0"
-
-    function mul!(Out::AbstractMatrix, J′::Union{Adjoint{<:Any, <:JacobianOperator}, Transpose{<:Any, <:JacobianOperator}}, V::AbstractMatrix)
+    function mul!(Out, J′::Union{Adjoint{<:Any, <:BatchedJacobianOperator{N}}, Transpose{<:Any, <:BatchedJacobianOperator{N}}}, V) where {N}
         J = parent(J′)
         @assert size(Out, 2) == size(V, 2)
 
@@ -122,22 +175,20 @@ if VERSION >= v"1.11.0"
         out = tuple_of_vectors(Out, size(J.u))
         v = tuple_of_vectors(V, size(J.res))
 
-        N = length(out)
+        @assert N == length(out)
 
-        # TODO: BatchDuplicated for J.f
         autodiff(
             Reverse,
-            maybe_duplicated(J.f, Val(N)), Const,
+            maybe_duplicated(J.f, J.f′, Val(N)), Const,
             BatchDuplicated(J.res, v),
             BatchDuplicated(J.u, out),
-            maybe_duplicated(J.p, Val(N))
+            maybe_duplicated(J.p, J.p′, Val(N))
         )
         return nothing
     end
-
 end # VERSION >= v"1.11.0"
 
-function Base.collect(JOp::Union{Adjoint{<:Any, <:JacobianOperator}, Transpose{<:Any, <:JacobianOperator}, JacobianOperator})
+function Base.collect(JOp::Union{Adjoint{<:Any, <:AbstractJacobianOperator}, Transpose{<:Any, <:AbstractJacobianOperator}, AbstractJacobianOperator})
     N, M = size(JOp)
     if JOp isa JacobianOperator
         v = zero(JOp.u)
