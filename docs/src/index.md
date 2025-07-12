@@ -21,6 +21,7 @@ Ariadne.EisenstatWalker
 
 ```@docs
 Ariadne.JacobianOperator
+Ariadne.BatchedJacobianOperator
 ```
 
 ## Bibliography
