@@ -3,9 +3,10 @@ module Implicit
 using UnPack
 using Ariadne: Ariadne
 using LinearAlgebra
-import Ariadne: JacobianOperator, MOperator
+import Ariadne: JacobianOperator
 using Krylov
 
+using Trixi: @trixi_timeit
 struct MOperator{JOp}
     J::JOp
     dt::Float64
@@ -616,10 +617,10 @@ end
 function stage!(integrator, alg::Direct)
 
     F!(du, u, p) = integrator.f(du, u, p, integrator.t)
-    J = JacobianOperator(F!, integrator.du, integrator.u, integrator.p)
-    M = MOperator(J, integrator.dt)
+   J = JacobianOperator(F!, integrator.du, integrator.u, integrator.p)
+	M = MOperator(J, integrator.dt)
     kc = KrylovConstructor(integrator.res)
-    workspace = krylov_workspace(:gmres, kc)
+     workspace = krylov_workspace(:gmres, kc)
 
     for stage in 1:stages(alg)
         alg(integrator.res, integrator.u, integrator.dt, integrator.f, integrator.du, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, stage, workspace, M, integrator.RK)
@@ -718,4 +719,6 @@ function jacobian(G!, f!, uₙ, p, Δt, t)
     return collect(J)
 end
 
+include("imex.jl")
+include("linear_imex.jl")
 end # module Implicit
