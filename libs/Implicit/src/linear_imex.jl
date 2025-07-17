@@ -4,17 +4,23 @@ abstract type RKLIMEX{N} <: SimpleLinearImplicitExplicitAlgorithm{N} end
 
 struct RKLinearImplicitExplicitEuler <: RKLIMEX{1} end
 
-function (::RKLinearImplicitExplicitEuler)(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, stage, RK, J, lin_du_tmp, lin_du_tmp1)
+function (::RKLinearImplicitExplicitEuler)(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, stage, RK, M, lin_du_tmp, lin_du_tmp1, workspace)
     if stage == 1
         # Stage 1:
 	## f2 is the conservative part
 	## f1 is the parabolic part
 	mul!(lin_du_tmp, J, uₙ)
 	mul!(lin_du_tmp1, J, u)	
-	f2!(du, u, p, t + RK.c[stage] * Δt)
-        f1!(du_tmp, u, p, t + RK.c[stage] * Δt)
-		return res .= u .- uₙ .- RK.a[stage, stage] * Δt .* (du .+ du_tmp .- lin_du_tmp1 .+ lin_du_tmp)
-    else
+	f2!(du, uₙ, p, t + RK.c[stage] * Δt)
+        f1!(du_tmp, uₙ, p, t + RK.c[stage] * Δt)
+	
+	res .= uₙ .+ RK.a[stage, stage] * Δt .* (du .+ du_tmp .- lin_du_tmp)
+    	krylov_solve!(workspace, M, copy(res))
+	
+	f2!(du, workspace.x, p, t + RK.c[stage] * Δt)
+        f1!(du_tmp, workspace.x, p, t + RK.c[stage] * Δt)
+	
+    	stages[stage] .= du .+ du_tmp  
         @. u = uₙ + RK.b[1] * Δt * stages[1]
     end
 
@@ -211,27 +217,17 @@ function step!(integrator::SimpleLinearImplicitExplicit)
     end
 end
 
-
 function stage!(integrator, alg::RKLIMEX)
-   F!(du, u, p) = integrator.f1(du, u, p, integrator.t)
+   F!(du, u, p) = integrator.f1(du, u, p, integrator.t) ## parabolic
    J = JacobianOperator(F!, integrator.du, integrator.u, integrator.p)
-    for stage in 1:stages(alg)
-        F! = nonlinear_problem(alg, integrator.f2)
-        # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
-        _, stats = Ariadne.newton_krylov!(
-            F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.f1, integrator.du, integrator.du_tmp,  integrator.p, integrator.t, integrator.stages, stage, integrator.RK, J, integrator.lin_du_tmp, integrator.lin_du_tmp1), integrator.res;
-            verbose=integrator.opts.verbose, krylov_kwargs=integrator.opts.krylov_kwargs,
-            algo=integrator.opts.algo, tol_abs=6.0e-6,
-        )
-        @assert stats.solved
+   M = MOperator(J, integrator.dt)
+    kc = KrylovConstructor(integrator.res)
+     workspace = krylov_workspace(:gmres, kc)
+	for stage in 1:stages(alg)
         # Store the solution for each stage in stages
 	## For a split Problem we need to compute rhs_conservative and rhs_parabolic
-        integrator.f2(integrator.du, integrator.u_tmp, integrator.p, integrator.t + integrator.RK.c[stage] * integrator.dt)
-	integrator.stages[stage] .= integrator.du
-        integrator.f1(integrator.du, integrator.u_tmp, integrator.p, integrator.t + integrator.RK.c[stage] * integrator.dt)
-        integrator.stages[stage] .+= integrator.du
 		if stage == stages(alg)
-            alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, stage + 1, integrator.RK, J, integrator.lin_du_tmp, integrator.lin_du_tmp1)
+            alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, stage + 1, integrator.RK, M, integrator.lin_du_tmp, integrator.lin_du_tmp1, workspace)
         end
 
     end
