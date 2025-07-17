@@ -10,7 +10,7 @@ function (::RKLinearImplicitExplicitEuler)(res, uₙ, Δt, f1!, f2!, du, du_tmp,
 	## f2 is the conservative part
 	## f1 is the parabolic part
 	mul!(lin_du_tmp, J, uₙ)
-	mul!(lin_du_tmp1, J, u)	
+#	mul!(lin_du_tmp1, J, u)	
 	f2!(du, uₙ, p, t + RK.c[stage] * Δt)
         f1!(du_tmp, uₙ, p, t + RK.c[stage] * Δt)
 	
@@ -220,7 +220,7 @@ end
 function stage!(integrator, alg::RKLIMEX)
    F!(du, u, p) = integrator.f1(du, u, p, integrator.t) ## parabolic
    J = JacobianOperator(F!, integrator.du, integrator.u, integrator.p)
-   M = MOperator(J, integrator.dt)
+	M = MOperator(J, inv(integrator.dt))
     kc = KrylovConstructor(integrator.res)
      workspace = krylov_workspace(:gmres, kc)
 	for stage in 1:stages(alg)
