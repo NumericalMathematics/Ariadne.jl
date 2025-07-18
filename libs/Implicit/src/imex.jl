@@ -225,7 +225,7 @@ function stage!(integrator, alg::RKIMEX)
 	integrator.stages[stage] .= integrator.du
         integrator.f1(integrator.du, integrator.u_tmp, integrator.p, integrator.t + integrator.RK.c[stage] * integrator.dt)
         integrator.stages[stage] .+= integrator.du
-		if stage == stages(alg)
+	if stage == stages(alg)
             alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, stage + 1, integrator.RK)
         end
 

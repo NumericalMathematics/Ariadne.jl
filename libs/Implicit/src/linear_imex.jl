@@ -4,7 +4,6 @@ abstract type RKLIMEX{N} <: SimpleLinearImplicitExplicitAlgorithm{N} end
 
 struct RKLinearImplicitExplicitEuler <: RKLIMEX{1} end
 
-
 function mul!(out::AbstractVector, M::LMOperator, v::AbstractVector)
     # out = (I/dt - J(f,x,p)) * v
     mul!(out, M.J, v)
@@ -17,21 +16,19 @@ function (::RKLinearImplicitExplicitEuler)(res, uₙ, Δt, f1!, f2!, du, du_tmp,
         # Stage 1:
 	## f2 is the conservative part
 	## f1 is the parabolic part
-	mul!(lin_du_tmp, J, uₙ)
+	mul!(lin_du_tmp, M.J, uₙ)
 #	mul!(lin_du_tmp1, J, u)	
 	f2!(du, uₙ, p, t + RK.c[stage] * Δt)
         f1!(du_tmp, uₙ, p, t + RK.c[stage] * Δt)
 	
 	res .= uₙ .+ RK.a[stage, stage] * Δt .* (du .+ du_tmp .- lin_du_tmp)
     	krylov_solve!(workspace, M, copy(res))
-	
-	f2!(du, workspace.x, p, t + RK.c[stage] * Δt)
-        f1!(du_tmp, workspace.x, p, t + RK.c[stage] * Δt)
-	
-    	stages[stage] .= du .+ du_tmp  
-        @. u = uₙ + RK.b[1] * Δt * stages[1]
+	@. u = workspace.x
+#	f2!(du, workspace.x, p, t + RK.c[stage] * Δt)
+#       f1!(du_tmp, workspace.x, p, t + RK.c[stage] * Δt)
+#    	stages[stage] .= du .+ du_tmp  
+#        @. u = uₙ + RK.b[1] * Δt * stages[1]
     end
-
 end
 
 stages(::SimpleLinearImplicitExplicitAlgorithm{N}) where {N} = N
@@ -234,9 +231,7 @@ function stage!(integrator, alg::RKLIMEX)
 	for stage in 1:stages(alg)
         # Store the solution for each stage in stages
 	## For a split Problem we need to compute rhs_conservative and rhs_parabolic
-		if stage == stages(alg)
-            alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, stage + 1, integrator.RK, M, integrator.lin_du_tmp, integrator.lin_du_tmp1, workspace)
-        end
+            alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, stage, integrator.RK, M, integrator.lin_du_tmp, integrator.lin_du_tmp1, workspace)
 
     end
 end

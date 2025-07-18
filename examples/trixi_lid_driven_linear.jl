@@ -27,9 +27,9 @@ trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_lid
 
 sol = solve(
 	ode, 
-     #Implicit.RKLinearImplicitExplicitEuler();
-	Implicit.KS22();
-    dt = 0.001, # solve needs some value here but it will be overwritten by the stepsize_callback
+     Implicit.RKLinearImplicitExplicitEuler();
+	#Implicit.KS22();
+    dt = 0.01, # solve needs some value here but it will be overwritten by the stepsize_callback
 	ode_default_options()..., callback = callbacks,
 	# verbose=1,
 	krylov_algo = :gmres,

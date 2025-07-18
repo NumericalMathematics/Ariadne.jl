@@ -21,7 +21,6 @@ using CairoMakie
 
 trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_convergence.jl"), sol = nothing);
 
-
 ###############################################################################
 # run the simulation
 
@@ -34,5 +33,3 @@ sol = solve(
 	krylov_algo = :gmres,
 );
 
-## dt_vec = [0.001, 0.001/2, 0.0001]
-## l2_vec = [4.95311953e-04, 2.48996489e-04   ,5.40458032e-05, ]
