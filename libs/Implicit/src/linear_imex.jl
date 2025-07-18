@@ -4,6 +4,14 @@ abstract type RKLIMEX{N} <: SimpleLinearImplicitExplicitAlgorithm{N} end
 
 struct RKLinearImplicitExplicitEuler <: RKLIMEX{1} end
 
+
+function mul!(out::AbstractVector, M::LMOperator, v::AbstractVector)
+    # out = (I/dt - J(f,x,p)) * v
+    mul!(out, M.J, v)
+    @. out = v - out * M.dt
+    return nothing
+end
+
 function (::RKLinearImplicitExplicitEuler)(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, stage, RK, M, lin_du_tmp, lin_du_tmp1, workspace)
     if stage == 1
         # Stage 1:
@@ -220,7 +228,7 @@ end
 function stage!(integrator, alg::RKLIMEX)
    F!(du, u, p) = integrator.f1(du, u, p, integrator.t) ## parabolic
    J = JacobianOperator(F!, integrator.du, integrator.u, integrator.p)
-	M = MOperator(J, inv(integrator.dt))
+	M = LMOperator(J, integrator.dt)
     kc = KrylovConstructor(integrator.res)
      workspace = krylov_workspace(:gmres, kc)
 	for stage in 1:stages(alg)

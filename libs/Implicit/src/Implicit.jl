@@ -12,6 +12,14 @@ struct MOperator{JOp}
     dt::Float64
 end
 
+struct LMOperator{JOp}
+   J::JOp
+dt::Float64
+end
+
+Base.size(M::LMOperator) = size(M.J)
+Base.eltype(M::LMOperator) = eltype(M.J)
+Base.length(M::LMOperator) = length(M.J)
 Base.size(M::MOperator) = size(M.J)
 Base.eltype(M::MOperator) = eltype(M.J)
 Base.length(M::MOperator) = length(M.J)
@@ -426,11 +434,11 @@ function RKTableau(alg::RKImplicitEuler)
 end
 
 function RKTableau(alg::KS22)
-    return KS2Tableau()
+    return KS22Tableau()
 end
 
 function RKTableau(alg::QZ22)
-    return QZ2Tableau()
+    return QZ22Tableau()
 end
 
 function RKTableau(alg::C23)
