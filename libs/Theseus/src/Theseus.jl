@@ -1,9 +1,9 @@
-module Implicit
+module Theseus
 
 using UnPack
 import Ariadne
 
-# Wrapper type for solutions from Implicit.jl's own time integrators, partially mimicking
+# Wrapper type for solutions from Theseus.jl's own time integrators, partially mimicking
 # SciMLBase.ODESolution
 struct TimeIntegratorSolution{tType, uType, P}
     t::tType
@@ -361,4 +361,4 @@ function jacobian(G!, f!, uₙ, p, Δt, t)
     return collect(J)
 end
 
-end # module Implicit
+end # module Theseus

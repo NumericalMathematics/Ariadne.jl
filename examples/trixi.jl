@@ -1,7 +1,7 @@
 # # Using the an implicit solver based on Ariadne with Trixi.jl
 
 using Trixi
-using Implicit
+using Theseus
 using CairoMakie
 
 
@@ -29,8 +29,8 @@ u = copy(ode.u0)
 du = zero(ode.u0)
 res = zero(ode.u0)
 
-F! = Implicit.nonlinear_problem(Implicit.ImplicitEuler(), ode.f)
-J = Implicit.Ariadne.JacobianOperator(F!, res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))
+F! = Theseus.nonlinear_problem(Theseus.ImplicitEuler(), ode.f)
+J = Theseus.Ariadne.JacobianOperator(F!, res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))
 
 using LinearAlgebra
 out = zero(u)
@@ -41,12 +41,12 @@ v = zero(u)
 # Cost of time(Jvp) ≈ 2 * time(rhs)
 
 # ### Jacobian (of the implicit function given the ode)
-# J = Implicit.jacobian(Implicit.ImplicitEuler(), ode, 1.0)
+# J = Theseus.jacobian(Theseus.ImplicitEuler(), ode, 1.0)
 
 # ### Solve using ODE interface
 
 sol_euler = solve(
-    ode, Implicit.ImplicitEuler();
+    ode, Theseus.ImplicitEuler();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
     # verbose=1,
@@ -55,7 +55,7 @@ sol_euler = solve(
 );
 
 sol_midpoint = solve(
-    ode, Implicit.ImplicitMidpoint();
+    ode, Theseus.ImplicitMidpoint();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
     # verbose=1,
@@ -64,7 +64,7 @@ sol_midpoint = solve(
 );
 
 sol_trapezoid = solve(
-    ode, Implicit.ImplicitTrapezoid();
+    ode, Theseus.ImplicitTrapezoid();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
     # verbose=1,
@@ -74,7 +74,7 @@ sol_trapezoid = solve(
 
 
 sol_trbdf2 = solve(
-    ode, Implicit.TRBDF2();
+    ode, Theseus.TRBDF2();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
     # verbose=1,
@@ -93,7 +93,7 @@ sol_sdrik = solve(
 
 # ### Plot the (reference) solution
 
-# We have to manually convert the sol since Implicit has it's own leightweight solution type.
+# We have to manually convert the sol since Theseus has it's own leightweight solution type.
 # Create an extension.
 ## pd = PlotData2D(sol.u[end], sol.prob.p)
 
@@ -108,7 +108,7 @@ plot(Trixi.PlotData2DTriangulated(sol_trbdf2.u[end], sol.prob.p))
 trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), cfl = 10, sol = nothing);
 
 sol = solve(
-    ode, Implicit.ImplicitEuler();
+    ode, Theseus.ImplicitEuler();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
     # verbose=1,
