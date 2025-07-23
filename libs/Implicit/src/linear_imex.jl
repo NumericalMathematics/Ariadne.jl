@@ -34,7 +34,7 @@ function (::RKLinearImplicitExplicitEuler)(res, uₙ, Δt, f1!, f2!, du, du_tmp,
         f1!(du_tmp, uₙ, p, t + RK.c[stage] * Δt)
 	
 	res .= uₙ .+ RK.a[stage, stage] * Δt .* (du .+ du_tmp .- lin_du_tmp)
-	krylov_solve!(workspace, M, copy(res))
+	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
 	@. u = workspace.x
 #	f2!(du, workspace.x, p, t + RK.c[stage] * Δt)
 #       f1!(du_tmp, workspace.x, p, t + RK.c[stage] * Δt)
@@ -52,7 +52,7 @@ function (::RKLIMEX{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, u
 	## f1 is the parabolic part
    	J = JacobianOperator(F!, du, uₙ, p)
 	M = LMOperator(J, RK.ah[stage,stage] * Δt)
-	krylov_solve!(workspace, M, copy(uₙ))
+	krylov_solve!(workspace, M, uₙ, atol = 1e-6, rtol = 1e-6)
 	@. u = workspace.x
    	J = JacobianOperator(F!, du, u, p)
 	mul!(jstages[stage], J, u)
@@ -70,7 +70,7 @@ function (::RKLIMEX{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, u
 #	mul!(lin_du_tmp1, J, u)	
 	res .= uₙ + RK.a[stage,1] * Δt * stages[1] - Δt * RK.ah[stage,1] * jstages[1]  
 
-	krylov_solve!(workspace, M, copy(res))
+	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
 	@. u = workspace.x
    	J = JacobianOperator(F!, du, u, p)
 	mul!(jstages[stage], J, u)	
@@ -86,7 +86,7 @@ function (::RKLIMEX{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, u
 	mul!(lin_du_tmp, M.J, uₙ)
 #	mul!(lin_du_tmp1, J, u)	
 	res .= uₙ + RK.a[stage,1] * Δt * stages[1] + RK.a[stage,2] * Δt * stages[2] - Δt * RK.ah[stage,1] * jstages[1] - Δt * RK.ah[stage,2] * jstages[2]  
-	krylov_solve!(workspace, M, copy(res))
+	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
 	@. u = workspace.x
    	J = JacobianOperator(F!, du, u, p)
 	mul!(jstages[stage], J, u)	
@@ -96,8 +96,6 @@ function (::RKLIMEX{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, u
 	ustages[stage] .= u	
 
 	@. u = uₙ + RK.b[1] * Δt * stages[1] + RK.b[2] * Δt * stages[2] + RK.b[3] * Δt * stages[3] -  RK.bh[1] * Δt * jstages[1]  -  RK.bh[2] * Δt * jstages[2]  -  RK.bh[3] * Δt * jstages[3]  
-		
-
 	end
 end
 
