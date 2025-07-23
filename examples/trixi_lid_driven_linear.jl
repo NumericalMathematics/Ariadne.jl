@@ -19,15 +19,22 @@ using CairoMakie
 @assert !Trixi._PREFERENCE_POLYESTER
 @assert !Trixi._PREFERENCE_LOOPVECTORIZATION
 
-trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), CFL = 10.0, sol = nothing);
+trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_lid_driven_cavity.jl"), sol = nothing, mu = 0.1);
+
+ode = semidiscretize(semi, (0.0, 10.0))
 
 ###############################################################################
 # run the simulation
 
 sol = solve(
-	ode, Implicit.Rosenbrock();
-	dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+	ode, 
+     Implicit.RKLSSPIMEX332();
+	#Implicit.KS22();
+    dt = 0.001, # solve needs some value here but it will be overwritten by the stepsize_callback
 	ode_default_options()..., callback = callbacks,
 	# verbose=1,
 	krylov_algo = :gmres,
 );
+
+## dt_vec = [0.001, 0.001/2, 0.0001]
+## l2_vec = [4.95311953e-04, 2.48996489e-04   ,5.40458032e-05, ]
