@@ -17,13 +17,15 @@ using CairoMakie
 # ```
 
 @assert !Trixi._PREFERENCE_POLYESTER
-@assert !Trixi._PREFERENCE_LOOPVECTORIZATION
+@assert !Trixi._PREFERENCE_THREADING !== :polyester
 
 # ## Load Trixi Example
-# trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), sol = nothing);
+
 trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"));
 
 ref = copy(sol)
+
+# ## Check the performance fo the JVP
 
 u = copy(ode.u0)
 du = zero(ode.u0)
@@ -93,7 +95,7 @@ sol_sdrik = solve(
 
 # ### Plot the (reference) solution
 
-# We have to manually convert the sol since Theseus has it's own leightweight solution type.
+# We have to manually convert the sol since Theseus has it's own lightweight solution type.
 # Create an extension.
 ## pd = PlotData2D(sol.u[end], sol.prob.p)
 
