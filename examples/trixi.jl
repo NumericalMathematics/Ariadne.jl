@@ -16,16 +16,14 @@ using CairoMakie
 # polyester = false
 # ```
 
-@assert !Trixi._PREFERENCE_POLYESTER
-@assert !Trixi._PREFERENCE_THREADING !== :polyester
+@assert Trixi._PREFERENCE_THREADING !== :polyester
+@assert !Trixi._PREFERENCE_LOOPVECTORIZATION
 
 # ## Load Trixi Example
-
+# trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), sol = nothing);
 trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"));
 
 ref = copy(sol)
-
-# ## Check the performance fo the JVP
 
 u = copy(ode.u0)
 du = zero(ode.u0)
@@ -37,10 +35,14 @@ J = Theseus.Ariadne.JacobianOperator(F!, res, u, (ode.u0, 1.0, du, ode.p, 0.0, (
 using LinearAlgebra
 out = zero(u)
 v = zero(u)
+
+# precompile
+mul!(u, J, v)
+
 @time mul!(u, J, v)
 @time F!(res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))
 
-# Cost of time(Jvp) ≈ 2 * time(rhs)
+# Cost of time(mul!) ≈ 2 * time(F!)
 
 # ### Jacobian (of the implicit function given the ode)
 # J = Theseus.jacobian(Theseus.ImplicitEuler(), ode, 1.0)
@@ -95,7 +97,7 @@ sol_sdrik = solve(
 
 # ### Plot the (reference) solution
 
-# We have to manually convert the sol since Theseus has it's own lightweight solution type.
+# We have to manually convert the sol since Theseus has it's own leightweight solution type.
 # Create an extension.
 ## pd = PlotData2D(sol.u[end], sol.prob.p)
 
