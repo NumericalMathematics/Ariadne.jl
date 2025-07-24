@@ -36,7 +36,7 @@ abstract type AbstractJacobianOperator end
 
 Efficient implementation of `J(f,x,p) * v` and `v * J(f, x,p)'`
 """
-struct JacobianOperator{F, F′::Union{Nothing, F}, A, P, P′::Union{Nothing, P}} <: AbstractJacobianOperator
+struct JacobianOperator{F, F′, A, P, P′} <: AbstractJacobianOperator
     f::F # F!(res, u, p)
     f′::F′ # cache
     res::A
