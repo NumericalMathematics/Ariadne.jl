@@ -729,4 +729,5 @@ end
 
 include("imex.jl")
 include("linear_imex.jl")
+include("parabolic_fix.jl")
 end # module Implicit

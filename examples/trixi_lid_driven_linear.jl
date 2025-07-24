@@ -16,9 +16,6 @@ using CairoMakie
 # polyester = false
 # ```
 
-@assert !Trixi._PREFERENCE_POLYESTER
-@assert !Trixi._PREFERENCE_LOOPVECTORIZATION
-
 trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_navierstokes_lid_driven_cavity.jl"), sol = nothing, mu = 0.1);
 
 ode = semidiscretize(semi, (0.0, 10.0))
