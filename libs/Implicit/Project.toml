@@ -12,14 +12,13 @@ SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
 Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 
-[sources]
-Ariadne = {path = "../.."}
-
 [compat]
 Ariadne = "0.1.0"
 DiffEqBase = "6.174.0"
 Krylov = "0.10.1"
-LinearAlgebra = "1.11.0"
 SciMLBase = "2.91.0"
 Trixi = "0.12.5"
 UnPack = "1.0.2"
+
+[sources.Ariadne]
+path = "../.."
