@@ -4,6 +4,8 @@ CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Implicit = "7f538e44-2768-4ef2-af90-2110c0378286"
 OrdinaryDiffEqLowStorageRK = "b0944070-b475-4768-8dec-fb6eb410534d"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
 Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 
 [sources.Ariadne]
