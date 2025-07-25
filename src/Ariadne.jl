@@ -31,24 +31,41 @@ end
 abstract type AbstractJacobianOperator end
 
 
+
 """
     JacobianOperator
 
 Efficient implementation of `J(f,x,p) * v` and `v * J(f, x,p)'`
 """
-struct JacobianOperator{F, A, P} <: AbstractJacobianOperator
+struct JacobianOperator{F, F′, A, P, P′} <: AbstractJacobianOperator
     f::F # F!(res, u, p)
-    f′::Union{Nothing, F} # cache
+    f′::F′ # cache
     res::A
     u::A
     p::P
-    p′::Union{Nothing, P} # cache
-    function JacobianOperator(f::F, res, u, p) where {F}
-        f′ = init_cache(f)
-        p′ = init_cache(p)
-        return new{F, typeof(u), typeof(p)}(f, f′, res, u, p, p′)
-    end
+    p′::P′ # cache
 end
+
+"""
+    JacobianOperator(f::F, res, u, p; assume_p_const::Bool = false)
+
+Creates a Jacobian operator for `f!(res, u, p)` where `res` is the residual,
+`u` is the state variable, and `p` are the parameters.
+
+If `assume_p_const` is `true`, the parameters `p` are assumed to be constant
+during the Jacobian computation, which can improve performance by not requiring the
+shadow for `p`.
+"""
+function JacobianOperator(f::F, res, u, p; assume_p_const::Bool = false) where {F}
+    f′ = init_cache(f)
+    if assume_p_const
+        p′ = nothing
+    else
+        p′ = init_cache(p)
+    end
+    return JacobianOperator(f, f′, res, u, p, p′)
+end
+
 
 batch_size(::JacobianOperator) = 1
 

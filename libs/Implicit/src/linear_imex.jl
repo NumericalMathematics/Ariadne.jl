@@ -79,24 +79,20 @@ function (::RKLIMEX{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, u
 	@. ustages[stage] = u	
 
 	elseif stage == 3
-	@show "inner stage"
-	@time J = JacobianOperator(F!, du, ustages[2], p)
-	@time M = LMOperator(J, RK.ah[stage,stage] * Δt)
-	@show "mul function"
-	@time mul!(lin_du_tmp, M.J, uₙ)
-	@time @. res = uₙ + RK.a[stage,1] * Δt * stages[1] + RK.a[stage,2] * Δt * stages[2] - Δt * RK.ah[stage,1] * jstages[1] - Δt * RK.ah[stage,2] * jstages[2]  
-	@show "krylov solve"
-	@time krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
-	@time @. u = workspace.x
-   	@time J = JacobianOperator(F!, du, u, p)
-	@show "mul function"
-	@time mul!(jstages[stage], J, u)	
-	@time f2!(du, workspace.x, p, t + RK.c[stage] * Δt)
-        @time f1!(du_tmp, workspace.x, p, t + RK.c[stage] * Δt)
-@time @.	stages[stage] = du .+ du_tmp .- jstages[stage]
-@time @.	ustages[stage] = u	
+	J = JacobianOperator(F!, du, ustages[2], p)
+	M = LMOperator(J, RK.ah[stage,stage] * Δt)
+	mul!(lin_du_tmp, M.J, uₙ)
+	@. res = uₙ + RK.a[stage,1] * Δt * stages[1] + RK.a[stage,2] * Δt * stages[2] - Δt * RK.ah[stage,1] * jstages[1] - Δt * RK.ah[stage,2] * jstages[2]  
+	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
+	@. u = workspace.x
+   	J = JacobianOperator(F!, du, u, p)
+	mul!(jstages[stage], J, u)	
+	f2!(du, workspace.x, p, t + RK.c[stage] * Δt)
+        f1!(du_tmp, workspace.x, p, t + RK.c[stage] * Δt)
+	@. stages[stage] = du .+ du_tmp .- jstages[stage]
+	@. ustages[stage] = u	
 
-@time	@. u = uₙ + RK.b[1] * Δt * stages[1] + RK.b[2] * Δt * stages[2] + RK.b[3] * Δt * stages[3] -  RK.bh[1] * Δt * jstages[1]  -  RK.bh[2] * Δt * jstages[2]  -  RK.bh[3] * Δt * jstages[3]  
+	@. u = uₙ + RK.b[1] * Δt * stages[1] + RK.b[2] * Δt * stages[2] + RK.b[3] * Δt * stages[3] -  RK.bh[1] * Δt * jstages[1]  -  RK.bh[2] * Δt * jstages[2]  -  RK.bh[3] * Δt * jstages[3]  
 	end
 end
 

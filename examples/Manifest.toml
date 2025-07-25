@@ -2299,19 +2299,17 @@ version = "0.1.2"
 
 [[deps.Trixi]]
 deps = ["Accessors", "Adapt", "CodeTracking", "ConstructionBase", "DataStructures", "DelimitedFiles", "DiffEqBase", "DiffEqCallbacks", "Downloads", "EllipsisNotation", "FillArrays", "ForwardDiff", "HDF5", "KernelAbstractions", "LinearAlgebra", "LinearMaps", "LoopVectorization", "MPI", "MuladdMacro", "Octavian", "OffsetArrays", "P4est", "Polyester", "PrecompileTools", "Preferences", "Printf", "RecipesBase", "RecursiveArrayTools", "Reexport", "Requires", "SciMLBase", "SimpleUnPack", "SparseArrays", "StableRNGs", "StartUpDG", "Static", "StaticArrayInterface", "StaticArrays", "StrideArrays", "StructArrays", "SummationByPartsOperators", "T8code", "TimerOutputs", "Triangulate", "TriplotBase", "TriplotRecipes", "TrixiBase", "UUIDs"]
-git-tree-sha1 = "60bbfb89e83a1a797649a009ee4ebc517b9aeaf8"
+git-tree-sha1 = "2808d7f7caf98c9a0fdc507cc0317ba626ea7436"
 uuid = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
-version = "0.12.7"
+version = "0.13.1"
 
     [deps.Trixi.extensions]
-    TrixiAMDGPUExt = "AMDGPU"
     TrixiCUDAExt = "CUDA"
     TrixiConvexECOSExt = ["Convex", "ECOS"]
     TrixiMakieExt = "Makie"
     TrixiNLsolveExt = "NLsolve"
 
     [deps.Trixi.weakdeps]
-    AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
     CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
     Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
     ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
