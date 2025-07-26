@@ -26,18 +26,15 @@ function BatchedColoredUpdater(Jsp::SparseMatrixCSC{T}) where T
     m = size(Jsp, 1)
     n_groups = length(color_groups)
     
-    # Pre-alloca le matrici
     input_matrix = zeros(T, n, n_groups)
     result_matrix = zeros(T, m, n_groups)
     
-    # Setup input matrix una volta sola
     for (group_idx, cols) in enumerate(color_groups)
         for col in cols
             input_matrix[col, group_idx] = 1.0
         end
     end
     
-    # Pre-compute extraction plan
     extraction_plan = Vector{Vector{Tuple{Int, Int}}}(undef, n_groups)
     for (group_idx, cols) in enumerate(color_groups)
         plan = Tuple{Int, Int}[]
@@ -55,16 +52,13 @@ function BatchedColoredUpdater(Jsp::SparseMatrixCSC{T}) where T
 end
 
  function update_sparse_batched!(updater::BatchedColoredUpdater, J_batched)
-           # UNA SOLA moltiplicazione batched per tutti i 67 gruppi!
            mul!(updater.result_matrix, J_batched, updater.input_matrix)
 
-           # Estrazione veloce usando il plan pre-computato
            nzval = updater.sparse_template.nzval
 
            @inbounds for (group_idx, plan) in enumerate(updater.extraction_plan)
                result_col = view(updater.result_matrix, :, group_idx)
 
-               # Rimuovi @simd quando iteriamo su tuple
                for (nz_idx, res_idx) in plan
                    nzval[nz_idx] = result_col[res_idx]
                end

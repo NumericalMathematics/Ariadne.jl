@@ -1,4 +1,5 @@
 [deps]
+Ariadne = "0be81120-40bf-4f8b-adf0-26103efb66f1"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Implicit = "7f538e44-2768-4ef2-af90-2110c0378286"
@@ -8,8 +9,5 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SparseDiffTools = "47a9eef4-7e08-11e9-0b38-333d64bd3804"
 Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 
-[sources.Ariadne]
-path = ".."
-
-[sources.Implicit]
-path = "../libs/Implicit"
+[sources]
+Implicit = {path = "../libs/Implicit"}

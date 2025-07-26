@@ -30,8 +30,6 @@ end
 
 abstract type AbstractJacobianOperator end
 
-
-
 """
     JacobianOperator
 
@@ -65,7 +63,6 @@ function JacobianOperator(f::F, res, u, p; assume_p_const::Bool = false) where {
     end
     return JacobianOperator(f, f′, res, u, p, p′)
 end
-
 
 batch_size(::JacobianOperator) = 1
 
@@ -135,14 +132,17 @@ struct BatchedJacobianOperator{N, F, A, P} <: AbstractJacobianOperator
     res::A
     u::A
     p::P
-    p′::Union{Nothing, NTuple{N, P}} # cache
-    function BatchedJacobianOperator{N}(f::F, res, u, p) where {F, N}
-        f′ = init_cache(f, Val(N))
-        p′ = init_cache(p, Val(N))
-        return new{N, F, typeof(u), typeof(p)}(f, f′, res, u, p, p′)
-    end
+    p′::P′:# cache
 end
 
+    function BatchedJacobianOperator{N}(f::F, res, u, p; assume_p_const) where {F, N}
+        f′ = init_cache(f, Val(N))
+	if assume_p_const
+        p′ = nothing
+	else
+        p′ = init_cache(p, Val(N))
+ 	return BatchedJacobianOperator{N}(f, f′, res, u, p, p′)
+    end
 batch_size(::BatchedJacobianOperator{N}) where {N} = N
 
 Base.size(J::BatchedJacobianOperator) = (length(J.res), length(J.u))
