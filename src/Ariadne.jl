@@ -132,7 +132,7 @@ struct BatchedJacobianOperator{N, F, A, P} <: AbstractJacobianOperator
     res::A
     u::A
     p::P
-    p′::P′:# cache
+    p′::P′# cache
 end
 
     function BatchedJacobianOperator{N}(f::F, res, u, p; assume_p_const) where {F, N}
