@@ -81,33 +81,33 @@ function (::RKLIMEXZ{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, 
     if stage == 1			
 	@. res = invdt * RK.d[stage] * uₙ
 	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
-	
 	@. jstages[stage] = workspace.x
-	@. res = -res *  Δt + jstages[stage]/RK.ah[stage,stage] + uₙ
+	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] + -1/RK.ah[stage,stage]*RK.d[stage]* uₙ
 	f2!(du, res, p, t + RK.c[stage] * Δt)
         f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
 	@. stages[stage] = du + du_tmp
 
-	elseif stage == 2
+    elseif stage == 2
 	@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.a[stage,1] * stages[1]
 	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
 	@. jstages[stage] = workspace.x
-	@. res = -res *  Δt + jstages[stage]/RK.ah[stage,stage] + uₙ
+	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] + -1/RK.ah[stage,stage]*RK.d[stage]* uₙ + RK.gamma[stage,1] * (RK.d[1] * uₙ - jstages[1]) 
 	f2!(du, res, p, t + RK.c[stage] * Δt)
         f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
 	@. stages[stage] = du + du_tmp
 
-	elseif stage == 3
-		@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * (RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2] ))+RK.a[stage,1] * stages[1] + RK.a[stage,2] * stages[2]
+    elseif stage == 3
+		@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * (RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2])) + RK.a[stage,1] * stages[1] + RK.a[stage,2] * stages[2]
 	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
 	@. jstages[stage] = workspace.x
+	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] + -1/RK.ah[stage,stage]*RK.d[stage]* uₙ + RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2] )
 	@. res = -res *  Δt + jstages[stage]/RK.ah[stage,stage] + uₙ
 	f2!(du, res, p, t + RK.c[stage] * Δt)
         f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
 	@. stages[stage] = du + du_tmp
 
 	@. u = uₙ + RK.b[1] * Δt * stages[1] + RK.b[2] * Δt * stages[2] + RK.b[3] * Δt * stages[3] 
-	end
+    end
 end
 
 function (::RKLIMEX{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, ustages, jstages, stage, RK, M, lin_du_tmp, lin_du_tmp1, workspace)
@@ -121,8 +121,7 @@ function (::RKLIMEX{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, u
 	krylov_solve!(workspace, M, uₙ, atol = 1e-6, rtol = 1e-6)
 	@. u = workspace.x
    	J = JacobianOperator(F!, du, u, p)
-	mul!(jstages[stage], J, u)
-	
+	mul!(jstages[stage], J, u)	
 	f2!(du, workspace.x, p, t + RK.c[stage] * Δt)
         f1!(du_tmp, workspace.x, p, t + RK.c[stage] * Δt)
 	@. stages[stage] = du + du_tmp - jstages[stage]
@@ -217,7 +216,7 @@ function RKLSSPIMEX332ZTableau()
     bh[3] = 1/3	 
 
     ch = zeros(Float64, nstage)
-	ch[1] = 1/4
+    ch[1] = 1/4
     ch[2] = 1/4
     ch[3] = 1.0
     d = zeros(Float64, nstage)
@@ -225,7 +224,7 @@ function RKLSSPIMEX332ZTableau()
 
     gamma = zeros(Float64, nstage, nstage)
 
-    gamma = diagm(diag(ah).^(-1)) - inv(a - ah)
+    gamma = diagm(diag(ah).^(-1)) - inv(ah - a)
 
     return IMEXRKZButcher(a, b, c, ah, bh, ch,d, gamma)
 end
