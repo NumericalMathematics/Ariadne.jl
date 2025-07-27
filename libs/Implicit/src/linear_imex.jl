@@ -2,8 +2,8 @@ abstract type SimpleLinearImplicitExplicitAlgorithm{N} end
 
 abstract type RKLIMEX{N} <: SimpleLinearImplicitExplicitAlgorithm{N} end
 
-@inline function optimized_jvp_kernel!(out_buf, f, f', res, u, v_buf, p, p')
-autodiff( Forward, maybe_duplicated(f,f'), 
+#@inline function optimized_jvp_kernel!(out_buf, f, f', res, u, v_buf, p, p')
+#autodiff( Forward, maybe_duplicated(f,f'), 
 
 struct IMEXRKButcher{T1<:AbstractArray,T2<:AbstractArray} <: RKTableau
     a::T1
