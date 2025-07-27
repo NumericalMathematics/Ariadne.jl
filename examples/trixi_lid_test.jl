@@ -26,7 +26,7 @@ ode = semidiscretize(semi, (0.0, 10.0))
 
 sol = solve(
 	ode, 
-     Implicit.RKLSSPIMEX332();
+     Implicit.RKLSSPIMEX332Z();
 	#Implicit.KS22();
     dt = 0.01/4, # solve needs some value here but it will be overwritten by the stepsize_callback
 	ode_default_options()..., callback = callbacks,
