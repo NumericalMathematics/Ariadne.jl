@@ -31,8 +31,10 @@ struct RKLSSPIMEX332Z <: RKLIMEXZ{3} end
 
 function mul!(out::AbstractVector, M::LMOperator, v::AbstractVector)
     # out = (I/dt - J(f,x,p)) * v
-    mul!(out, M.J, v)
-    @. out = v - out * M.dt
+	@trixi_timeit timer() "compute mul!" begin    
+    	   mul!(out, M.J, v)
+ 	   @. out = v - out * M.dt
+	end
     return nothing
 end
 
@@ -47,9 +49,11 @@ Base.eltype(M::LMROperator) = eltype(M.J)
 Base.length(M::LMROperator) = length(M.J)
 function mul!(out::AbstractVector, M::LMROperator, v::AbstractVector)
     # out = (I/dt - J(f,x,p)) * v
-    mul!(out, M.J, v)
-    @. out = v * M.invdt - out
-    return nothing
+	@trixi_timeit timer() "compute mul!" begin    
+   	 mul!(out, M.J, v)
+    	@. out = v * M.invdt - out
+	end
+	return nothing
 end
 
 function (::RKLinearImplicitExplicitEuler)(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, ustages, jstages, stage, RK, M, lin_du_tmp, lin_du_tmp1, workspace)
@@ -61,8 +65,7 @@ function (::RKLinearImplicitExplicitEuler)(res, uₙ, Δt, f1!, f2!, du, du_tmp,
 	mul!(lin_du_tmp, M.J, uₙ)
 #	mul!(lin_du_tmp1, J, u)	
 	f2!(du, uₙ, p, t + RK.c[stage] * Δt)
-        f1!(du_tmp, uₙ, p, t + RK.c[stage] * Δt)
-	
+        f1!(du_tmp, uₙ, p, t + RK.c[stage] * Δt)	
 	res .= uₙ .+ RK.a[stage, stage] * Δt .* (du .+ du_tmp .- lin_du_tmp)
 	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
 	@. u = workspace.x
@@ -89,7 +92,7 @@ function (::RKLIMEXZ{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, 
 
     elseif stage == 2
 	@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.a[stage,1] * stages[1]
-	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
+	krylov_solve!(workspace, M, res, jstages[stage-1], atol = 1e-6, rtol = 1e-6)
 	@. jstages[stage] = workspace.x
 	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] + -1/RK.ah[stage,stage]*RK.d[stage]* uₙ + RK.gamma[stage,1] * (RK.d[1] * uₙ - jstages[1]) 
 	f2!(du, res, p, t + RK.c[stage] * Δt)
@@ -97,8 +100,8 @@ function (::RKLIMEXZ{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, 
 	@. stages[stage] = du + du_tmp
 
     elseif stage == 3
-		@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * (RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2])) + RK.a[stage,1] * stages[1] + RK.a[stage,2] * stages[2]
-	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
+	@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * (RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2])) + RK.a[stage,1] * stages[1] + RK.a[stage,2] * stages[2]
+	krylov_solve!(workspace, M, res, jstages[stage-1], atol = 1e-6, rtol = 1e-6)
 	@. jstages[stage] = workspace.x
 	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] + -1/RK.ah[stage,stage]*RK.d[stage]* uₙ + RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2] )
 	@. res = -res *  Δt + jstages[stage]/RK.ah[stage,stage] + uₙ
@@ -133,7 +136,6 @@ function (::RKLIMEX{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, u
 	mul!(lin_du_tmp, M.J, uₙ)
 #	mul!(lin_du_tmp1, J, u)	
 	@. res = uₙ + RK.a[stage,1] * Δt * stages[1] - Δt * RK.ah[stage,1] * jstages[1]  
-
 	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
 	@. u = workspace.x
    	J = JacobianOperator(F!, du, u, p)
