@@ -31,13 +31,10 @@ struct RKLSSPIMEX332Z <: RKLIMEXZ{3} end
 
 function mul!(out::AbstractVector, M::LMOperator, v::AbstractVector)
     # out = (I/dt - J(f,x,p)) * v
-	@trixi_timeit timer() "compute mul!" begin    
     	   mul!(out, M.J, v)
  	   @. out = v - out * M.dt
-	end
     return nothing
 end
-
 
 struct LMROperator{JOp}
    J::JOp
@@ -49,10 +46,8 @@ Base.eltype(M::LMROperator) = eltype(M.J)
 Base.length(M::LMROperator) = length(M.J)
 function mul!(out::AbstractVector, M::LMROperator, v::AbstractVector)
     # out = (I/dt - J(f,x,p)) * v
-	@trixi_timeit timer() "compute mul!" begin    
    	 mul!(out, M.J, v)
     	@. out = v * M.invdt - out
-	end
 	return nothing
 end
 
@@ -79,7 +74,7 @@ end
 function (::RKLIMEXZ{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, ustages, jstages, stage, RK, M, lin_du_tmp, lin_du_tmp1, workspace)
 	F!(du, u, p) = f1!(du, u, p, t) ## parabolic
  	invdt = inv(RK.ah[stage,stage] * Δt)
-   	J = JacobianOperator(F!, du, uₙ, p)
+   	J = JacobianOperator(F!, du, uₙ, p, assume_p_const = true)
 	M = LMROperator(J, invdt)
     if stage == 1			
 	@. res = invdt * RK.d[stage] * uₙ
@@ -89,7 +84,6 @@ function (::RKLIMEXZ{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, 
 	f2!(du, res, p, t + RK.c[stage] * Δt)
         f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
 	@. stages[stage] = du + du_tmp
-
     elseif stage == 2
 	@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.a[stage,1] * stages[1]
 	krylov_solve!(workspace, M, res, jstages[stage-1], atol = 1e-6, rtol = 1e-6)
@@ -150,7 +144,7 @@ function (::RKLIMEX{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, u
 	M = LMOperator(J, RK.ah[stage,stage] * Δt)
 	mul!(lin_du_tmp, M.J, uₙ)
 	@. res = uₙ + RK.a[stage,1] * Δt * stages[1] + RK.a[stage,2] * Δt * stages[2] - Δt * RK.ah[stage,1] * jstages[1] - Δt * RK.ah[stage,2] * jstages[2]  
-	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
+	a = krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
 	@. u = workspace.x
    	J = JacobianOperator(F!, du, u, p)
 	mul!(jstages[stage], J, u)	

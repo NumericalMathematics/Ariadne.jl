@@ -71,7 +71,8 @@ Base.eltype(J::JacobianOperator) = eltype(J.u)
 Base.length(J::JacobianOperator) = prod(size(J))
 
 function mul!(out, J::JacobianOperator, v)
-    autodiff(
+
+autodiff(
         Forward,
         maybe_duplicated(J.f, J.f′), Const,
         Duplicated(J.res, reshape(out, size(J.res))),
