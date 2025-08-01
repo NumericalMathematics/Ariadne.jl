@@ -71,7 +71,7 @@ function (::RKLinearImplicitExplicitEuler)(res, uₙ, Δt, f1!, f2!, du, du_tmp,
     end
 end
 
-function (::RKLIMEXZ{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, ustages, jstages, stage, RK, M, lin_du_tmp, lin_du_tmp1, workspace)
+function (::RKLIMEXZ{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, ustages, jstages, stage, RK, lin_du_tmp, lin_du_tmp1, workspace)
 	@trixi_timeit timer() "F! function inside" F!(du, u, p) = f1!(du, u, p, t) ## parabolic
  	invdt = inv(RK.ah[stage,stage] * Δt)
    	@trixi_timeit timer() "Jacobian inside" J = JacobianOperator(F!, du, uₙ, p, assume_p_const = true)
@@ -375,9 +375,10 @@ function solve!(integrator::SimpleLinearImplicitExplicit)
     @unpack prob = integrator.sol
 
     integrator.finalstep = false
-
+       @trixi_timeit timer() "kc Constructor" kc = KrylovConstructor(integrator.res)
+   @trixi_timeit timer() "workspace" workspace = krylov_workspace(:gmres, kc)
     while !integrator.finalstep
-        step!(integrator)
+        step!(integrator, workspace)
     end # "main loop" timer
 
     finalize_callbacks(integrator)
@@ -390,7 +391,7 @@ function solve!(integrator::SimpleLinearImplicitExplicit)
 end
 
 
-function step!(integrator::SimpleLinearImplicitExplicit)
+function step!(integrator::SimpleLinearImplicitExplicit, workspace)
     @unpack prob = integrator.sol
     @unpack alg = integrator
     t_end = last(prob.tspan)
@@ -411,7 +412,7 @@ function step!(integrator::SimpleLinearImplicitExplicit)
     # one time step
     integrator.u_tmp .= integrator.u
 
-    stage!(integrator, alg)
+    stage!(integrator, alg, workspace)
 
     integrator.u .= integrator.u_tmp
 
@@ -437,16 +438,15 @@ function step!(integrator::SimpleLinearImplicitExplicit)
     end
 end
 
-function stage!(integrator, alg::RKLIMEXZ)
-  @trixi_timeit timer() "F! function" F!(du, u, p) = integrator.f1(du, u, p, integrator.t) ## parabolic
-   @trixi_timeit timer() "Jacobian outside" J = JacobianOperator(F!, integrator.du, integrator.u, integrator.p)
-   @trixi_timeit timer() "LM Operator outside"	M = LMOperator(J, integrator.dt)
-   @trixi_timeit timer() "kc Constructor" kc = KrylovConstructor(integrator.res)
-   @trixi_timeit timer() "workspace" workspace = krylov_workspace(:gmres, kc)
+function stage!(integrator, alg::RKLIMEXZ, workspace)
+#   @trixi_timeit timer() "F! function" F!(du, u, p) = integrator.f1(du, u, p, integrator.t) ## parabolic
+#    @trixi_timeit timer() "Jacobian outside" J = JacobianOperator(F!, integrator.du, integrator.u, integrator.p)
+#    @trixi_timeit timer() "LM Operator outside"	M = LMOperator(J, integrator.dt)
+
 	for stage in 1:stages(alg)
         # Store the solution for each stage in stages
 	## For a split Problem we need to compute rhs_conservative and rhs_parabolic
-	@trixi_timeit timer() "alg"	alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, integrator.ustages, integrator.jstages, stage, integrator.RK, M, integrator.lin_du_tmp, integrator.lin_du_tmp1, workspace)
+	@trixi_timeit timer() "alg"	alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, integrator.ustages, integrator.jstages, stage, integrator.RK, integrator.lin_du_tmp, integrator.lin_du_tmp1, workspace)
 
     end
 end
