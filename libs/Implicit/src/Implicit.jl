@@ -6,7 +6,7 @@ using LinearAlgebra
 import Ariadne: JacobianOperator
 using Krylov
 
-using Trixi: @trixi_timeit
+using Trixi: @trixi_timeit, timer
 struct MOperator{JOp}
     J::JOp
     dt::Float64
@@ -14,7 +14,7 @@ end
 
 struct LMOperator{JOp}
    J::JOp
-dt::Float64
+   dt::Float64
 end
 
 Base.size(M::LMOperator) = size(M.J)

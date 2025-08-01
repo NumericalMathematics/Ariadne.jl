@@ -2,6 +2,7 @@ abstract type SimpleLinearImplicitExplicitAlgorithm{N} end
 
 abstract type RKLIMEX{N} <: SimpleLinearImplicitExplicitAlgorithm{N} end
 
+abstract type RKLIMEXZ{N} <: SimpleLinearImplicitExplicitAlgorithm{N} end
 
 struct IMEXRKButcher{T1<:AbstractArray,T2<:AbstractArray} <: RKTableau
     a::T1
@@ -11,28 +12,55 @@ struct IMEXRKButcher{T1<:AbstractArray,T2<:AbstractArray} <: RKTableau
     bh::T2
     ch::T2	
 end
+struct IMEXRKZButcher{T1<:AbstractArray,T2<:AbstractArray} <: RKTableau
+    a::T1
+    b::T2
+    c::T2
+    ah::T1
+    bh::T2
+    ch::T2
+    d::T2
+    gamma::T1
+end
 
 struct RKLinearImplicitExplicitEuler <: RKLIMEX{1} end
 
 struct RKLSSPIMEX332 <: RKLIMEX{3} end
 
+struct RKLSSPIMEX332Z <: RKLIMEXZ{3} end
+
 function mul!(out::AbstractVector, M::LMOperator, v::AbstractVector)
     # out = (I/dt - J(f,x,p)) * v
-    mul!(out, M.J, v)
-    @. out = v - out * M.dt
+    	   mul!(out, M.J, v)
+ 	   @. out = v - out * M.dt
     return nothing
+end
+
+struct LMROperator{JOp}
+   J::JOp
+invdt::Float64
+end
+
+Base.size(M::LMROperator) = size(M.J)
+Base.eltype(M::LMROperator) = eltype(M.J)
+Base.length(M::LMROperator) = length(M.J)
+function mul!(out::AbstractVector, M::LMROperator, v::AbstractVector)
+    # out = (I/dt - J(f,x,p)) * v
+   	 mul!(out, M.J, v)
+    	@. out = v * M.invdt - out
+	return nothing
 end
 
 function (::RKLinearImplicitExplicitEuler)(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, ustages, jstages, stage, RK, M, lin_du_tmp, lin_du_tmp1, workspace)
     if stage == 1
         # Stage 1:
+
 	## f2 is the conservative part
 	## f1 is the parabolic part
 	mul!(lin_du_tmp, M.J, uₙ)
 #	mul!(lin_du_tmp1, J, u)	
 	f2!(du, uₙ, p, t + RK.c[stage] * Δt)
-        f1!(du_tmp, uₙ, p, t + RK.c[stage] * Δt)
-	
+        f1!(du_tmp, uₙ, p, t + RK.c[stage] * Δt)	
 	res .= uₙ .+ RK.a[stage, stage] * Δt .* (du .+ du_tmp .- lin_du_tmp)
 	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
 	@. u = workspace.x
@@ -43,57 +71,87 @@ function (::RKLinearImplicitExplicitEuler)(res, uₙ, Δt, f1!, f2!, du, du_tmp,
     end
 end
 
+function (::RKLIMEXZ{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, ustages, jstages, stage, RK, M, lin_du_tmp, lin_du_tmp1, workspace)
+	@trixi_timeit timer() "F! function inside" F!(du, u, p) = f1!(du, u, p, t) ## parabolic
+ 	invdt = inv(RK.ah[stage,stage] * Δt)
+   	@trixi_timeit timer() "Jacobian inside" J = JacobianOperator(F!, du, uₙ, p, assume_p_const = true)
+	@trixi_timeit timer() "LM Operator inside" M = LMROperator(J, invdt)
+    if stage == 1			
+	@. res = invdt * RK.d[stage] * uₙ
+	 @trixi_timeit timer() "krylov solve stage 1" krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
+	@. jstages[stage] = workspace.x
+	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] + -1/RK.ah[stage,stage]*RK.d[stage]* uₙ
+	f2!(du, res, p, t + RK.c[stage] * Δt)
+    f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
+	@. stages[stage] = du + du_tmp
+    elseif stage == 2
+	@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.a[stage,1] * stages[1]
+	@trixi_timeit timer() "krylov solve stage 2" krylov_solve!(workspace, M, res, jstages[stage-1], atol = 1e-6, rtol = 1e-6)
+	@. jstages[stage] = workspace.x
+	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] + -1/RK.ah[stage,stage]*RK.d[stage]* uₙ + RK.gamma[stage,1] * (RK.d[1] * uₙ - jstages[1]) 
+	f2!(du, res, p, t + RK.c[stage] * Δt)
+        f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
+	@. stages[stage] = du + du_tmp
+
+    elseif stage == 3
+	@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * (RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2])) + RK.a[stage,1] * stages[1] + RK.a[stage,2] * stages[2]
+	@trixi_timeit timer() "krylov solve stage 3" krylov_solve!(workspace, M, res, jstages[stage-1], atol = 1e-6, rtol = 1e-6)
+	@. jstages[stage] = workspace.x
+	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] + -1/RK.ah[stage,stage]*RK.d[stage]* uₙ + RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2] )
+	@. res = -res *  Δt + jstages[stage]/RK.ah[stage,stage] + uₙ
+	f2!(du, res, p, t + RK.c[stage] * Δt)
+        f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
+	@. stages[stage] = du + du_tmp
+
+	@. u = uₙ + RK.b[1] * Δt * stages[1] + RK.b[2] * Δt * stages[2] + RK.b[3] * Δt * stages[3] 
+    end
+end
 
 function (::RKLIMEX{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, ustages, jstages, stage, RK, M, lin_du_tmp, lin_du_tmp1, workspace)
-   F!(du, u, p) = f1!(du, u, p, t) ## parabolic
+	F!(du, u, p) = f1!(du, u, p, t) ## parabolic
     if stage == 1
         # Stage 1:
 	## f2 is the conservative part
 	## f1 is the parabolic part
    	J = JacobianOperator(F!, du, uₙ, p)
-	M = LMOperator(J, RK.ah[stage,stage] * Δt)
+   	M = LMOperator(J, RK.ah[stage,stage] * Δt)
 	krylov_solve!(workspace, M, uₙ, atol = 1e-6, rtol = 1e-6)
 	@. u = workspace.x
    	J = JacobianOperator(F!, du, u, p)
-	mul!(jstages[stage], J, u)
-	
+	mul!(jstages[stage], J, u)	
 	f2!(du, workspace.x, p, t + RK.c[stage] * Δt)
         f1!(du_tmp, workspace.x, p, t + RK.c[stage] * Δt)
-	stages[stage] .= du .+ du_tmp - jstages[stage]
-	ustages[stage] .= u	
+	@. stages[stage] = du + du_tmp - jstages[stage]
+	@. ustages[stage] = u	
 #        @. u = uₙ + RK.b[1] * Δt * stages[1]
 	elseif stage == 2
-				
 	J = JacobianOperator(F!, du, ustages[1], p)
 	M = LMOperator(J, RK.ah[stage,stage] * Δt)
 	mul!(lin_du_tmp, M.J, uₙ)
 #	mul!(lin_du_tmp1, J, u)	
-	res .= uₙ + RK.a[stage,1] * Δt * stages[1] - Δt * RK.ah[stage,1] * jstages[1]  
-
+	@. res = uₙ + RK.a[stage,1] * Δt * stages[1] - Δt * RK.ah[stage,1] * jstages[1]  
 	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
 	@. u = workspace.x
    	J = JacobianOperator(F!, du, u, p)
 	mul!(jstages[stage], J, u)	
 	f2!(du, workspace.x, p, t + RK.c[stage] * Δt)
-        f1!(du_tmp, workspace.x, p, t + RK.c[stage] * Δt)
-	stages[stage] .= du .+ du_tmp - jstages[stage]
-	ustages[stage] .= u	
+	f1!(du_tmp, workspace.x, p, t + RK.c[stage] * Δt)
+	@. stages[stage] = du + du_tmp - jstages[stage]
+	@. ustages[stage] = u	
 
 	elseif stage == 3
-
 	J = JacobianOperator(F!, du, ustages[2], p)
 	M = LMOperator(J, RK.ah[stage,stage] * Δt)
 	mul!(lin_du_tmp, M.J, uₙ)
-#	mul!(lin_du_tmp1, J, u)	
-	res .= uₙ + RK.a[stage,1] * Δt * stages[1] + RK.a[stage,2] * Δt * stages[2] - Δt * RK.ah[stage,1] * jstages[1] - Δt * RK.ah[stage,2] * jstages[2]  
-	krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
+	@. res = uₙ + RK.a[stage,1] * Δt * stages[1] + RK.a[stage,2] * Δt * stages[2] - Δt * RK.ah[stage,1] * jstages[1] - Δt * RK.ah[stage,2] * jstages[2]  
+	a = krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
 	@. u = workspace.x
    	J = JacobianOperator(F!, du, u, p)
 	mul!(jstages[stage], J, u)	
 	f2!(du, workspace.x, p, t + RK.c[stage] * Δt)
         f1!(du_tmp, workspace.x, p, t + RK.c[stage] * Δt)
-	stages[stage] .= du .+ du_tmp - jstages[stage]
-	ustages[stage] .= u	
+	@. stages[stage] = du + du_tmp - jstages[stage]
+	@. ustages[stage] = u	
 
 	@. u = uₙ + RK.b[1] * Δt * stages[1] + RK.b[2] * Δt * stages[2] + RK.b[3] * Δt * stages[3] -  RK.bh[1] * Δt * jstages[1]  -  RK.bh[2] * Δt * jstages[2]  -  RK.bh[3] * Δt * jstages[3]  
 	end
@@ -120,6 +178,52 @@ function RKTableau(alg::RKLSSPIMEX332)
 return RKLSSPIMEX332Tableau()
 end
 
+
+function RKTableau(alg::RKLSSPIMEX332Z)
+return RKLSSPIMEX332ZTableau()
+end
+
+function RKLSSPIMEX332ZTableau()
+
+    nstage = 3
+    a = zeros(Float64, nstage, nstage)
+    a[2, 1] = 0.5
+    a[3, 1] = 0.5
+    a[3, 2] = 0.5
+    
+    b = zeros(Float64, nstage)
+    b[1] = 1/3
+    b[2] = 1/3
+    b[3] = 1/3	 
+
+    c = zeros(Float64, nstage)
+    c[2] = 0.5
+    c[3] = 1.0
+    ah = zeros(Float64, nstage, nstage)
+    ah[1, 1] = 1/4
+    ah[2, 2] = 1/4
+    ah[3, 1] = 1/3
+    ah[3, 2] = 1/3
+    ah[3, 3] = 1/3
+    
+    bh = zeros(Float64, nstage)
+    bh[1] = 1/3
+    bh[2] = 1/3
+    bh[3] = 1/3	 
+
+    ch = zeros(Float64, nstage)
+    ch[1] = 1/4
+    ch[2] = 1/4
+    ch[3] = 1.0
+    d = zeros(Float64, nstage)
+    @. d = ch - c
+
+    gamma = zeros(Float64, nstage, nstage)
+
+    gamma = diagm(diag(ah).^(-1)) - inv(ah - a)
+
+    return IMEXRKZButcher(a, b, c, ah, bh, ch,d, gamma)
+end
 function RKLSSPIMEX332Tableau()
 
     nstage = 3
@@ -333,12 +437,25 @@ function step!(integrator::SimpleLinearImplicitExplicit)
     end
 end
 
+function stage!(integrator, alg::RKLIMEXZ)
+  @trixi_timeit timer() "F! function" F!(du, u, p) = integrator.f1(du, u, p, integrator.t) ## parabolic
+   @trixi_timeit timer() "Jacobian outside" J = JacobianOperator(F!, integrator.du, integrator.u, integrator.p)
+   @trixi_timeit timer() "LM Operator outside"	M = LMOperator(J, integrator.dt)
+   @trixi_timeit timer() "kc Constructor" kc = KrylovConstructor(integrator.res)
+   @trixi_timeit timer() "workspace" workspace = krylov_workspace(:gmres, kc)
+	for stage in 1:stages(alg)
+        # Store the solution for each stage in stages
+	## For a split Problem we need to compute rhs_conservative and rhs_parabolic
+	@trixi_timeit timer() "alg"	alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, integrator.ustages, integrator.jstages, stage, integrator.RK, M, integrator.lin_du_tmp, integrator.lin_du_tmp1, workspace)
+
+    end
+end
 function stage!(integrator, alg::RKLIMEX)
    F!(du, u, p) = integrator.f1(du, u, p, integrator.t) ## parabolic
-   J = JacobianOperator(F!, integrator.du, integrator.u, integrator.p)
-   	M = LMOperator(J, integrator.dt)
-    kc = KrylovConstructor(integrator.res)
-    workspace = krylov_workspace(:gmres, kc)
+  J = JacobianOperator(F!, integrator.du, integrator.u, integrator.p)
+   M = LMOperator(J, integrator.dt)
+  kc = KrylovConstructor(integrator.res)
+  workspace = krylov_workspace(:gmres, kc)
 	for stage in 1:stages(alg)
         # Store the solution for each stage in stages
 	## For a split Problem we need to compute rhs_conservative and rhs_parabolic
