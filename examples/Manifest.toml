@@ -2,7 +2,7 @@
 
 julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "845ee78cafcaf17b5018b9560884ff01bb23472f"
+project_hash = "2cdc7e110455eab139da28d5eb5c3ff490ecedf1"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "be7ae030256b8ef14a441726c4c37766b90b93a3"
@@ -1653,6 +1653,12 @@ deps = ["Adapt", "DiffEqBase", "FastBroadcast", "MuladdMacro", "OrdinaryDiffEqCo
 git-tree-sha1 = "52ec7081e65291fa5c19749312df0818db2fa1bc"
 uuid = "b0944070-b475-4768-8dec-fb6eb410534d"
 version = "1.3.0"
+
+[[deps.OrdinaryDiffEqSSPRK]]
+deps = ["DiffEqBase", "FastBroadcast", "MuladdMacro", "OrdinaryDiffEqCore", "Polyester", "PrecompileTools", "Preferences", "RecursiveArrayTools", "Reexport", "SciMLBase", "Static", "StaticArrays"]
+git-tree-sha1 = "c161e26500923470320233f7ff0444c3dfdad47a"
+uuid = "669c94d9-1f4b-4b64-b377-1aa079aa2388"
+version = "1.4.0"
 
 [[deps.P4est]]
 deps = ["CEnum", "MPI", "MPIPreferences", "P4est_jll", "Preferences", "Reexport", "UUIDs"]

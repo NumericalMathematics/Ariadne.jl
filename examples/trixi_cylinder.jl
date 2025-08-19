@@ -1,0 +1,56 @@
+# # Using the an implicit solver based on Ariadne with Trixi.jl
+
+using Trixi
+using Implicit
+using CairoMakie
+
+# Notes:
+# Must disable both Polyester and LoopVectorization for Enzyme to be able to differentiate Trixi.jl
+# Using https://github.com/trixi-framework/Trixi.jl/pull/2295
+#
+# LocalPreferences.jl
+# ```toml
+# [Trixi]
+# loop_vectorization = false
+# polyester = false
+# ```
+
+#@assert !Trixi._PREFERENCE_POLYESTER
+#@assert !Trixi._PREFERENCE_LOOPVECTORIZATION
+
+trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_vortex_street.jl"), sol = nothing, tspan = (0.0, 5.0));
+
+alive_callback = AliveCallback(analysis_interval = 10)
+save_solution = SaveSolutionCallback(dt = 1.0,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback,
+			#save_solution,
+                        alive_callback
+			)
+trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_vortex_street.jl"), sol = nothing, tspan = (0.0, 5.0), callbacks = callbacks);
+time_int_tol = 1e-6
+sol = solve(ode,
+            # Moderate number of threads (e.g. 4) advisable to speed things up
+            SSPRK33(thread = Trixi.True()); dt = 0.0056,
+            abstol = time_int_tol, reltol = time_int_tol,
+            ode_default_options()..., callback = callbacks, adaptive = false)
+dt = 0.008
+###############################################################################
+# run the simulation
+ sol = solve(
+	ode, 
+    	Implicit.RKLSSPIMEX332Z();
+	#Implicit.KS22();
+    	dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
+	ode_default_options()..., callback = callbacks,
+	# verbose=1,
+	krylov_algo = :gmres,
+);
+
+
+
+## dt_vec = [0.001, 0.001/2, 0.0001]
+## l2_vec = [4.95311953e-04, 2.48996489e-04   ,5.40458032e-05, ]

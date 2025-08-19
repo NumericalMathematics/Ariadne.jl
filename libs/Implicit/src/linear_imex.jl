@@ -82,7 +82,7 @@ function (::RKLIMEXZ{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, 
 	@. jstages[stage] = workspace.x
 	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] + -1/RK.ah[stage,stage]*RK.d[stage]* uₙ
 	f2!(du, res, p, t + RK.c[stage] * Δt)
-    f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
+    	f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
 	@. stages[stage] = du + du_tmp
     elseif stage == 2
 	@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.a[stage,1] * stages[1]
