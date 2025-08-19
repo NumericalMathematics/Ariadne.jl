@@ -1,5 +1,5 @@
 # # Using the an implicit solver based on Ariadne with Trixi.jl
-
+using OrdinaryDiffEqSSPRK
 using Trixi
 using Implicit
 using CairoMakie

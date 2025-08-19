@@ -29,6 +29,8 @@ struct RKLSSPIMEX332 <: RKLIMEX{3} end
 
 struct RKLSSPIMEX332Z <: RKLIMEXZ{3} end
 
+struct AGSA432 <: RKLIMEXZ{4} end
+
 function mul!(out::AbstractVector, M::LMOperator, v::AbstractVector)
     # out = (I/dt - J(f,x,p)) * v
     	   mul!(out, M.J, v)
@@ -74,38 +76,120 @@ end
 function (::RKLIMEXZ{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, ustages, jstages, stage, RK, lin_du_tmp, lin_du_tmp1, workspace)
 	@trixi_timeit timer() "F! function inside" F!(du, u, p) = f1!(du, u, p, t) ## parabolic
  	invdt = inv(RK.ah[stage,stage] * Δt)
-   	@trixi_timeit timer() "Jacobian inside" J = JacobianOperator(F!, du, uₙ, p, assume_p_const = true)
-	@trixi_timeit timer() "LM Operator inside" M = LMROperator(J, invdt)
+	assume_p_const = true
     if stage == 1			
+   	@trixi_timeit timer() "Jacobian inside stage1" J = JacobianOperator(F!, du, uₙ, p, assume_p_const = assume_p_const)
+	@trixi_timeit timer() "LM Operator inside stage 1" M = LMROperator(J, invdt)
 	@. res = invdt * RK.d[stage] * uₙ
 	 @trixi_timeit timer() "krylov solve stage 1" krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
 	@. jstages[stage] = workspace.x
 	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] + -1/RK.ah[stage,stage]*RK.d[stage]* uₙ
+	@. ustages[stage] = res
 	f2!(du, res, p, t + RK.c[stage] * Δt)
     	f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
 	@. stages[stage] = du + du_tmp
     elseif stage == 2
+	@trixi_timeit timer() "Jacobian inside stage 2" J = JacobianOperator(F!, du, ustages[stage-1], p, assume_p_const = assume_p_const)
+	@trixi_timeit timer() "LM Operator inside stage 2" M = LMROperator(J, invdt)
 	@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.a[stage,1] * stages[1]
 	@trixi_timeit timer() "krylov solve stage 2" krylov_solve!(workspace, M, res, jstages[stage-1], atol = 1e-6, rtol = 1e-6)
 	@. jstages[stage] = workspace.x
 	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] + -1/RK.ah[stage,stage]*RK.d[stage]* uₙ + RK.gamma[stage,1] * (RK.d[1] * uₙ - jstages[1]) 
+	@. ustages[stage] = res
 	f2!(du, res, p, t + RK.c[stage] * Δt)
         f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
 	@. stages[stage] = du + du_tmp
-
     elseif stage == 3
+	@trixi_timeit timer() "Jacobian inside stage 3" J = JacobianOperator(F!, du, ustages[stage-1], p, assume_p_const = assume_p_const)
+	@trixi_timeit timer() "LM Operator inside stage 3" M = LMROperator(J, invdt)
 	@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * (RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2])) + RK.a[stage,1] * stages[1] + RK.a[stage,2] * stages[2]
 	@trixi_timeit timer() "krylov solve stage 3" krylov_solve!(workspace, M, res, jstages[stage-1], atol = 1e-6, rtol = 1e-6)
 	@. jstages[stage] = workspace.x
 	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] + -1/RK.ah[stage,stage]*RK.d[stage]* uₙ + RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2] )
-	@. res = -res *  Δt + jstages[stage]/RK.ah[stage,stage] + uₙ
+	@. ustages[stage] = res
+	f2!(du, res, p, t + RK.c[stage] * Δt)
+        f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
+	@. stages[stage] = du + du_tmp
+#	stage = 1	
+#	@trixi_timeit timer() "Jacobian inside stage1" J = JacobianOperator(F!, du, ustages[stage], p, assume_p_const = assume_p_const)
+#	mul!(jstages[stage], J, ustages[stage])	
+#	stage = 2	
+#	@trixi_timeit timer() "Jacobian inside stage1" J = JacobianOperator(F!, du, ustages[stage], p, assume_p_const = assume_p_const)
+#	mul!(jstages[stage], J, ustages[stage])	
+#	stage = 3	
+#	@trixi_timeit timer() "Jacobian inside stage1" J = JacobianOperator(F!, du, ustages[stage], p, assume_p_const = assume_p_const)
+#	mul!(jstages[stage], J, ustages[stage])	
+	@. u = uₙ + RK.b[1] * Δt * stages[1] + RK.b[2] * Δt * stages[2] + RK.b[3] * Δt * stages[3] #- RK.b[1] * Δt * jstages[1]  - RK.b[2] * Δt * jstages[2] - RK.b[3] * Δt * jstages[3]   + RK.bh[1] * Δt * jstages[1]  + RK.bh[2] * Δt * jstages[2] + RK.bh[3] * Δt * jstages[3]
+    end
+end
+
+
+function (::RKLIMEXZ{4})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, ustages, jstages, stage, RK, lin_du_tmp, lin_du_tmp1, workspace)
+	@trixi_timeit timer() "F! function inside" F!(du, u, p) = f1!(du, u, p, t) ## parabolic
+ 	invdt = inv(RK.ah[stage,stage] * Δt)
+	assume_p_const = true
+    if stage == 1			
+   	@trixi_timeit timer() "Jacobian inside stage1" J = JacobianOperator(F!, du, uₙ, p, assume_p_const = assume_p_const)
+	@trixi_timeit timer() "LM Operator inside stage 1" M = LMROperator(J, invdt)
+	@. res = invdt * RK.d[stage] * uₙ
+	 @trixi_timeit timer() "krylov solve stage 1" krylov_solve!(workspace, M, res, atol = 1e-6, rtol = 1e-6)
+	@. jstages[stage] = workspace.x
+	@. res = uₙ + jstages[stage]./RK.ah[stage,stage] - 1/RK.ah[stage,stage]*RK.d[stage]* uₙ
+	@. ustages[stage] = res
+	f2!(du, res, p, t + RK.c[stage] * Δt)
+    	f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
+	@. stages[stage] = du + du_tmp
+    elseif stage == 2
+	@trixi_timeit timer() "Jacobian inside stage 2" J = JacobianOperator(F!, du, ustages[stage-1], p, assume_p_const = assume_p_const)
+	@trixi_timeit timer() "LM Operator inside stage 2" M = LMROperator(J, invdt)
+	@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * RK.gamma[stage,1] *(RK.d[1] *  uₙ - jstages[1]) + RK.a[stage,1] * stages[1]
+	@trixi_timeit timer() "krylov solve stage 2" krylov_solve!(workspace, M, res, jstages[stage-1], atol = 1e-6, rtol = 1e-6)
+	@. jstages[stage] = workspace.x
+	@. res = uₙ + jstages[stage]/RK.ah[stage,stage] - 1/RK.ah[stage,stage]*RK.d[stage]*uₙ + RK.gamma[stage,1] * (RK.d[1] * uₙ - jstages[1]) 
+	@. ustages[stage] = res
+	f2!(du, res, p, t + RK.c[stage] * Δt)
+        f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
+	@. stages[stage] = du + du_tmp
+    elseif stage == 3
+	@trixi_timeit timer() "Jacobian inside stage 3" J = JacobianOperator(F!, du, ustages[stage-1], p, assume_p_const = assume_p_const)
+	@trixi_timeit timer() "LM Operator inside stage 3" M = LMROperator(J, invdt)
+	@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * (RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2])) + RK.a[stage,1] * stages[1] + RK.a[stage,2] * stages[2]
+	@trixi_timeit timer() "krylov solve stage 3" krylov_solve!(workspace, M, res, jstages[stage-1], atol = 1e-6, rtol = 1e-6)
+	@. jstages[stage] = workspace.x
+	@. res = uₙ + jstages[stage]/RK.ah[stage,stage] - 1/RK.ah[stage,stage]*RK.d[stage]* uₙ + RK.gamma[stage,1] *(RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2])
+	@. ustages[stage] = res
+	f2!(du, res, p, t + RK.c[stage] * Δt)
+        f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
+	@. stages[stage] = du + du_tmp	
+    elseif stage == 4
+	@trixi_timeit timer() "Jacobian inside stage 3" J = JacobianOperator(F!, du, ustages[stage-1], p, assume_p_const = assume_p_const)
+	@trixi_timeit timer() "LM Operator inside stage 3" M = LMROperator(J, invdt)
+	@. res = invdt * RK.d[stage] * uₙ - invdt*RK.ah[stage,stage] * (RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2]) + RK.gamma[stage,3] * (RK.d[3] * uₙ - jstages[3])) + RK.a[stage,1] * stages[1] + RK.a[stage,2] * stages[2] + RK.a[stage,3] * stages[3]
+	@trixi_timeit timer() "krylov solve stage 4" krylov_solve!(workspace, M, res, jstages[stage-1], atol = 1e-6, rtol = 1e-6)
+	@. jstages[stage] = workspace.x
+	@. res = uₙ+ jstages[stage]/RK.ah[stage,stage] - 1/RK.ah[stage,stage]*RK.d[stage]* uₙ + RK.gamma[stage,1] *( RK.d[1] *  uₙ - jstages[1]) + RK.gamma[stage,2] * (RK.d[2] * uₙ  - jstages[2]) + RK.gamma[stage,3] * (RK.d[3] * uₙ  - jstages[3] )
+	@. ustages[stage] = res
 	f2!(du, res, p, t + RK.c[stage] * Δt)
         f1!(du_tmp, res, p, t + RK.c[stage] * Δt)
 	@. stages[stage] = du + du_tmp
 
-	@. u = uₙ + RK.b[1] * Δt * stages[1] + RK.b[2] * Δt * stages[2] + RK.b[3] * Δt * stages[3] 
+	stage = 1	
+	@trixi_timeit timer() "Jacobian inside stage1" J = JacobianOperator(F!, du, ustages[stage], p, assume_p_const = assume_p_const)
+	mul!(jstages[stage], J, ustages[stage])	
+	stage = 2	
+	@trixi_timeit timer() "Jacobian inside stage1" J = JacobianOperator(F!, du, ustages[stage], p, assume_p_const = assume_p_const)
+	mul!(jstages[stage], J, ustages[stage])	
+	stage = 3	
+	@trixi_timeit timer() "Jacobian inside stage1" J = JacobianOperator(F!, du, ustages[stage], p, assume_p_const = assume_p_const)
+	mul!(jstages[stage], J, ustages[stage])	
+	stage = 4	
+	@trixi_timeit timer() "Jacobian inside stage1" J = JacobianOperator(F!, du, ustages[stage], p, assume_p_const = assume_p_const)
+	mul!(jstages[stage], J, ustages[stage])	
+	@. u = uₙ + RK.b[1] * Δt * stages[1] + RK.b[2] * Δt * stages[2] + RK.b[3] * Δt * stages[3] + RK.b[4] * Δt * stages[4]- RK.b[1] * Δt * jstages[1]  - RK.b[2] * Δt * jstages[2] - RK.b[3] * Δt * jstages[3]  - RK.b[4] * Δt * jstages[4]  + RK.bh[1] * Δt * jstages[1]  + RK.bh[2] * Δt * jstages[2] + RK.bh[3] * Δt * jstages[3] + RK.bh[4] * Δt * jstages[4]
+
     end
 end
+
 
 function (::RKLIMEX{3})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages, ustages, jstages, stage, RK, M, lin_du_tmp, lin_du_tmp1, workspace)
 	F!(du, u, p) = f1!(du, u, p, t) ## parabolic
@@ -178,9 +262,68 @@ function RKTableau(alg::RKLSSPIMEX332)
 return RKLSSPIMEX332Tableau()
 end
 
+function RKTableau(alg::AGSA432)
+return AGSA432Tableau()
+end
+
+
 
 function RKTableau(alg::RKLSSPIMEX332Z)
 return RKLSSPIMEX332ZTableau()
+end
+
+
+function AGSA432Tableau()
+
+    nstage = 4
+    a = zeros(Float64, nstage, nstage)
+        a[2,1] = (-139833537) / 38613965
+	a[3,1] = 85870407 / 49798258
+	a[3,2] = (-121251843) / 1756367063
+	a[4,2] = 1/6
+	a[4,3] = 2/3
+	a[4,1] = 1 - a[4,2] - a[4,3]
+    
+    b = zeros(Float64, nstage)
+    b[1] = 1 - 1/6 - 2/3
+    b[2] = 1/6
+    b[3] = 2/3	 
+
+    c = zeros(Float64, nstage)
+	c[2] = a[2,1]
+	c[3] = a[3,1] + a[3,2]
+	c[4] = a[4,1] + a[4,2] + a[4,3]
+    ah = zeros(Float64, nstage, nstage)
+	ah[1,1] = 168999711 / 74248304
+	ah[2,1] = 44004295 / 24775207
+	ah[2,2] = 202439144 / 118586105
+	ah[3,1] = (-6418119) / 169001713
+	ah[3,2] = (-748951821) / 1043823139
+	ah[3,3] = 12015439 / 183058594
+	ah[4,2] = 1 / 3
+	ah[4,3] = 0
+	ah[4,1] = 1 - ah[2,2] - 1/3
+	ah[4,4] = ah[2,2]
+    
+    bh = zeros(Float64, nstage)
+	bh[1] = ah[4,1]
+	bh[2] = ah[4,2]
+	bh[3] = ah[4,3]
+	bh[4] = ah[4,4]
+
+    ch = zeros(Float64, nstage)
+	ch[1] = ah[1,1]
+	ch[2] = ah[2,1] + ah[2,2]
+	ch[3] = ah[3,1] + ah[3,2] + ah[3,3]
+	ch[4] = ah[4,1] + ah[4,2] + ah[4,3] + ah[4,4]
+    d = zeros(Float64, nstage)
+    @. d = ch - c
+
+    gamma = zeros(Float64, nstage, nstage)
+
+    gamma = diagm(diag(ah).^(-1)) - inv(ah - a)
+
+    return IMEXRKZButcher(a, b, c, ah, bh, ch,d, gamma)
 end
 
 function RKLSSPIMEX332ZTableau()
