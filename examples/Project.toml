@@ -23,4 +23,4 @@ Theseus = {path = "../libs/Theseus"}
 
 [compat]
 julia = "1.10"
-Trixi = "0.13"
+Trixi = "0.13.1"

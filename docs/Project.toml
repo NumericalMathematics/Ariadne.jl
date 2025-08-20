@@ -20,3 +20,6 @@ Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 [sources]
 Ariadne = {path = ".."}
 Theseus = {path = "../libs/Theseus"}
+
+[compat]
+Trixi = "0.13.1"
