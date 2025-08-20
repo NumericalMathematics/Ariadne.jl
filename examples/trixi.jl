@@ -3,6 +3,8 @@
 using Trixi
 using Theseus
 using CairoMakie
+using LinearAlgebra
+import Ariadne: JacobianOperator
 
 
 # Notes:
@@ -20,7 +22,7 @@ using CairoMakie
 @assert !Trixi._PREFERENCE_LOOPVECTORIZATION
 
 # ## Load Trixi Example
-# trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), sol = nothing);
+## trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), sol = nothing);
 trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"));
 
 ref = copy(sol)
@@ -30,13 +32,12 @@ du = zero(ode.u0)
 res = zero(ode.u0)
 
 F! = Theseus.nonlinear_problem(Theseus.ImplicitEuler(), ode.f)
-J = Theseus.Ariadne.JacobianOperator(F!, res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))
+J = JacobianOperator(F!, res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))
 
-using LinearAlgebra
 out = zero(u)
 v = zero(u)
 
-# precompile
+## precompile
 mul!(u, J, v)
 
 @time mul!(u, J, v)
@@ -53,27 +54,27 @@ sol_euler = solve(
     ode, Theseus.ImplicitEuler();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
-    # verbose=1,
+    ## verbose=1,
     krylov_algo = :gmres,
-    # krylov_kwargs=(;verbose=1)
+    ## krylov_kwargs=(;verbose=1)
 );
 
 sol_midpoint = solve(
     ode, Theseus.ImplicitMidpoint();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
-    # verbose=1,
+    ## verbose=1,
     krylov_algo = :gmres,
-    # krylov_kwargs=(;verbose=1)
+    ## krylov_kwargs=(;verbose=1)
 );
 
 sol_trapezoid = solve(
     ode, Theseus.ImplicitTrapezoid();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
-    # verbose=1,
+    ## verbose=1,
     krylov_algo = :gmres,
-    # krylov_kwargs=(;verbose=1)
+    ## krylov_kwargs=(;verbose=1)
 );
 
 
@@ -81,9 +82,9 @@ sol_trbdf2 = solve(
     ode, Theseus.TRBDF2();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
-    # verbose=1,
+    ## verbose=1,
     krylov_algo = :gmres,
-    # krylov_kwargs=(;verbose=1)
+    ## krylov_kwargs=(;verbose=1)
 );
 
 import OrdinaryDiffEqSDIRK
@@ -115,9 +116,9 @@ sol = solve(
     ode, Theseus.ImplicitEuler();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
-    # verbose=1,
+    ## verbose=1,
     krylov_algo = :gmres,
-    # krylov_kwargs=(;verbose=1)
+    ## krylov_kwargs=(;verbose=1)
 );
 
 @show callbacks.discrete_callbacks[4]
