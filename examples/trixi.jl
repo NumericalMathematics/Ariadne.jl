@@ -22,7 +22,7 @@ import Ariadne: JacobianOperator
 @assert !Trixi._PREFERENCE_LOOPVECTORIZATION
 
 # ## Load Trixi Example
-trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), sol = nothing);
+trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), sol = nothing);
 
 u = copy(ode.u0)
 du = zero(ode.u0)
@@ -77,7 +77,7 @@ plot(Trixi.PlotData2DTriangulated(sol_sdrik.u[end], sol_sdrik.prob.p))
 
 # ## Increase CFL numbers
 
-trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), cfl = 10, sol = nothing);
+trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), cfl = 10, sol = nothing);
 
 sol = solve(
     ode, Theseus.ImplicitEuler();
