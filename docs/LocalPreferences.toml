@@ -1,3 +1,4 @@
 [Trixi]
 loop_vectorization = false
-polyester = false
+backend = "static"
+
