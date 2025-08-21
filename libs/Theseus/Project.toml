@@ -1,0 +1,19 @@
+name = "Theseus"
+uuid = "7f538e44-2768-4ef2-af90-2110c0378286"
+authors = ["Valentin Churavy <v.churavy@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
+Ariadne = "0be81120-40bf-4f8b-adf0-26103efb66f1"
+SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
+UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
+
+[sources]
+Ariadne = {path = "../.."}
+
+[compat]
+DiffEqBase = "6.174.0"
+Ariadne = "0.1.0"
+SciMLBase = "2.91.0"
+UnPack = "1.0.2"
