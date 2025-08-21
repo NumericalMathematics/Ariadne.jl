@@ -1,6 +1,7 @@
 [deps]
 Ariadne = "0be81120-40bf-4f8b-adf0-26103efb66f1"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+DifferentiationInterface = "a0c0ee7d-e4b9-4e03-894e-1c5f64a51d63"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DocumenterCitations = "daee34ce-89f3-4625-b898-19384cb65244"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
