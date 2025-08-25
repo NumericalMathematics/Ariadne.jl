@@ -18,7 +18,7 @@ coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
 # Create a uniformly refined mesh
-trees_per_dimension = (16, 16)
+trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
                  polydeg = 0, initial_refinement_level = 0,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,

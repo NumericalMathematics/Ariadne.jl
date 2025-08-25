@@ -13,7 +13,7 @@ const gamma = 1.4
 const prandtl_number = 0.72
 
 # Parameters for compressible von-Karman vortex street
-const Re = 50
+const Re = 10
 const Ma = 0.5f0
 const D = 1 # Diameter of the cylinder as in the mesh file
 
@@ -121,7 +121,7 @@ dt = 0.01
 # run the simulation
  sol = solve(
 	ode, 
-    	Implicit.RKLSSPIMEX332Z();
+    	Implicit.RKLSSPIMEX332();
 	#Implicit.KS22();
     	dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
 	ode_default_options()..., callback = callbacks,

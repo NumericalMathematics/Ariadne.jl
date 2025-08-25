@@ -16,8 +16,8 @@ using CairoMakie
 # polyester = false
 # ```
 
-@assert !Trixi._PREFERENCE_POLYESTER
-@assert !Trixi._PREFERENCE_LOOPVECTORIZATION
+#@assert !Trixi._PREFERENCE_POLYESTER
+#@assert !Trixi._PREFERENCE_LOOPVECTORIZATION
 
 trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion.jl"), sol = nothing);
 
