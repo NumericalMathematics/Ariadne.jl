@@ -19,7 +19,7 @@ using CairoMakie
 @assert !Trixi._PREFERENCE_POLYESTER
 @assert !Trixi._PREFERENCE_LOOPVECTORIZATION
 
-trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), cfl = 10.0, sol = nothing);
+trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), cfl = 10.0, sol = nothing);
 
 ###############################################################################
 # run the simulation
