@@ -1,5 +1,3 @@
-include("tableau.jl")
-
 struct MOperator{JOp}
 	J::JOp
 	dt::Float64
@@ -157,7 +155,7 @@ function solve!(integrator::Rosenbrock)
 	integrator.finalstep = false
 
     kc = KrylovConstructor(integrator.res)
-    workspace = krylov_workspace(integrator.opts.krylov_algo, kc)
+    workspace = krylov_workspace(integrator.opts.algo, kc)
 
 	while !integrator.finalstep
 		step!(integrator, workspace)
@@ -256,3 +254,5 @@ function Base.resize!(integrator::Rosenbrock, new_size)
 	resize!(integrator.du, new_size)
 	return resize!(integrator.u_tmp, new_size)
 end
+
+include("tableau.jl")

@@ -12,10 +12,10 @@ using CairoMakie
 # ```toml
 # [Trixi]
 # loop_vectorization = false
-# polyester = false
+# backend = "static"
 # ```
 
-@assert !Trixi._PREFERENCE_POLYESTER
+@assert Trixi._PREFERENCE_THREADING !== :polyester
 @assert !Trixi._PREFERENCE_LOOPVECTORIZATION
 
 trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl"), cfl = 10.0, sol = nothing);
