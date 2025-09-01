@@ -21,11 +21,11 @@ stages(::RosenbrockAlgorithm{N}) where {N} = N
 
 function (::RosenbrockAlgorithm{3})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, RK, assume_p_const)
 	invdt = inv(Δt)
-    F!(du, u, p) = f1!(du, u, p, t)
+    F!(du, u, p) = f!(du, u, p, t)
 	@. u = uₙ
 	@. res = 0
     J = JacobianOperator(F!, du, uₙ, p, assume_p_const = assume_p_const)
-	M = MOperator(J, integrator.dt)
+	M = MOperator(J, Δt)
 
 	for j in 1:(stage-1)
 		@. u = u + RK.a[stage, j] * stages[j]
@@ -170,7 +170,7 @@ function solve!(integrator::Rosenbrock)
 	)
 end
 
-function stage!(integrator, alg::Rosenbrock, workspace)
+function stage!(integrator, alg::RosenbrockAlgorithm, workspace)
 
 	for stage in 1:stages(alg)
 		alg(integrator.res, integrator.u, integrator.dt, integrator.f, integrator.du, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, stage, workspace, integrator.RK, integrator.opts.assume_p_const)
