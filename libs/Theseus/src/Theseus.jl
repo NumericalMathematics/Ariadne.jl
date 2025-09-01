@@ -1,27 +1,11 @@
 module Theseus
 
 using UnPack
-using Ariadne: Ariadne
 using LinearAlgebra
-import Ariadne: JacobianOperator, MOperator
+import Ariadne: JacobianOperator
 using Krylov
 
-struct MOperator{JOp}
-	J::JOp
-	dt::Float64
-end
-
-Base.size(M::MOperator) = size(M.J)
-Base.eltype(M::MOperator) = eltype(M.J)
-Base.length(M::MOperator) = length(M.J)
-
-import LinearAlgebra: mul!
-function mul!(out::AbstractVector, M::MOperator, v::AbstractVector)
-	# out = (I/dt - J(f,x,p)) * v
-	mul!(out, M.J, v)
-	@. out = v / M.dt - out
-	return nothing
-end
+abstract type RKTableau end
 
 # Wrapper type for solutions from Theseus.jl's own time integrators, partially mimicking
 # SciMLBase.ODESolution
@@ -71,12 +55,10 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
 
 # Abstract base type for time integration schemes
 abstract type SimpleImplicitAlgorithm{N} end
-abstract type NonDirect{N} <: SimpleImplicitAlgorithm{N} end
-abstract type Direct{N} <: SimpleImplicitAlgorithm{N} end
+abstract type NonLinearImplicitAlgorithm{N} <: SimpleImplicitAlgorithm{N} end
+stages(::NonLinearImplicitAlgorithm{N}) where {N} = N
 
-stages(::SimpleImplicitAlgorithm{N}) where {N} = N
-
-struct ImplicitEuler <: NonDirect{1} end
+struct ImplicitEuler <: NonLinearImplicitAlgorithm{1} end
 function (::ImplicitEuler)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
 	f!(du, u, p, t + Δt) # t = t0 + c_1 * Δt
 
@@ -84,7 +66,7 @@ function (::ImplicitEuler)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
 	return nothing
 end
 
-struct ImplicitMidpoint <: SimpleImplicitAlgorithm{1} end
+struct ImplicitMidpoint <: NonLinearImplicitAlgorithm{1} end
 function (::ImplicitMidpoint)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
 	# Evaluate f at midpoint: f((uₙ + u)/2, t + Δt/2)
 	# Use res for a temporary allocation (uₙ .+ u) ./ 2
@@ -96,7 +78,7 @@ function (::ImplicitMidpoint)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
 	return nothing
 end
 
-struct ImplicitTrapezoid <: SimpleImplicitAlgorithm{1} end
+struct ImplicitTrapezoid <: NonLinearImplicitAlgorithm{1} end
 function (::ImplicitTrapezoid)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
 	# Need to evaluate f at both endpoints
 	# f(uₙ, t) and f(u, t + Δt)
@@ -116,7 +98,7 @@ TR-BDF2 based solver after [Bank1985-gh](@cite).
 Using the formula given in [Bonaventura2021-za](@cite) eq (1).
 See [Hosea1996-xv](@cite) for how it relates to implicit RK methods
 """
-struct TRBDF2 <: SimpleImplicitAlgorithm{2} end
+struct TRBDF2 <: NonLinearImplicitAlgorithm{2} end
 function (::TRBDF2)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
 	γ = 2 - √2
 	return if stage == 1
@@ -158,82 +140,12 @@ function (::TRBDF2)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
 	end
 end
 
-struct Rosenbrock <: Direct{3} end
-
-function (::Rosenbrock)(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, M, RK)
-	invdt = inv(Δt)
-	@. u = uₙ
-	@. res = 0
-	for j in 1:(stage-1)
-		@. u = u + RK.a[stage, j] * stages[j]
-		@. res = res + RK.c[stage, j] * stages[j] * invdt
-	end
-
-	## It does not work for non-autonomous systems.
-	f!(du, u, p, t + Δt)
-
-	krylov_solve!(workspace, M, copy(du .+ res))
-	stages[stage] .= workspace.x
-
-	if stage == 3
-		@. u = uₙ
-		for j in 1:stage
-			@. u = u + RK.m[j] * stages[j]
-		end
-	end
-
-end
-abstract type RKTableau end
-
-struct RosenbrockButcher{T1 <: AbstractArray, T2 <: AbstractArray} <: RKTableau
-	a::T1
-	c::T1
-	m::T2
-end
-
-function RosenbrockTableau()
-
-	# SSP - Knoth
-	nstage = 3
-	alpha = zeros(Float64, nstage, nstage)
-	alpha[2, 1] = 1
-	alpha[3, 1] = 1 / 4
-	alpha[3, 2] = 1 / 4
-
-	b = zeros(Float64, nstage)
-	b[1] = 1 / 6
-	b[2] = 1 / 6
-	b[3] = 2 / 3
-
-	gamma = zeros(Float64, nstage, nstage)
-	gamma[1, 1] = 1
-	gamma[2, 2] = 1
-	gamma[3, 1] = -3 / 4
-	gamma[3, 2] = -3 / 4
-	gamma[3, 3] = 1
-
-	a = alpha * inv(gamma)
-	m = transpose(b) * inv(gamma)
-	c = diagm(inv.(diag(gamma))) - inv(gamma)
-	return RosenbrockButcher(a, c, vec(m))
-
-end
-
-function RKTableau(alg::Direct)
-	return RosenbrockTableau()
-end
-
-function RKTableau(alg::NonDirect)
-	return RosenbrockTableau()
-end
-
-
-function nonlinear_problem(alg::SimpleImplicitAlgorithm, f::F) where {F}
+function nonlinear_problem(alg::NonLinearImplicitAlgorithm, f::F) where {F}
 	return (res, u, (uₙ, Δt, du, p, t, stages, stage)) -> alg(res, uₙ, Δt, f, du, u, p, t, stages, stage)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
-mutable struct SimpleImplicitOptions{Callback}
+mutable struct NonLinearImplicitOptions{Callback}
 	callback::Callback # callbacks; used in Trixi.jl
 	adaptive::Bool # whether the algorithm is adaptive; ignored
 	dtmax::Float64 # ignored
@@ -245,8 +157,8 @@ mutable struct SimpleImplicitOptions{Callback}
 end
 
 
-function SimpleImplicitOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_kwargs = (;), kwargs...)
-	return SimpleImplicitOptions{typeof(callback)}(
+function NonLinearImplicitOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_kwargs = (;), kwargs...)
+	return NonLinearImplicitOptions{typeof(callback)}(
 		callback, false, Inf, maxiters,
 		[last(tspan)],
 		verbose,
@@ -259,9 +171,9 @@ end
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
-mutable struct SimpleImplicit{
-	RealT <: Real, uType, Params, Sol, F, M, Alg <: SimpleImplicitAlgorithm,
-	SimpleImplicitOptions, RKTableau,
+mutable struct NonLinearImplicit{
+	RealT <: Real, uType, Params, Sol, F, M, Alg <: NonLinearImplicitAlgorithm,
+	NonLinearImplicitOptions,
 } <: AbstractTimeIntegrator
 	u::uType
 	du::uType
@@ -275,14 +187,13 @@ mutable struct SimpleImplicit{
 	p::Params # will be the semidiscretization from Trixi.jl
 	sol::Sol # faked
 	f::F # `rhs!` of the semidiscretization
-	alg::Alg # SimpleImplicitAlgorithm
-	opts::SimpleImplicitOptions
+	alg::Alg # NonLinearImplicitAlgorithm
+	opts::NonLinearImplicitOptions
 	finalstep::Bool # added for convenience
-	RK::RKTableau
 end
 
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::SimpleImplicit, field::Symbol)
+function Base.getproperty(integrator::NonLinearImplicit, field::Symbol)
 	if field === :stats
 		return (naccept = getfield(integrator, :iter),)
 	end
@@ -291,7 +202,7 @@ function Base.getproperty(integrator::SimpleImplicit, field::Symbol)
 end
 
 function init(
-	ode::ODEProblem, alg::SimpleImplicitAlgorithm{N};
+	ode::ODEProblem, alg::NonLinearImplicitAlgorithm{N};
 	dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...,
 ) where {N}
 	u = copy(ode.u0)
@@ -301,13 +212,13 @@ function init(
 	stages = ntuple(_ -> similar(u), Val(N))
 	t = first(ode.tspan)
 	iter = 0
-	integrator = SimpleImplicit(
+	integrator = NonLinearImplicit(
 		u, du, u_tmp, stages, res, t, dt, zero(dt), iter, ode.p,
 		(prob = ode,), ode.f, alg,
-		SimpleImplicitOptions(
+		NonLinearImplicitOptions(
 			callback, ode.tspan;
 			kwargs...,
-		), false, RKTableau(alg))
+		), false)
 
 	# initialize callbacks
 	if callback isa CallbackSet
@@ -324,7 +235,7 @@ end
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
 function solve(
-	ode::ODEProblem, alg::SimpleImplicitAlgorithm;
+	ode::ODEProblem, alg::NonLinearImplicitAlgorithm;
 	dt, callback = nothing, kwargs...,
 )
 	integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
@@ -333,7 +244,7 @@ function solve(
 	return solve!(integrator)
 end
 
-function solve!(integrator::SimpleImplicit)
+function solve!(integrator::NonLinearImplicit)
 	@unpack prob = integrator.sol
 
 	integrator.finalstep = false
@@ -351,7 +262,7 @@ function solve!(integrator::SimpleImplicit)
 	)
 end
 
-function stage!(integrator, alg::NonDirect)
+function stage!(integrator, alg::NonLinearImplicit)
 	for stage in 1:stages(alg)
 		F! = nonlinear_problem(alg, integrator.f)
 		# TODO: Pass in `stages[1:(stage-1)]` or full tuple?
@@ -368,21 +279,7 @@ function stage!(integrator, alg::NonDirect)
 	end
 end
 
-function stage!(integrator, alg::Direct)
-
-	F!(du, u, p) = integrator.f(du, u, p, integrator.t)
-	J = JacobianOperator(F!, integrator.du, integrator.u, integrator.p)
-	M = MOperator(J, integrator.dt)
-	kc = KrylovConstructor(integrator.res)
-	workspace = krylov_workspace(:gmres, kc)
-
-	for stage in 1:stages(alg)
-		alg(integrator.res, integrator.u, integrator.dt, integrator.f, integrator.du, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, stage, workspace, M, integrator.RK)
-	end
-
-end
-
-function step!(integrator::SimpleImplicit)
+function step!(integrator::NonLinearImplicit)
 	@unpack prob = integrator.sol
 	@unpack alg = integrator
 	t_end = last(prob.tspan)
@@ -430,30 +327,30 @@ function step!(integrator::SimpleImplicit)
 end
 
 # get a cache where the RHS can be stored
-get_du(integrator::SimpleImplicit) = integrator.du
-get_tmp_cache(integrator::SimpleImplicit) = (integrator.u_tmp,)
+get_du(integrator::NonLinearImplicit) = integrator.du
+get_tmp_cache(integrator::NonLinearImplicit) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::SimpleImplicit, ::Bool) = false
+u_modified!(integrator::NonLinearImplicit, ::Bool) = false
 
 # used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::SimpleImplicit, dt)
+function set_proposed_dt!(integrator::NonLinearImplicit, dt)
 	return integrator.dt = dt
 end
 
 # Required e.g. for `glm_speed_callback`
-function get_proposed_dt(integrator::SimpleImplicit)
+function get_proposed_dt(integrator::NonLinearImplicit)
 	return integrator.dt
 end
 
 # stop the time integration
-function terminate!(integrator::SimpleImplicit)
+function terminate!(integrator::NonLinearImplicit)
 	integrator.finalstep = true
 	return empty!(integrator.opts.tstops)
 end
 
 # used for AMR
-function Base.resize!(integrator::SimpleImplicit, new_size)
+function Base.resize!(integrator::NonLinearImplicit, new_size)
 	resize!(integrator.u, new_size)
 	resize!(integrator.du, new_size)
 	return resize!(integrator.u_tmp, new_size)
@@ -472,5 +369,7 @@ function jacobian(G!, f!, uₙ, p, Δt, t)
 	J = Ariadne.JacobianOperator(F!, res, u, (uₙ, Δt, du, p, t))
 	return collect(J)
 end
+
+include("rosenbrock/rosenbrock.jl")
 
 end # module Theseus
