@@ -35,7 +35,7 @@ function (::RosenbrockAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, sta
     @. u = uₙ
     @. res = 0
     J = JacobianOperator(F!, du, uₙ, p, assume_p_const=assume_p_const)
-    M = MOperator(J, Δt)
+    M = MOperator(J, RK.gamma[stage] * Δt)
 
     for j in 1:(stage-1)
         @. u = u + RK.a[stage, j] * stages[j]
