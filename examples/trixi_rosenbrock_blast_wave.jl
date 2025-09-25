@@ -18,7 +18,7 @@ using CairoMakie
 @assert Trixi._PREFERENCE_THREADING !== :polyester
 @assert !Trixi._PREFERENCE_LOOPVECTORIZATION
 
-trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_warm_bubble.jl"), cfl = 1.0, sol = nothing);
+trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_blast_wave.jl"), cfl = 1.0, sol = nothing);
 
 ###############################################################################
 # run the simulation

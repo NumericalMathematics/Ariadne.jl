@@ -37,7 +37,7 @@ function RKTableau(alg::SSPKnoth)
 	return RosenbrockButcher(a, c, vec(m), diag_gamma)
 end
 
-struct ROS2 <: ROS{2} end
+struct ROS2 <: RosenbrockAlgorithm{2} end
 
 function RKTableau(alg::ROS2)
 
