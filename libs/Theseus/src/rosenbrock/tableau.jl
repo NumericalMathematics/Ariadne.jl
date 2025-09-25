@@ -8,7 +8,7 @@ end
 struct SSPKnoth <: RosenbrockAlgorithm{3} end
 
 function RKTableau(alg::SSPKnoth)
-		# SSP - Knoth
+	# SSP - Knoth
 	nstage = 3
 	alpha = zeros(Float64, nstage, nstage)
 	alpha[2, 1] = 1
