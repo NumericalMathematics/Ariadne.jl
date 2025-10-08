@@ -29,7 +29,7 @@ References:
 Solving Ordinary Differential Equations II, pag. 111 (Implementation of Rosenbrock-Type Methods)
 """
 
-function (::RosenbrockAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, RK, assume_p_const, atol, rtol) where N
+function (::RosenbrockAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, RK, assume_p_const, atol, rtol, itmax) where N
 	invdt = inv(Δt)
 	F!(du, u, p) = f!(du, u, p, t)
 	@. u = uₙ
@@ -42,10 +42,9 @@ function (::RosenbrockAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, sta
 		@. res = res + RK.c[stage, j] * stages[j] * invdt
 	end
 
-	## It does not work for non-autonomous systems.
 	f!(du, u, p, t + Δt)
 	@. res = res + du
-	krylov_solve!(workspace, M, res, atol = atol, rtol = rtol)
+	krylov_solve!(workspace, M, res, atol = atol, rtol = rtol, itmax = itmax)
 	stages[stage] .= workspace.x
 
 	if stage == N
@@ -68,11 +67,12 @@ mutable struct RosenbrockOptions{Callback}
 	assume_p_const::Bool
 	krylov_atol::Float64
 	krylov_rtol::Float64
+	itmax::Int
 	krylov_kwargs::Any
 end
 
 
-function RosenbrockOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, assume_p_const = true, krylov_atol = 1e-6, krylov_rtol = 1e-6, krylov_kwargs = (;), kwargs...)
+function RosenbrockOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, assume_p_const = true, krylov_atol = 1e-6, krylov_rtol = 1e-6, itmax = 1000, krylov_kwargs = (;), kwargs...)
 	return RosenbrockOptions{typeof(callback)}(
 		callback, false, Inf, maxiters,
 		[last(tspan)],
@@ -81,6 +81,7 @@ function RosenbrockOptions(callback, tspan; maxiters = typemax(Int), verbose = 0
 		assume_p_const,
 		krylov_atol,
 		krylov_rtol,
+		itmax,
 		krylov_kwargs,
 	)
 end
@@ -188,7 +189,7 @@ function stage!(integrator, alg::RosenbrockAlgorithm, workspace)
 
 	for stage in 1:stages(alg)
 		alg(integrator.res, integrator.u, integrator.dt, integrator.f, integrator.du, integrator.u_tmp, integrator.p, integrator.t,
-			integrator.stages, stage, workspace, integrator.RK, integrator.opts.assume_p_const, integrator.opts.krylov_atol, integrator.opts.krylov_rtol)
+			integrator.stages, stage, workspace, integrator.RK, integrator.opts.assume_p_const, integrator.opts.krylov_atol, integrator.opts.krylov_rtol, integrator.opts.itmax)
 	end
 
 end

@@ -29,7 +29,4 @@ sol = solve(
 	ode_default_options()..., callback = callbacks,
 	# verbose=1,
 	krylov_algo = :gmres,
-	assume_p_const = false,
-	krylov_atol = 1e-6,
-	krylov_rtol = 1e-6,
 );
