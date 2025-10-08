@@ -1,6 +1,6 @@
-struct MOperator{JOp}
+struct MOperator{JOp, RealT}
 	J::JOp
-	dt::Float64
+	dt::RealT
 end
 
 Base.size(M::MOperator) = size(M.J)
@@ -138,7 +138,7 @@ function init(
 		RosenbrockOptions(
 			callback, ode.tspan;
 			kwargs...,
-		), false, RKTableau(alg))
+		), false, RKTableau(alg, eltype(u)))
 
 	# initialize callbacks
 	if callback isa CallbackSet

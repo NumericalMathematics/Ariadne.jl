@@ -7,20 +7,20 @@ end
 
 struct SSPKnoth <: RosenbrockAlgorithm{3} end
 
-function RKTableau(alg::SSPKnoth)
+function RKTableau(alg::SSPKnoth, RealT)
 	# SSP - Knoth
 	nstage = 3
-	alpha = zeros(Float64, nstage, nstage)
+	alpha = zeros(RealT, nstage, nstage)
 	alpha[2, 1] = 1
 	alpha[3, 1] = 1 / 4
 	alpha[3, 2] = 1 / 4
 
-	b = zeros(Float64, nstage)
+	b = zeros(RealT, nstage)
 	b[1] = 1 / 6
 	b[2] = 1 / 6
 	b[3] = 2 / 3
 
-	gamma = zeros(Float64, nstage, nstage)
+	gamma = zeros(RealT, nstage, nstage)
 	gamma[1, 1] = 1
 	gamma[2, 2] = 1
 	gamma[3, 1] = -3 / 4
@@ -30,7 +30,7 @@ function RKTableau(alg::SSPKnoth)
 	a = alpha * inv(gamma)
 	m = transpose(b) * inv(gamma)
 	c = diagm(inv.(diag(gamma))) - inv(gamma)
-	diag_gamma =  zeros(Float64, nstage)
+	diag_gamma =  zeros(RealT, nstage)
 	diag_gamma[1] = gamma[1,1]
 	diag_gamma[2] = gamma[2,2]
 	diag_gamma[3] = gamma[3,3]
@@ -39,17 +39,17 @@ end
 
 struct ROS2 <: RosenbrockAlgorithm{2} end
 
-function RKTableau(alg::ROS2)
+function RKTableau(alg::ROS2, RealT)
 
 	nstage = 2
-	alpha = zeros(Float64, nstage, nstage)
+	alpha = zeros(RealT, nstage, nstage)
 	alpha[2, 1] = 2 / 3
 
-	b = zeros(Float64, nstage)
+	b = zeros(RealT, nstage)
 	b[1] = 1 / 4
 	b[2] = 3 / 4
 
-	gamma = zeros(Float64, nstage, nstage)
+	gamma = zeros(RealT, nstage, nstage)
 	gam = (1 + 1/sqrt(3))/2
 	gamma[1, 1] = gam
 	gamma[2, 1] = -4/3 * gam
@@ -58,7 +58,7 @@ function RKTableau(alg::ROS2)
 	a = alpha * inv(gamma)
 	m = transpose(b) * inv(gamma)
 	c = diagm(inv.(diag(gamma))) - inv(gamma)
-	diag_gamma =  zeros(Float64, nstage)
+	diag_gamma =  zeros(RealT, nstage)
 	diag_gamma[1] = gamma[1,1]
 	diag_gamma[2] = gamma[2,2]
 	
