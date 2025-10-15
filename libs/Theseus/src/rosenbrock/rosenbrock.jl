@@ -44,6 +44,7 @@ function (::RosenbrockAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, sta
 
 	f!(du, u, p, t + Δt)
 	@. res = res + du
+	# itmax is the maximum number of iterations, by default it is 2 times the length of the vector res
 	krylov_solve!(workspace, M, res, atol = atol, rtol = rtol, itmax = itmax)
 	stages[stage] .= workspace.x
 
@@ -72,7 +73,7 @@ mutable struct RosenbrockOptions{Callback}
 end
 
 
-function RosenbrockOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, assume_p_const = true, krylov_atol = 1e-6, krylov_rtol = 1e-6, itmax = 1000, krylov_kwargs = (;), kwargs...)
+function RosenbrockOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, assume_p_const = true, krylov_atol = 1e-6, krylov_rtol = 1e-6, itmax = 0, krylov_kwargs = (;), kwargs...)
 	return RosenbrockOptions{typeof(callback)}(
 		callback, false, Inf, maxiters,
 		[last(tspan)],
