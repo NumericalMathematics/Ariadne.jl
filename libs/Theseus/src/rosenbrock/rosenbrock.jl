@@ -22,11 +22,12 @@ stages(::RosenbrockAlgorithm{N}) where {N} = N
 """
 	(::RosenbrockAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, RK, assume_p_const) where N
 
-Matrix free implementation of Rosenbrock methods.
-Note this is Rosenbrock-W method, as the jacobian is "inexact".
+Matrix-free implementation of Rosenbrock methods.
+Note that this is a Rosenbrock-W method, as the Jacobian is "inexact".
+
 References:
 - E. Hairer and G. Wanner (1996)
-Solving Ordinary Differential Equations II, pag. 111 (Implementation of Rosenbrock-Type Methods)
+  Solving Ordinary Differential Equations II, pag. 111 (Implementation of Rosenbrock-Type Methods)
 """
 
 function (::RosenbrockAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, RK, assume_p_const, atol, rtol, itmax) where N
@@ -39,7 +40,8 @@ function (::RosenbrockAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, sta
 
 	for j in 1:(stage-1)
 		@. u = u + RK.a[stage, j] * stages[j]
-		@. res = res + RK.c[stage, j] * stages[j] * invdt
+        c_invdt = RK.c[stage, j] * invdt
+		@. res = res + c_invdt * stages[j]
 	end
 
 	f!(du, u, p, t + Δt)

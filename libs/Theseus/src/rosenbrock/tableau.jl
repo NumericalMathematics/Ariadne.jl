@@ -12,24 +12,25 @@ function RKTableau(alg::SSPKnoth, RealT)
 	nstage = 3
 	alpha = zeros(RealT, nstage, nstage)
 	alpha[2, 1] = 1
-	alpha[3, 1] = 1 / 4
-	alpha[3, 2] = 1 / 4
+	alpha[3, 1] = 1 // 4
+	alpha[3, 2] = 1 // 4
 
 	b = zeros(RealT, nstage)
-	b[1] = 1 / 6
-	b[2] = 1 / 6
-	b[3] = 2 / 3
+	b[1] = 1 // 6
+	b[2] = 1 // 6
+	b[3] = 2 // 3
 
 	gamma = zeros(RealT, nstage, nstage)
 	gamma[1, 1] = 1
 	gamma[2, 2] = 1
-	gamma[3, 1] = -3 / 4
-	gamma[3, 2] = -3 / 4
+	gamma[3, 1] = -3 // 4
+	gamma[3, 2] = -3 // 4
 	gamma[3, 3] = 1
 
-	a = alpha * inv(gamma)
-	m = transpose(b) * inv(gamma)
-	c = diagm(inv.(diag(gamma))) - inv(gamma)
+    inv_gamma = inv(gamma)
+	a = alpha * inv_gamma
+	m = transpose(b) * inv_gamma
+	c = diagm(inv.(diag(gamma))) - inv_gamma
 	diag_gamma =  zeros(RealT, nstage)
 	diag_gamma[1] = gamma[1,1]
 	diag_gamma[2] = gamma[2,2]
@@ -43,21 +44,22 @@ function RKTableau(alg::ROS2, RealT)
 
 	nstage = 2
 	alpha = zeros(RealT, nstage, nstage)
-	alpha[2, 1] = 2 / 3
+	alpha[2, 1] = 2 // 3
 
 	b = zeros(RealT, nstage)
-	b[1] = 1 / 4
-	b[2] = 3 / 4
+	b[1] = 1 // 4
+	b[2] = 3 // 4
 
 	gamma = zeros(RealT, nstage, nstage)
-	gam = (1 + 1/sqrt(3))/2
+	gam = (1 + 1 / sqrt(convert(RealT, 3))) / 2
 	gamma[1, 1] = gam
-	gamma[2, 1] = -4/3 * gam
+	gamma[2, 1] = -4 * gam / 3
 	gamma[2, 2] = gam
 
-	a = alpha * inv(gamma)
-	m = transpose(b) * inv(gamma)
-	c = diagm(inv.(diag(gamma))) - inv(gamma)
+    inv_gamma = inv(gamma)
+	a = alpha * inv_gamma
+	m = transpose(b) * inv_gamma
+	c = diagm(inv.(diag(gamma))) - inv_gamma
 	diag_gamma =  zeros(RealT, nstage)
 	diag_gamma[1] = gamma[1,1]
 	diag_gamma[2] = gamma[2,2]

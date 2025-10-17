@@ -1,12 +1,11 @@
-# # Using the an implicit solver based on Ariadne with Trixi.jl
+# # Using a linearly implicit Rosenbrock solver based on Ariadne with Trixi.jl
 
 using Trixi
 using Theseus
 using CairoMakie
 
 # Notes:
-# Must disable both Polyester and LoopVectorization for Enzyme to be able to differentiate Trixi.jl
-# Using https://github.com/trixi-framework/Trixi.jl/pull/2295
+# You must disable both Polyester and LoopVectorization for Enzyme to be able to differentiate Trixi.jl.
 #
 # LocalPreferences.jl
 # ```toml
