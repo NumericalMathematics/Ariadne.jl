@@ -3,7 +3,6 @@ Ariadne = "0be81120-40bf-4f8b-adf0-26103efb66f1"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DifferentiationInterface = "a0c0ee7d-e4b9-4e03-894e-1c5f64a51d63"
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
-Theseus = "7f538e44-2768-4ef2-af90-2110c0378286"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
 Krylov = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
 KrylovPreconditioners = "45d422c2-293f-44ce-8315-2cb988662dec"
@@ -15,6 +14,7 @@ OrdinaryDiffEqSDIRK = "2d112036-d095-4a1e-ab9a-08536f3ecdbf"
 OrdinaryDiffEqSSPRK = "669c94d9-1f4b-4b64-b377-1aa079aa2388"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 SummationByPartsOperators = "9f78cca6-572e-554e-b819-917d2f1cf240"
+Theseus = "7f538e44-2768-4ef2-af90-2110c0378286"
 Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 
 [sources]
@@ -22,5 +22,5 @@ Ariadne = {path = ".."}
 Theseus = {path = "../libs/Theseus"}
 
 [compat]
-julia = "1.10"
 Trixi = "0.13.1"
+julia = "1.10"
