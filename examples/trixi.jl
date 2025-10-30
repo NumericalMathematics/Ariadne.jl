@@ -9,7 +9,6 @@ import Ariadne: JacobianOperator
 
 # Notes:
 # Must disable both Polyester and LoopVectorization for Enzyme to be able to differentiate Trixi.jl
-# Using https://github.com/trixi-framework/Trixi.jl/pull/2295
 #
 # LocalPreferences.jl
 # ```toml
@@ -60,7 +59,7 @@ sol_trbdf2 = solve(
 
 plot(Trixi.PlotData2DTriangulated(sol_trbdf2.u[end], sol_trbdf2.prob.p))
 
-# ### Solve using OrdinaryDiffEqSDIRKSDIRK
+# ### Solve using OrdinaryDiffEqSDIRK
 
 import OrdinaryDiffEqSDIRK
 import DifferentiationInterface: AutoFiniteDiff
