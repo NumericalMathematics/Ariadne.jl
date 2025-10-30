@@ -7,6 +7,21 @@ struct IMEXButcher{T1 <: AbstractArray, T2 <: AbstractArray} <: RKTableau
     c_im::T2
 end
 
+
+"""
+SSP2222()
+
+A second-order SSP, L-stable IMEX Runge–Kutta method developed by Pareschi and Russo (2005).
+
+## References
+- Lorenzo Pareschi and Giovanni Russo (2005)  
+  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*  
+  *Journal of Computational Physics* 203(2):469–491.  
+  [DOI: 10.1007/s10915-004-4636-4](https://doi.org/10.1007/s10915-004-4636-4)
+- Sebastiano Boscarino and Giovanni Russo (2024)  
+  *Asymptotic preserving methods for quasilinear hyperbolic systems with stiff relaxation: a review.*  
+  [DOI: 10.1007/s40324-024-00351-x](https://doi.org/10.1007/s40324-024-00351-x)
+"""
 struct SSP2222 <: RKIMEX{2} end
 function RKTableau(alg::SSP2222, RealT)
     # IMEX-SSP2(2,2,2) L-Stable Scheme
@@ -32,6 +47,17 @@ function RKTableau(alg::SSP2222, RealT)
     return IMEXButcher(a, b, c, a_im, b_im, c_im)
 end
 
+"""
+SSP2322()
+
+A second-order SSP and stiffly accurate (SA) IMEX Runge–Kutta method developed by Pareschi and Russo (2005).
+
+## References
+- Lorenzo Pareschi and Giovanni Russo (2005)  
+  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*  
+  *Journal of Computational Physics* 203(2):469–491.  
+  [DOI: 10.1007/s10915-004-4636-4](https://doi.org/10.1007/s10915-004-4636-4)
+"""
 struct SSP2322 <: RKIMEX{3} end
 function RKTableau(alg::SSP2322, RealT)
     # IMEX-SSP2(3,2,2) Stiffly Accurate Scheme
@@ -58,6 +84,20 @@ function RKTableau(alg::SSP2322, RealT)
     return IMEXButcher(a, b, c, a_im, b_im, c_im)
 end
 
+"""
+SSP2332()
+
+A second-order SSP, L-stable and stiffly accurate (SA) IMEX Runge–Kutta method of type I developed by Pareschi and Russo (2005).
+
+## References
+- Lorenzo Pareschi and Giovanni Russo (2005)  
+  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*  
+  *Journal of Computational Physics* 203(2):469–491.  
+  [DOI: 10.1007/s10915-004-4636-4](https://doi.org/10.1007/s10915-004-4636-4)
+- Sebastiano Boscarino and Giovanni Russo (2024)  
+  *Asymptotic preserving methods for quasilinear hyperbolic systems with stiff relaxation: a review.*  
+  [DOI: 10.1007/s40324-024-00351-x](https://doi.org/10.1007/s40324-024-00351-x)
+"""
 struct SSP2332 <: RKIMEX{3} end
 function RKTableau(alg::SSP2332, RealT)
     # IMEX-SSP2(3,3,2) Stiffly Accurate Scheme
@@ -90,6 +130,17 @@ function RKTableau(alg::SSP2332, RealT)
     return IMEXButcher(a, b, c, a_im, b_im, c_im)
 end
 
+"""
+SSP3332()
+
+A third-order SSP and L-stable IMEX Runge–Kutta method developed by Pareschi and Russo (2005).
+
+## References
+- Lorenzo Pareschi and Giovanni Russo (2005)  
+  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*  
+  *Journal of Computational Physics* 203(2):469–491.  
+  [DOI: 10.1007/s10915-004-4636-4](https://doi.org/10.1007/s10915-004-4636-4)
+"""
 struct SSP3332 <: RKIMEX{3} end
 function RKTableau(alg::SSP3332, RealT)
     # IMEX-SSP3(3,3,2) L-Stable Scheme
@@ -122,7 +173,21 @@ function RKTableau(alg::SSP3332, RealT)
     c_im[3] = 1 // 2
     return IMEXButcher(a, b, c, a_im, b_im, c_im)
 end
+ 
+"""
+SSP3433()
 
+A third-order SSP and L-stable IMEX Runge–Kutta method of type I developed by Pareschi and Russo (2005).
+
+## References
+- Lorenzo Pareschi and Giovanni Russo (2005)  
+  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*  
+  *Journal of Computational Physics* 203(2):469–491.  
+  [DOI: 10.1007/s10915-004-4636-4](https://doi.org/10.1007/s10915-004-4636-4)
+- Sebastiano Boscarino and Giovanni Russo (2024)  
+  *Asymptotic preserving methods for quasilinear hyperbolic systems with stiff relaxation: a review.*  
+  [DOI: 10.1007/s40324-024-00351-x](https://doi.org/10.1007/s40324-024-00351-x)
+"""
 struct SSP3433 <: RKIMEX{4} end
 function RKTableau(alg::SSP3433, RealT)
     # IMEX-SSP3(4,3,3) L-Stable Scheme

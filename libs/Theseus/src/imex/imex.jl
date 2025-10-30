@@ -2,10 +2,7 @@ abstract type SimpleImplicitExplicitAlgorithm{N} end
 
 abstract type RKIMEX{N} <: SimpleImplicitExplicitAlgorithm{N} end
 
-struct RKImplicitExplicitEuler <: RKIMEX{1} end
-
 stages(::RKIMEX{N}) where {N} = N
-
 
 function (::RKIMEX{N})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages_ex, stages_im, stage, RK) where {N}
     if stage == N + 1
@@ -25,8 +22,6 @@ function (::RKIMEX{N})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages_ex,
     end
 end
 
-stages(::SimpleImplicitExplicitAlgorithm{N}) where {N} = N
-
 function nonlinear_problem(alg::SimpleImplicitExplicitAlgorithm, f2::F2) where {F2}
     return (res, u, (uₙ, Δt, f1, du, du_tmp, p, t, stages, stages_im, stage, RK)) -> alg(res, uₙ, Δt, f1, f2, du, du_tmp, u, p, t, stages, stages_im, stage, RK)
 end
@@ -39,15 +34,17 @@ mutable struct SimpleImplicitExplicitOptions{Callback}
     tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
     verbose::Int
     algo::Symbol
+    krylov_tol_abs::Float64
     krylov_kwargs::Any
 end
 
-function SimpleImplicitExplicitOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_kwargs = (;), kwargs...)
+function SimpleImplicitExplicitOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_tol_abs = 1e-6, krylov_kwargs = (;), kwargs...)
     return SimpleImplicitExplicitOptions{typeof(callback)}(
         callback, false, Inf, maxiters,
         [last(tspan)],
         verbose,
         krylov_algo,
+	krylov_tol_abs,
         krylov_kwargs,
     )
 end
@@ -207,7 +204,7 @@ function stage!(integrator, alg::RKIMEX)
         _, stats = newton_krylov!(
             F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.f1, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage, integrator.RK), integrator.res;
             verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
-            algo = integrator.opts.algo, tol_abs = 6.0e-6,
+            algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs,
         )
         @assert stats.solved
         # Store the solution for each stage in stages
@@ -217,7 +214,6 @@ function stage!(integrator, alg::RKIMEX)
         integrator.stages[stage] .= integrator.du
 	@. integrator.res = integrator.u_tmp
 	if iszero(integrator.RK.a_im[stage, stage])
-    	# Valuta direttamente f1
     	@. integrator.du = integrator.u_tmp * integrator.dt + integrator.u 
     	integrator.f1(integrator.stages_im[stage], integrator.du, integrator.p, integrator.t + integrator.RK.c_im[stage] * integrator.dt)
 	else
@@ -226,13 +222,9 @@ function stage!(integrator, alg::RKIMEX)
 	end
 	@. integrator.stages_im[stage] = integrator.res/integrator.RK.a_im[stage, stage]
 	end
-#	@. integrator.u_tmp = integrator.u_tmp * integrator.dt + integrator.u
-#        integrator.f1(integrator.du, integrator.u_tmp, integrator.p, integrator.t + integrator.RK.c_im[stage] * integrator.dt)
-#        integrator.stages_im[stage] .= integrator.du
         if stage == stages(alg)
             alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage + 1, integrator.RK)
         end
-
     end
     return
 end
