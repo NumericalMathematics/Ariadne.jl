@@ -29,12 +29,10 @@ trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_vo
 # run the simulation
 
 sol = solve(
-	ode, 
-        Theseus.ARS443(); # ARS111, ARS222, ARS443
-    	dt = 0.001, # solve needs some value here but it will be overwritten by the stepsize_callback
-	ode_default_options()..., callback = callbacks,
-	# verbose=1,
-	krylov_algo = :gmres,
+    ode,
+    Theseus.ARS443(); # ARS111, ARS222, ARS443
+    dt = 0.001, # solve needs some value here but it will be overwritten by the stepsize_callback
+    ode_default_options()..., callback = callbacks,
+    # verbose=1,
+    krylov_algo = :gmres,
 );
-
-

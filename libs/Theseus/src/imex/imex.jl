@@ -1,4 +1,3 @@
-
 abstract type SimpleImplicitExplicitAlgorithm{N} end
 
 abstract type RKIMEX{N} <: SimpleImplicitExplicitAlgorithm{N} end
@@ -10,19 +9,19 @@ stages(::RKIMEX{N}) where {N} = N
 
 function (::RKIMEX{N})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages_ex, stages_im, stage, RK) where {N}
     if stage == N + 1
-	@. u = uₙ 
-	for j in 1:stage-1
-	@. u = u + Δt*RK.b_ex[j] * stages_ex[j] + Δt*RK.b_im[j] * stages_im[j]
-	end
+        @. u = uₙ
+        for j in 1:(stage - 1)
+            @. u = u + Δt * RK.b_ex[j] * stages_ex[j] + Δt * RK.b_im[j] * stages_im[j]
+        end
     else
-    @. res = u - uₙ
-    for j in 1:(stage - 1)
-	@. res = res - RK.a_ex[stage, j] * Δt .* stages_ex[j] - RK.a_im[stage, j] * Δt .* stages_im[j]
-    end
+        @. res = u - uₙ
+        for j in 1:(stage - 1)
+            @. res = res - RK.a_ex[stage, j] * Δt .* stages_ex[j] - RK.a_im[stage, j] * Δt .* stages_im[j]
+        end
 
-    f1!(du_tmp, u, p, t + RK.c_im[stage] * Δt )
-    @. res = res - RK.a_im[stage, stage] * Δt .* du_tmp
-    return res
+        f1!(du_tmp, u, p, t + RK.c_im[stage] * Δt)
+        @. res = res - RK.a_im[stage, stage] * Δt .* du_tmp
+        return res
     end
 end
 
@@ -43,7 +42,7 @@ mutable struct SimpleImplicitExplicitOptions{Callback}
     krylov_kwargs::Any
 end
 
-function SimpleImplicitExplicitOptions(callback, tspan; maxiters=typemax(Int), verbose=0, krylov_algo=:gmres, krylov_kwargs=(;), kwargs...)
+function SimpleImplicitExplicitOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_kwargs = (;), kwargs...)
     return SimpleImplicitExplicitOptions{typeof(callback)}(
         callback, false, Inf, maxiters,
         [last(tspan)],
@@ -54,15 +53,15 @@ function SimpleImplicitExplicitOptions(callback, tspan; maxiters=typemax(Int), v
 end
 
 mutable struct SimpleImplicitExplicit{
-    RealT<:Real,uType,Params,Sol,F,F1,F2,M,Alg<:SimpleImplicitExplicitAlgorithm,
-    SimpleImplicitExplicitOptions,RKTableau,
-} <: AbstractTimeIntegrator
+        RealT <: Real, uType, Params, Sol, F, F1, F2, M, Alg <: SimpleImplicitExplicitAlgorithm,
+        SimpleImplicitExplicitOptions, RKTableau,
+    } <: AbstractTimeIntegrator
     u::uType
     du::uType
     du_tmp::uType
     u_tmp::uType
-    stages::NTuple{M,uType}
-    stages_im::NTuple{M,uType}
+    stages::NTuple{M, uType}
+    stages_im::NTuple{M, uType}
     res::uType
     t::RealT
     dt::RealT # current time step
@@ -82,16 +81,16 @@ end
 
 function Base.getproperty(integrator::SimpleImplicitExplicit, field::Symbol)
     if field === :stats
-        return (naccept=getfield(integrator, :iter),)
+        return (naccept = getfield(integrator, :iter),)
     end
     # general fallback
     return getfield(integrator, field)
 end
 
 function init(
-    ode::ODEProblem, alg::SimpleImplicitExplicitAlgorithm{N};
-    dt, callback::Union{CallbackSet,Nothing}=nothing, kwargs...,
-) where {N}
+        ode::ODEProblem, alg::SimpleImplicitExplicitAlgorithm{N};
+        dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...,
+    ) where {N}
     u = copy(ode.u0)
     du = zero(u)
     res = zero(u)
@@ -101,12 +100,13 @@ function init(
     t = first(ode.tspan)
     iter = 0
     integrator = SimpleImplicitExplicit(
-		u, du, copy(du), u_tmp, stages, stages_im, res, t, dt, zero(dt), iter, ode.p,
-        (prob=ode,), ode.f.f1, ode.f.f1, ode.f.f2, alg,
+        u, du, copy(du), u_tmp, stages, stages_im, res, t, dt, zero(dt), iter, ode.p,
+        (prob = ode,), ode.f.f1, ode.f.f1, ode.f.f2, alg,
         SimpleImplicitExplicitOptions(
             callback, ode.tspan;
             kwargs...,
-		), false, RKTableau(alg, eltype(u)))
+        ), false, RKTableau(alg, eltype(u))
+    )
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -123,10 +123,10 @@ end
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
 function solve(
-    ode::ODEProblem, alg::SimpleImplicitExplicitAlgorithm;
-    dt, callback=nothing, kwargs...,
-)
-    integrator = init(ode, alg, dt=dt, callback=callback; kwargs...)
+        ode::ODEProblem, alg::SimpleImplicitExplicitAlgorithm;
+        dt, callback = nothing, kwargs...,
+    )
+    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
     # Start actual solve
     return solve!(integrator)
@@ -164,7 +164,7 @@ function step!(integrator::SimpleImplicitExplicit)
 
     # if the next iteration would push the simulation beyond the end time, set dt accordingly
     if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
+            isapprox(integrator.t + integrator.dt, t_end)
         integrator.dt = t_end - integrator.t
         terminate!(integrator)
     end
@@ -204,22 +204,23 @@ function stage!(integrator, alg::RKIMEX)
         F! = nonlinear_problem(alg, integrator.f2)
         # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
         _, stats = newton_krylov!(
-            F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.f1, integrator.du, integrator.du_tmp,  integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage, integrator.RK), integrator.res;
-            verbose=integrator.opts.verbose, krylov_kwargs=integrator.opts.krylov_kwargs,
-            algo=integrator.opts.algo, tol_abs=6.0e-6,
+            F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.f1, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage, integrator.RK), integrator.res;
+            verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
+            algo = integrator.opts.algo, tol_abs = 6.0e-6,
         )
         @assert stats.solved
         # Store the solution for each stage in stages
-	## For a split Problem we need to compute rhs_conservative and rhs_parabolic
+        ## For a split Problem we need to compute rhs_conservative and rhs_parabolic
         integrator.f2(integrator.du, integrator.u_tmp, integrator.p, integrator.t + integrator.RK.c_ex[stage] * integrator.dt)
-	integrator.stages[stage] .= integrator.du
+        integrator.stages[stage] .= integrator.du
         integrator.f1(integrator.du, integrator.u_tmp, integrator.p, integrator.t + integrator.RK.c_im[stage] * integrator.dt)
         integrator.stages_im[stage] .= integrator.du
-	if stage == stages(alg)
+        if stage == stages(alg)
             alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage + 1, integrator.RK)
         end
 
     end
+    return
 end
 
 # get a cache where the RHS can be stored

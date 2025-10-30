@@ -11,7 +11,7 @@ struct SSP2222 <: RKIMEX{2} end
 function RKTableau(alg::SSP2222, RealT)
     # IMEX-SSP2(2,2,2) L-Stable Scheme
     nstage = 2
-    gamma = 1 - 1/sqrt(2)
+    gamma = 1 - 1 / sqrt(2)
     a = zeros(RealT, nstage, nstage)
     a[2, 1] = 1
     b = zeros(RealT, nstage)
@@ -94,7 +94,7 @@ struct SSP3332 <: RKIMEX{3} end
 function RKTableau(alg::SSP3332, RealT)
     # IMEX-SSP3(3,3,2) L-Stable Scheme
     nstage = 3
-    gamma = 1 - 1/sqrt(2)
+    gamma = 1 - 1 / sqrt(2)
     a = zeros(RealT, nstage, nstage)
     a[2, 1] = 1
     a[3, 1] = 1 // 4
@@ -129,7 +129,7 @@ function RKTableau(alg::SSP3433, RealT)
     nstage = 4
     alpha = RealT(0.24169426078821)
     beta = RealT(0.06042356519705)
-    eta = RealT(0.12915286960590)
+    eta = RealT(0.1291528696059)
     a = zeros(RealT, nstage, nstage)
     a[3, 2] = 1
     a[4, 2] = 1 // 4
