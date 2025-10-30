@@ -173,7 +173,7 @@ function RKTableau(alg::SSP3332, RealT)
     c_im[3] = 1 // 2
     return IMEXButcher(a, b, c, a_im, b_im, c_im)
 end
- 
+
 """
 SSP3433()
 

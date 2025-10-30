@@ -8,15 +8,17 @@ function (::RKIMEX{N})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages_ex,
     if stage == N + 1
         @. u = uₙ
         for j in 1:(stage - 1)
-            @. u = u + Δt * RK.b_ex[j] * stages_ex[j] + Δt * RK.b_im[j] * stages_im[j]
+            Δt_b_ex = Δt * RK.b_ex[j]
+            Δt_b_im = Δt * RK.b_im[j]
+            @. u = u + Δt_b_ex * stages_ex[j] + Δt_b_im * stages_im[j]
         end
-    else 
-	@. res = u
+    else
+        @. res = u
         for j in 1:(stage - 1)
-            @. res = res - RK.a_ex[stage, j] * stages_ex[j] - RK.a_im[stage, j]  * stages_im[j]
+            @. res = res - RK.a_ex[stage, j] * stages_ex[j] - RK.a_im[stage, j] * stages_im[j]
         end
-	@. du = u * Δt + uₙ
-        f1!(du_tmp, du , p, t + RK.c_im[stage] * Δt)
+        @. du = u * Δt + uₙ
+        f1!(du_tmp, du, p, t + RK.c_im[stage] * Δt)
         @. res = res - RK.a_im[stage, stage] * du_tmp
         return res
     end
@@ -38,13 +40,13 @@ mutable struct SimpleImplicitExplicitOptions{Callback}
     krylov_kwargs::Any
 end
 
-function SimpleImplicitExplicitOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_tol_abs = 1e-6, krylov_kwargs = (;), kwargs...)
+function SimpleImplicitExplicitOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_tol_abs = 1.0e-6, krylov_kwargs = (;), kwargs...)
     return SimpleImplicitExplicitOptions{typeof(callback)}(
         callback, false, Inf, maxiters,
         [last(tspan)],
         verbose,
         krylov_algo,
-	krylov_tol_abs,
+        krylov_tol_abs,
         krylov_kwargs,
     )
 end
@@ -197,7 +199,7 @@ end
 
 
 function stage!(integrator, alg::RKIMEX)
-	@. integrator.u_tmp = 0
+    @. integrator.u_tmp = 0
     for stage in 1:stages(alg)
         F! = nonlinear_problem(alg, integrator.f2)
         # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
@@ -209,19 +211,19 @@ function stage!(integrator, alg::RKIMEX)
         @assert stats.solved
         # Store the solution for each stage in stages
         ## For a split Problem we need to compute rhs_conservative and rhs_parabolic
-	@. integrator.res = integrator.u_tmp * integrator.dt + integrator.u 
+        @. integrator.res = integrator.u_tmp * integrator.dt + integrator.u
         integrator.f2(integrator.du, integrator.res, integrator.p, integrator.t + integrator.RK.c_ex[stage] * integrator.dt)
         integrator.stages[stage] .= integrator.du
-	@. integrator.res = integrator.u_tmp
-	if iszero(integrator.RK.a_im[stage, stage])
-    	@. integrator.du = integrator.u_tmp * integrator.dt + integrator.u 
-    	integrator.f1(integrator.stages_im[stage], integrator.du, integrator.p, integrator.t + integrator.RK.c_im[stage] * integrator.dt)
-	else
-	for j in 1:(stage-1)
-	@. integrator.res = integrator.res - integrator.RK.a_im[stage,j] * integrator.stages_im[j] - integrator.RK.a_ex[stage,j] * integrator.stages[j]
-	end
-	@. integrator.stages_im[stage] = integrator.res/integrator.RK.a_im[stage, stage]
-	end
+        @. integrator.res = integrator.u_tmp
+        if iszero(integrator.RK.a_im[stage, stage])
+            @. integrator.du = integrator.u_tmp * integrator.dt + integrator.u
+            integrator.f1(integrator.stages_im[stage], integrator.du, integrator.p, integrator.t + integrator.RK.c_im[stage] * integrator.dt)
+        else
+            for j in 1:(stage - 1)
+                @. integrator.res = integrator.res - integrator.RK.a_im[stage, j] * integrator.stages_im[j] - integrator.RK.a_ex[stage, j] * integrator.stages[j]
+            end
+            @. integrator.stages_im[stage] = integrator.res / integrator.RK.a_im[stage, stage]
+        end
         if stage == stages(alg)
             alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage + 1, integrator.RK)
         end
