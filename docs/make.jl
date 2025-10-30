@@ -68,13 +68,8 @@ makedocs(;
     sitename = "Ariadne.jl",
     format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
-        canonical = "https://vchuravy.dev/Ariadne.jl",
+        canonical = "https://numericalmathematics.github.io/Ariadne.jl",
         assets = [
-            asset(
-                "https://plausible.io/js/plausible.js",
-                class = :js,
-                attributes = Dict(Symbol("data-domain") => "vchuravy.dev", :defer => "")
-            ),
             "assets/citations.css",
         ],
         mathengine = MathJax3(),
@@ -94,7 +89,7 @@ makedocs(;
 )
 
 deploydocs(;
-    repo = "github.com/vchuravy/Ariadne.jl.git",
+    repo = "github.com/NumericalMathematics/Ariadne.jl.git",
     devbranch = "main",
     push_preview = true,
 )
