@@ -2,7 +2,7 @@ module Theseus
 
 using UnPack
 using LinearAlgebra
-import Ariadne: JacobianOperator
+import Ariadne: JacobianOperator, newton_krylov!
 using Krylov
 
 abstract type RKTableau end
@@ -263,11 +263,11 @@ function solve!(integrator::NonLinearImplicit)
     )
 end
 
-function stage!(integrator, alg::NonLinearImplicit)
+function stage!(integrator::NonLinearImplicit, alg)
     for stage in 1:stages(alg)
         F! = nonlinear_problem(alg, integrator.f)
         # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
-        _, stats = Ariadne.newton_krylov!(
+        _, stats = newton_krylov!(
             F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.du, integrator.p, integrator.t, integrator.stages, stage), integrator.res;
             verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
             algo = integrator.opts.algo, tol_abs = 6.0e-6,
