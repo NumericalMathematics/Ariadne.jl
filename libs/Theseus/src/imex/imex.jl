@@ -8,7 +8,7 @@ stages(::RKIMEX{N}) where {N} = N
 
 
 function (::RKIMEX{N})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages_ex, stages_im, stage, RK) where {N}
-    if stage == N + 1
+    #=if stage == N + 1
         @. u = uₙ
         for j in 1:(stage - 1)
             @. u = u + Δt * RK.b_ex[j] * stages_ex[j] + Δt * RK.b_im[j] * stages_im[j]
@@ -21,6 +21,21 @@ function (::RKIMEX{N})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages_ex,
 
         f1!(du_tmp, u, p, t + RK.c_im[stage] * Δt)
         @. res = res - RK.a_im[stage, stage] * Δt .* du_tmp
+        return res
+    end =#
+    if stage == N + 1
+        @. u = uₙ
+        for j in 1:(stage - 1)
+            @. u = u + Δt * RK.b_ex[j] * stages_ex[j] + Δt * RK.b_im[j] * stages_im[j]
+        end
+    else 
+	@. res = u
+        for j in 1:(stage - 1)
+            @. res = res - RK.a_ex[stage, j] * stages_ex[j] - RK.a_im[stage, j]  * stages_im[j]
+        end
+	@. du = u * Δt + uₙ
+        f1!(du_tmp, du , p, t + RK.c_im[stage] * Δt)
+        @. res = res - RK.a_im[stage, stage] * du_tmp
         return res
     end
 end
@@ -200,7 +215,9 @@ end
 
 
 function stage!(integrator, alg::RKIMEX)
+	@. integrator.u_tmp = 0
     for stage in 1:stages(alg)
+		@show stage
         F! = nonlinear_problem(alg, integrator.f2)
         # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
         _, stats = newton_krylov!(
@@ -211,10 +228,24 @@ function stage!(integrator, alg::RKIMEX)
         @assert stats.solved
         # Store the solution for each stage in stages
         ## For a split Problem we need to compute rhs_conservative and rhs_parabolic
-        integrator.f2(integrator.du, integrator.u_tmp, integrator.p, integrator.t + integrator.RK.c_ex[stage] * integrator.dt)
+	@. integrator.res = integrator.u_tmp * integrator.dt + integrator.u 
+        integrator.f2(integrator.du, integrator.res, integrator.p, integrator.t + integrator.RK.c_ex[stage] * integrator.dt)
         integrator.stages[stage] .= integrator.du
-        integrator.f1(integrator.du, integrator.u_tmp, integrator.p, integrator.t + integrator.RK.c_im[stage] * integrator.dt)
-        integrator.stages_im[stage] .= integrator.du
+	@. integrator.res = integrator.u_tmp
+	if iszero(integrator.RK.a_im[stage, stage])
+    	# Valuta direttamente f1
+    	@. integrator.du = integrator.u_tmp * integrator.dt + integrator.u 
+    	integrator.f1(integrator.stages_im[stage], integrator.du, integrator.p, integrator.t + integrator.RK.c_im[stage] * integrator.dt)
+	else
+	for j in 1:(stage-1)
+	@. integrator.res = integrator.res - integrator.RK.a_im[stage,j] * integrator.stages_im[j] - integrator.RK.a_ex[stage,j] * integrator.stages[j]
+	end
+		@show integrator.RK.a_im[stage, stage]
+	@. integrator.stages_im[stage] = integrator.res/integrator.RK.a_im[stage, stage]
+	end
+#	@. integrator.u_tmp = integrator.u_tmp * integrator.dt + integrator.u
+#        integrator.f1(integrator.du, integrator.u_tmp, integrator.p, integrator.t + integrator.RK.c_im[stage] * integrator.dt)
+#        integrator.stages_im[stage] .= integrator.du
         if stage == stages(alg)
             alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage + 1, integrator.RK)
         end
