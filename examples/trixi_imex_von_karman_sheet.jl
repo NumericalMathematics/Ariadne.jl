@@ -1,4 +1,4 @@
-# # Using a linearly implicit Rosenbrock solver based on Ariadne with Trixi.jl
+# # Using an implicit-explicit (IMEX) Runge-Kutta solver based on Ariadne with Trixi.jl
 
 using Trixi
 using Theseus

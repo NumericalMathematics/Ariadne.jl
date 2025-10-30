@@ -162,6 +162,26 @@ function RKTableau(alg::SSP3433, RealT)
     return IMEXButcher(a, b, c, a_im, b_im, c_im)
 end
 
+"""
+    ARS111()
+
+A first-order, globally stiffly accurate (GSA) type II IMEX method developed by
+Ascher, Ruuth, and Spiteri (1997).
+
+## References
+
+- Uri M. Ascher, Steven J. Ruuth, and Raymond J Spiteri (1997)
+  Implicit-explicit Runge-Kutta methods for time-dependent
+  partial differential equations.
+  [DOI: 10.1016/S0168-9274(97)00056-1](https://doi.org/10.1016/S0168-9274(97)00056-1)
+- Sebastiano Boscarino and Giovanni Russo (2024)
+  Asymptotic preserving methods for quasilinear hyperbolic systems with
+  stiff relaxation: a review.
+  [DOI: 10.1007/s40324-024-00351-x](https://doi.org/10.1007/s40324-024-00351-x)
+- Sebastiano  Boscarino, Lorenzo Pareschi, and Giovanni Russo (2025)
+  Implicit-explicit methods for evolutionary partial differential equations.
+  [DOI: 10.1137/1.9781611978209](https://doi.org/10.1137/1.9781611978209)
+"""
 struct ARS111 <: RKIMEX{2} end
 function RKTableau(alg::ARS111, RealT)
     # ARS(1,1,1) IMEX Runge-Kutta - First order stiffly accurate
@@ -181,6 +201,26 @@ function RKTableau(alg::ARS111, RealT)
     return IMEXButcher(a, b, c, a_im, b_im, c_im)
 end
 
+"""
+    ARS222()
+
+A second-order, globally stiffly accurate (GSA) type II IMEX method developed by
+Ascher, Ruuth, and Spiteri (1997).
+
+## References
+
+- Uri M. Ascher, Steven J. Ruuth, and Raymond J Spiteri (1997)
+  Implicit-explicit Runge-Kutta methods for time-dependent
+  partial differential equations.
+  [DOI: 10.1016/S0168-9274(97)00056-1](https://doi.org/10.1016/S0168-9274(97)00056-1)
+- Sebastiano Boscarino and Giovanni Russo (2024)
+  Asymptotic preserving methods for quasilinear hyperbolic systems with
+  stiff relaxation: a review.
+  [DOI: 10.1007/s40324-024-00351-x](https://doi.org/10.1007/s40324-024-00351-x)
+- Sebastiano  Boscarino, Lorenzo Pareschi, and Giovanni Russo (2025)
+  Implicit-explicit methods for evolutionary partial differential equations.
+  [DOI: 10.1137/1.9781611978209](https://doi.org/10.1137/1.9781611978209)
+"""
 struct ARS222 <: RKIMEX{3} end
 function RKTableau(alg::ARS222, RealT)
     # ARS(2,2,2) IMEX Runge-Kutta - Second order
@@ -210,6 +250,26 @@ function RKTableau(alg::ARS222, RealT)
     return IMEXButcher(a, b, c, a_im, b_im, c_im)
 end
 
+"""
+    ARS443()
+
+A third-order, globally stiffly accurate (GSA) type II IMEX method developed by
+Ascher, Ruuth, and Spiteri (1997).
+
+## References
+
+- Uri M. Ascher, Steven J. Ruuth, and Raymond J Spiteri (1997)
+  Implicit-explicit Runge-Kutta methods for time-dependent
+  partial differential equations.
+  [DOI: 10.1016/S0168-9274(97)00056-1](https://doi.org/10.1016/S0168-9274(97)00056-1)
+- Sebastiano Boscarino and Giovanni Russo (2024)
+  Asymptotic preserving methods for quasilinear hyperbolic systems with
+  stiff relaxation: a review.
+  [DOI: 10.1007/s40324-024-00351-x](https://doi.org/10.1007/s40324-024-00351-x)
+- Sebastiano  Boscarino, Lorenzo Pareschi, and Giovanni Russo (2025)
+  Implicit-explicit methods for evolutionary partial differential equations.
+  [DOI: 10.1137/1.9781611978209](https://doi.org/10.1137/1.9781611978209)
+"""
 struct ARS443 <: RKIMEX{5} end
 function RKTableau(alg::ARS443, RealT)
     # ARS(4,4,3) IMEX Runge-Kutta - Third order
