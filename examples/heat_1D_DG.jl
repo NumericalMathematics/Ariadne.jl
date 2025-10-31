@@ -35,7 +35,7 @@ function heat_1D!(du, u, (D1m, D1p), t)
     return
 end
 
-# Inital condition:
+# Initial condition:
 
 f(x) = sin(π * x)
 
