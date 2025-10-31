@@ -218,6 +218,7 @@ function stage!(integrator, alg::RKIMEX)
 	end
         # Store the solution for each stage in stages
         ## For a split Problem we need to compute rhs_conservative and rhs_parabolic
+	# We solve the non-linear problem in the z variable, thus u_tmp is z_i = (u_i - u_n) / dt 
         @. integrator.res = integrator.u_tmp * integrator.dt + integrator.u
         integrator.f2(integrator.du, integrator.res, integrator.p, integrator.t + integrator.RK.c_ex[stage] * integrator.dt)
         integrator.stages[stage] .= integrator.du
@@ -226,6 +227,7 @@ function stage!(integrator, alg::RKIMEX)
             @. integrator.du = integrator.u_tmp * integrator.dt + integrator.u
             integrator.f1(integrator.stages_im[stage], integrator.du, integrator.p, integrator.t + integrator.RK.c_im[stage] * integrator.dt)
         else
+	 # We avoid evaluating the stiff operator at the numerical solutions (due to the large Lipschitz constant)
             for j in 1:(stage - 1)
                 @. integrator.res = integrator.res - integrator.RK.a_im[stage, j] * integrator.stages_im[j] - integrator.RK.a_ex[stage, j] * integrator.stages[j]
             end
