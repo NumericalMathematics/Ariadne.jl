@@ -200,7 +200,13 @@ end
 
 function stage!(integrator, alg::RKIMEX)
     @. integrator.u_tmp = 0
-    for stage in 1:stages(alg)
+    for stage in 1:stages(alg)	
+	if iszero(integrator.RK.a_im[stage, stage])
+        @. integrator.u_tmp = 0
+        for j in 1:(stage - 1)
+            @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a_ex[stage, j] * integrator.stages[j] + integrator.RK.a_im[stage, j] * integrator.stages_im[j]
+        end
+	else
         F! = nonlinear_problem(alg, integrator.f2)
         # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
         _, stats = newton_krylov!(
@@ -209,6 +215,7 @@ function stage!(integrator, alg::RKIMEX)
             algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs,
         )
         @assert stats.solved
+	end
         # Store the solution for each stage in stages
         ## For a split Problem we need to compute rhs_conservative and rhs_parabolic
         @. integrator.res = integrator.u_tmp * integrator.dt + integrator.u
