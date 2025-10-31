@@ -6,12 +6,13 @@ stages(::RKIMEX{N}) where {N} = N
 
 function (::RKIMEX{N})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages_ex, stages_im, stage, RK) where {N}
     if stage == N + 1
-        @. u = uₙ
+        fill!(u, zero(eltype(u))
         for j in 1:(stage - 1)
             Δt_b_ex = Δt * RK.b_ex[j]
             Δt_b_im = Δt * RK.b_im[j]
             @. u = u + Δt_b_ex * stages_ex[j] + Δt_b_im * stages_im[j]
         end
+        @. u = uₙ + u
     else
         @. res = u
         for j in 1:(stage - 1)
@@ -69,8 +70,8 @@ mutable struct SimpleImplicitExplicit{
     p::Params # will be the semidiscretization from Trixi.jl
     sol::Sol # faked
     f::F #TODO: that should be sum of f1 and f2
-    f1::F1 # `rhs!` parabolic
-    f2::F2 # rhs! conservative
+    f1::F1 # stiff part (e.g., `rhs_parabolic!` in Trixi.jl)
+    f2::F2 # non-stiff part (e.g., hyperbolic `rhs!` in Trixi.jl)
     alg::Alg # SimpleImplicitAlgorithm
     opts::SimpleImplicitExplicitOptions
     finalstep::Bool # added for convenience
@@ -100,7 +101,8 @@ function init(
     iter = 0
     integrator = SimpleImplicitExplicit(
         u, du, copy(du), u_tmp, stages, stages_im, res, t, dt, zero(dt), iter, ode.p,
-        (prob = ode,), ode.f.f1, ode.f.f1, ode.f.f2, alg,
+        (prob = ode,), nothing #= TODO: this should be f1 + f2 =#,
+        ode.f.f1, ode.f.f2, alg,
         SimpleImplicitExplicitOptions(
             callback, ode.tspan;
             kwargs...,
@@ -217,8 +219,8 @@ function stage!(integrator, alg::RKIMEX)
         @assert stats.solved
 	end
         # Store the solution for each stage in stages
-        ## For a split Problem we need to compute rhs_conservative and rhs_parabolic
-	# We solve the non-linear problem in the z variable, thus u_tmp is z_i = (u_i - u_n) / dt 
+        # For a split problem, we need to compute the stiff and non-stiff RHS.
+	    # We solve the non-linear problem in the z variable, thus u_tmp is z_i = (u_i - u_n) / dt 
         @. integrator.res = integrator.u_tmp * integrator.dt + integrator.u
         integrator.f2(integrator.du, integrator.res, integrator.p, integrator.t + integrator.RK.c_ex[stage] * integrator.dt)
         integrator.stages[stage] .= integrator.du

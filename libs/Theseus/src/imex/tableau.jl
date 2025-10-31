@@ -9,9 +9,11 @@ end
 
 
 """
-SSP2222()
+    SSP2222()
 
-A second-order SSP, L-stable IMEX Runge–Kutta method developed by Pareschi and Russo (2005).
+A second-order type I IMEX method developed by Pareschi and Russo (2005).
+The explicit part is strong stability preserving (SSP), the implicit part 
+is L-stable.
 
 ## References
 - Lorenzo Pareschi and Giovanni Russo (2005)  
@@ -26,7 +28,7 @@ struct SSP2222 <: RKIMEX{2} end
 function RKTableau(alg::SSP2222, RealT)
     # IMEX-SSP2(2,2,2) L-Stable Scheme
     nstage = 2
-    gamma = 1 - 1 / sqrt(2)
+    gamma = 1 - 1 / sqrt(convert(RealT, 2))
     a = zeros(RealT, nstage, nstage)
     a[2, 1] = 1
     b = zeros(RealT, nstage)
@@ -48,9 +50,11 @@ function RKTableau(alg::SSP2222, RealT)
 end
 
 """
-SSP2322()
+    SSP2322()
 
-A second-order SSP and stiffly accurate (SA) IMEX Runge–Kutta method developed by Pareschi and Russo (2005).
+A second-order type I IMEX method developed by Pareschi and Russo (2005).
+The explicit part is strong stability preserving (SSP), the implicit part 
+is stiffly accurate (SA) and thus L-stable.
 
 ## References
 - Lorenzo Pareschi and Giovanni Russo (2005)  
@@ -85,9 +89,11 @@ function RKTableau(alg::SSP2322, RealT)
 end
 
 """
-SSP2332()
+    SSP2332()
 
-A second-order SSP, L-stable and stiffly accurate (SA) IMEX Runge–Kutta method of type I developed by Pareschi and Russo (2005).
+A second-order type I IMEX method developed by Pareschi and Russo (2005).
+The explicit part is strong stability preserving (SSP), the implicit part 
+is stiffly accurate (SA) and thus L-stable.
 
 ## References
 - Lorenzo Pareschi and Giovanni Russo (2005)  
@@ -131,9 +137,11 @@ function RKTableau(alg::SSP2332, RealT)
 end
 
 """
-SSP3332()
+    SSP3332()
 
-A third-order SSP and L-stable IMEX Runge–Kutta method developed by Pareschi and Russo (2005).
+A third-order type I IMEX method developed by Pareschi and Russo (2005).
+The explicit part is strong stability preserving (SSP), the implicit part 
+is L-stable.
 
 ## References
 - Lorenzo Pareschi and Giovanni Russo (2005)  
@@ -145,7 +153,7 @@ struct SSP3332 <: RKIMEX{3} end
 function RKTableau(alg::SSP3332, RealT)
     # IMEX-SSP3(3,3,2) L-Stable Scheme
     nstage = 3
-    gamma = 1 - 1 / sqrt(2)
+    gamma = 1 - 1 / sqrt(convert(RealT, 2))
     a = zeros(RealT, nstage, nstage)
     a[2, 1] = 1
     a[3, 1] = 1 // 4
@@ -175,9 +183,11 @@ function RKTableau(alg::SSP3332, RealT)
 end
 
 """
-SSP3433()
+    SSP3433()
 
-A third-order SSP and L-stable IMEX Runge–Kutta method of type I developed by Pareschi and Russo (2005).
+A third-order type I IMEX method developed by Pareschi and Russo (2005).
+The explicit part is strong stability preserving (SSP), the implicit part 
+is L-stable.
 
 ## References
 - Lorenzo Pareschi and Giovanni Russo (2005)  
