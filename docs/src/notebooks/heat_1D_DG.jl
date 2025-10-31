@@ -52,7 +52,7 @@ function heat_1D!(du, u, (D1m, D1p), t)
 end
 
 # ╔═╡ fb2bbeda-ba56-4f29-9805-00fe032cea8c
-# inital conditions
+# initial conditions
 f(x) = sin(x * π)
 
 # ╔═╡ 19736a4a-e350-47d0-9b59-c40013cb8861
@@ -183,7 +183,7 @@ plot_timesteps(x_U, hist_EU, ts, [1, 2, 3, 4, 5, 10, length(ts)]; title = "Euler
 
 # ╔═╡ 3a5c3f81-a818-4d35-a4bc-d507ed89c2fa
 md"""
-## Oscilations at the boundary
+## Oscillations at the boundary
 """
 
 # ╔═╡ 901dacf2-fb00-4f5f-9d33-e8cae05064fc

@@ -255,7 +255,7 @@ end
 function (F::Fixed)(args...)
     return F.η
 end
-inital(F::Fixed) = F.η
+initial(F::Fixed) = F.η
 
 """
     EisenstatWalker(η_max = 0.999, γ = 0.9)
@@ -280,7 +280,7 @@ function (F::EisenstatWalker)(η, tol, n_res, n_res_prior)
     end
     return min(F.η_max, max(η_safe, 1 // 2 * tol / n_res)) # Eq 3.5
 end
-inital(F::EisenstatWalker) = F.η_max
+initial(F::EisenstatWalker) = F.η_max
 
 const KWARGS_DOCS = """
 ## Keyword Arguments
@@ -288,7 +288,7 @@ const KWARGS_DOCS = """
   - `tol_abs`: Absolute tolerance
   - `max_niter`: Maximum number of iterations
   - `forcing`: Maximum forcing term for inexact Newton.
-             If `nothing` an exact Newton method is used.  
+             If `nothing` an exact Newton method is used.
   - `verbose`:
   - `Workspace`:
   - `M`:
@@ -305,7 +305,7 @@ const KWARGS_DOCS = """
   - `u₀`: Initial guess
   - `p`: Parameters
   - `M`: Length of the output of `F`. Defaults to `length(u₀)`.
-  
+
 $(KWARGS_DOCS)
 """
 function newton_krylov(F, u₀::AbstractArray, p = nothing, M::Int = length(u₀); kwargs...)
@@ -346,9 +346,9 @@ end
 ## Arguments
   - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
   - `u`: Initial guess
-  - `p`: 
+  - `p`:
   - `res`: Temporary for residual
- 
+
 $(KWARGS_DOCS)
 """
 function newton_krylov!(
@@ -372,7 +372,7 @@ function newton_krylov!(
     tol = tol_rel * n_res + tol_abs
 
     if forcing !== nothing
-        η = inital(forcing)
+        η = initial(forcing)
     end
 
     verbose > 0 && @info "Jacobian-Free Newton-Krylov" algo res₀ = n_res tol tol_rel tol_abs η
@@ -385,7 +385,7 @@ function newton_krylov!(
 
     stats = Stats(0, 0, n_res)
     while n_res > tol && stats.outer_iterations <= max_niter
-        # Handle kwargs for Preconditoners
+        # Handle kwargs for Preconditioners
         kwargs = krylov_kwargs
         if N !== nothing
             kwargs = (; N = N(J), kwargs...)
@@ -399,7 +399,7 @@ function newton_krylov!(
         end
 
         # Solve: Jx = -res
-        # res is modifyed by J, so we create a copy `-res`
+        # res is modified by J, so we create a copy `-res`
         # TODO: provide a temporary storage for `-res`
         krylov_solve!(workspace, J, copy(res); kwargs...)
 

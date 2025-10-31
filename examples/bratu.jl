@@ -41,16 +41,16 @@ const N = 10_000
 const λ = 3.51382
 const dx = 1 / (N + 1) # Grid-spacing
 
-# ### Domain and Inital condition
+# ### Domain and Initial condition
 x = LinRange(0.0 + dx, 1.0 - dx, N)
 u₀ = sin.(x .* π)
 
-lines(x, u₀, label = "Inital guess")
+lines(x, u₀, label = "Initial guess")
 
 # ## Reference solution evaluated over domain
 reference = true_sol_bratu.(x)
 
-fig, ax = lines(x, u₀, label = "Inital guess")
+fig, ax = lines(x, u₀, label = "Initial guess")
 lines!(ax, x, reference, label = "Reference solution")
 axislegend(ax, position = :cb)
 fig
@@ -117,7 +117,7 @@ stats
 # stats
 # ```
 
-# ## Solve using GMRES + ILU Preconditoner
+# ## Solve using GMRES + ILU Preconditioner
 _, stats = newton_krylov!(
     bratu!,
     copy(u₀), (dx, λ), similar(u₀);
@@ -127,7 +127,7 @@ _, stats = newton_krylov!(
 )
 stats
 
-# ## Solve using FGMRES + ILU Preconditoner
+# ## Solve using FGMRES + ILU Preconditioner
 _, stats = newton_krylov!(
     bratu!,
     copy(u₀), (dx, λ), similar(u₀);
@@ -137,7 +137,7 @@ _, stats = newton_krylov!(
 )
 stats
 
-# ## Solve using FGMRES + GMRES Preconditoner
+# ## Solve using FGMRES + GMRES Preconditioner
 struct GmresPreconditioner{JOp}
     J::JOp
     itmax::Int
