@@ -5,15 +5,6 @@ abstract type RKIMEX{N} <: SimpleImplicitExplicitAlgorithm{N} end
 stages(::RKIMEX{N}) where {N} = N
 
 function (::RKIMEX{N})(res, uₙ, Δt, f1!, du, du_tmp, u, p, t, stages_ex, stages_im, stage, RK) where {N}
-    if stage == N + 1
-        fill!(u, zero(eltype(u)))
-        for j in 1:(stage - 1)
-            Δt_b_ex = Δt * RK.b_ex[j]
-            Δt_b_im = Δt * RK.b_im[j]
-            @. u = u + Δt_b_ex * stages_ex[j] + Δt_b_im * stages_im[j]
-        end
-        @. u = uₙ + u
-    else
         @. res = u
         for j in 1:(stage - 1)
             @. res = res - RK.a_ex[stage, j] * stages_ex[j] - RK.a_im[stage, j] * stages_im[j]
@@ -22,11 +13,10 @@ function (::RKIMEX{N})(res, uₙ, Δt, f1!, du, du_tmp, u, p, t, stages_ex, stag
         f1!(du_tmp, du, p, t + RK.c_im[stage] * Δt)
         @. res = res - RK.a_im[stage, stage] * du_tmp
         return res
-    end
 end
 
 function nonlinear_problem(alg::SimpleImplicitExplicitAlgorithm, f1::F1) where {F1}
-    return (res, u, (uₙ, Δt, f2, du, du_tmp, p, t, stages, stages_im, stage, RK)) -> alg(res, uₙ, Δt, f1, f2, du, du_tmp, u, p, t, stages, stages_im, stage, RK)
+    return (res, u, (uₙ, Δt, du, du_tmp, p, t, stages, stages_im, stage, RK)) -> alg(res, uₙ, Δt, f1, du, du_tmp, u, p, t, stages, stages_im, stage, RK)
 end
 
 mutable struct SimpleImplicitExplicitOptions{Callback}
@@ -101,7 +91,7 @@ function init(
     iter = 0
     integrator = SimpleImplicitExplicit(
         u, du, copy(du), u_tmp, stages, stages_im, res, t, dt, zero(dt), iter, ode.p,
-        (prob = ode,), nothing #= TODO: this should be f1 + f2 =#,
+        (prob = ode,), ode.f #= TODO: this should be f1 + f2 =#,
         ode.f.f1, ode.f.f2, alg,
         SimpleImplicitExplicitOptions(
             callback, ode.tspan;
@@ -212,7 +202,7 @@ function stage!(integrator, alg::RKIMEX)
             F! = nonlinear_problem(alg, integrator.f1)
             # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
             _, stats = newton_krylov!(
-                F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.f1, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage, integrator.RK), integrator.res;
+                F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage, integrator.RK), integrator.res;
                 verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
                 algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs
             )
@@ -235,10 +225,15 @@ function stage!(integrator, alg::RKIMEX)
             end
             @. integrator.stages_im[stage] = integrator.res / integrator.RK.a_im[stage, stage]
         end
-        if stage == stages(alg)
-            alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage + 1, integrator.RK)
-        end
     end
+	# Final update
+        fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
+	for j in 1:stages(alg)
+            Δt_b_ex = integrator.dt * integrator.RK.b_ex[j]
+            Δt_b_im = integrator.dt * integrator.RK.b_im[j]
+            @. integrator.u_tmp = integrator.u_tmp + Δt_b_ex * integrator.stages[j] + Δt_b_im * integrator.stages_im[j]
+        end
+        @. integrator.u_tmp = integrator.u + integrator.u_tmp
     return
 end
 
