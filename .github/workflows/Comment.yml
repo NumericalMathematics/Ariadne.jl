@@ -11,5 +11,5 @@ jobs:
         if: github.event_name == 'pull_request' && github.repository == github.event.pull_request.head.repo.full_name
         uses: thollander/actions-comment-pull-request@24bffb9b452ba05a4f3f77933840a6a841d1b32b
         with:
-          message: 'Once the build has completed, you can preview your PR at this URL: https://numericalmathematics.github.io/Ariadne.jl/previews/PR${{ github.event.number }}/ in a couple of minutes.'
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          message: 'Once the build has completed, you can preview your PR at this URL: https://NumericalMathematics.github.io/Ariadne.jl/previews/PR${{ github.event.number }}/ in a couple of minutes.'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
