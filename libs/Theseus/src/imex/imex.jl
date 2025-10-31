@@ -5,14 +5,14 @@ abstract type RKIMEX{N} <: SimpleImplicitExplicitAlgorithm{N} end
 stages(::RKIMEX{N}) where {N} = N
 
 function (::RKIMEX{N})(res, uₙ, Δt, f1!, du, du_tmp, u, p, t, stages_ex, stages_im, stage, RK) where {N}
-        @. res = u
-        for j in 1:(stage - 1)
-            @. res = res - RK.a_ex[stage, j] * stages_ex[j] - RK.a_im[stage, j] * stages_im[j]
-        end
-        @. du = u * Δt + uₙ
-        f1!(du_tmp, du, p, t + RK.c_im[stage] * Δt)
-        @. res = res - RK.a_im[stage, stage] * du_tmp
-        return res
+    @. res = u
+    for j in 1:(stage - 1)
+        @. res = res - RK.a_ex[stage, j] * stages_ex[j] - RK.a_im[stage, j] * stages_im[j]
+    end
+    @. du = u * Δt + uₙ
+    f1!(du_tmp, du, p, t + RK.c_im[stage] * Δt)
+    @. res = res - RK.a_im[stage, stage] * du_tmp
+    return res
 end
 
 function nonlinear_problem(alg::SimpleImplicitExplicitAlgorithm, f1::F1) where {F1}
@@ -226,14 +226,14 @@ function stage!(integrator, alg::RKIMEX)
             @. integrator.stages_im[stage] = integrator.res / integrator.RK.a_im[stage, stage]
         end
     end
-	# Final update
-        fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
-	for j in 1:stages(alg)
-            Δt_b_ex = integrator.dt * integrator.RK.b_ex[j]
-            Δt_b_im = integrator.dt * integrator.RK.b_im[j]
-            @. integrator.u_tmp = integrator.u_tmp + Δt_b_ex * integrator.stages[j] + Δt_b_im * integrator.stages_im[j]
-        end
-        @. integrator.u_tmp = integrator.u + integrator.u_tmp
+    # Final update
+    fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
+    for j in 1:stages(alg)
+        Δt_b_ex = integrator.dt * integrator.RK.b_ex[j]
+        Δt_b_im = integrator.dt * integrator.RK.b_im[j]
+        @. integrator.u_tmp = integrator.u_tmp + Δt_b_ex * integrator.stages[j] + Δt_b_im * integrator.stages_im[j]
+    end
+    @. integrator.u_tmp = integrator.u + integrator.u_tmp
     return
 end
 
