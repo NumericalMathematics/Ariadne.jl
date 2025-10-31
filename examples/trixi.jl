@@ -55,7 +55,7 @@ sol_trbdf2 = solve(
 
 # #### Plot the solution
 
-# We have to manually convert the sol since Theseus has it's own leightweight solution type.
+# We have to manually convert the sol since Theseus has it's own lightweight solution type.
 
 plot(Trixi.PlotData2DTriangulated(sol_trbdf2.u[end], sol_trbdf2.prob.p))
 

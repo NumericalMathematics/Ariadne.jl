@@ -41,7 +41,7 @@ function periodic_bc!(u)
     return u[end] = u[2]
 end
 
-# inital condition
+# initial condition
 
 f(x) = 4x * (1 - x)
 

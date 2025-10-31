@@ -168,7 +168,7 @@ begin
     bc! = bc_zero!
     t_end = 10.0
 
-    # TODO: With periodic boundaries -- newton_krylov solve struggels to reach target accuracy.
+    # TODO: With periodic boundaries -- newton_krylov solve struggles to reach target accuracy.
 
     # bc! = bc_periodic!
     # t_end = 3*Δt
