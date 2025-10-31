@@ -4,6 +4,29 @@ abstract type RKIMEX{N} <: SimpleImplicitExplicitAlgorithm{N} end
 
 stages(::RKIMEX{N}) where {N} = N
 
+# This method calculates the residual of an additive Runge-Kutta IMEX method
+#
+#   u^{n+1} = u^n + dt \sum_{i=1}^s b1_i f1(y^i) + dt \sum_{i=1}^s b2_i f2(y^i)
+#
+# with stages
+#
+#   y^i = u^n + dt \sum_{j=1}^i a1_{ij} f1(y^j) + dt \sum_{j=1}^{i-1} a2_{ij} f2(y^j),
+#
+# where f1 is the stiff part and f2 is the non-stiff part of the ODE.
+# To compute the stages y^i, we formulate the stage equations in terms of the
+# update variables
+#
+#   z^i = (y^i - u^n) / dt,
+#
+# i.e., we have
+#
+#   y^i = u^n + dt * z^i.
+#
+# Thus, the stage equations become
+#
+#   z^i - \sum_{j=1}^i a1_{ij} f1(y^j) - \sum_{j=1}^{i-1} a2_{ij} f2(y^j) = 0.
+#
+# In the implementation below, `u = z` is the unknown for the current `stage`.
 function (::RKIMEX{N})(res, uₙ, Δt, f1!, du, du_tmp, u, p, t, stages_ex, stages_im, stage, RK) where {N}
     @. res = u
     for j in 1:(stage - 1)
@@ -190,15 +213,43 @@ function step!(integrator::SimpleImplicitExplicit)
 end
 
 
+# Compute all stages within one time step
 function stage!(integrator, alg::RKIMEX)
     @. integrator.u_tmp = 0
     for stage in 1:stages(alg)
+        # This computes all stages of an additive Runge-Kutta IMEX method
+        #
+        #   u^{n+1} = u^n + dt \sum_{i=1}^s b1_i f1(y^i) + dt \sum_{i=1}^s b2_i f2(y^i)
+        #
+        # with stages
+        #
+        #   y^i = u^n + dt \sum_{j=1}^i a1_{ij} f1(y^j) + dt \sum_{j=1}^{i-1} a2_{ij} f2(y^j),
+        #
+        # where f1 is the stiff part and f2 is the non-stiff part of the ODE.
+        # To compute the stages y^i, we formulate the stage equations in terms of the
+        # update variables
+        #
+        #   z^i = (y^i - u^n) / dt,
+        #
+        # i.e., we have
+        #
+        #   y^i = u^n + dt * z^i.
+        #
+        # Thus, the stage equations become
+        #
+        #   z^i - \sum_{j=1}^i a1_{ij} f1(y^j) - \sum_{j=1}^{i-1} a2_{ij} f2(y^j) = 0.
+        #
+        # The variable `integrator.u_tmp` is the update z^i for the current `stage`.
         if iszero(integrator.RK.a_im[stage, stage])
+            # In this case, the stage is explicit and can be computed directly
+            # without solving any (nonlinear) system.
             @. integrator.u_tmp = 0
             for j in 1:(stage - 1)
                 @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a_ex[stage, j] * integrator.stages[j] + integrator.RK.a_im[stage, j] * integrator.stages_im[j]
             end
         else
+            # In this case, we have an implicit stage that requires solving a
+            # nonlinear system.
             F! = nonlinear_problem(alg, integrator.f1)
             # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
             _, stats = newton_krylov!(
@@ -212,28 +263,47 @@ function stage!(integrator, alg::RKIMEX)
         # For a split problem, we need to compute the stiff and non-stiff RHS.
         # We solve the non-linear problem in the z variable, thus u_tmp is z_i = (u_i - u_n) / dt
         @. integrator.res = integrator.u_tmp * integrator.dt + integrator.u
+        # First, we evaluate the non-stiff RHS at the numerically computed solution
+        # of the stage equation.
         integrator.f2(integrator.du, integrator.res, integrator.p, integrator.t + integrator.RK.c_ex[stage] * integrator.dt)
         integrator.stages[stage] .= integrator.du
         @. integrator.res = integrator.u_tmp
         if iszero(integrator.RK.a_im[stage, stage])
+            # In this case, the stage is fully explicit. Thus, we also evaluate
+            # the stiff RHS at the corresponding stage value.
             @. integrator.du = integrator.u_tmp * integrator.dt + integrator.u
             integrator.f1(integrator.stages_im[stage], integrator.du, integrator.p, integrator.t + integrator.RK.c_im[stage] * integrator.dt)
         else
-            # We avoid evaluating the stiff operator at the numerical solutions (due to the large Lipschitz constant)
+            # We avoid evaluating the stiff operator at the numerical solutions
+            # (due to the large Lipschitz constant). Thus, we rearrange the stage equation
+            #
+            #   z^i - \sum_{j=1}^i a1_{ij} f1(y^j) - \sum_{j=1}^{i-1} a2_{ij} f2(y^j) = 0
+            #
+            # as
+            #
+            #   f1(y^j) = (z^i - \sum_{j=1}^{i-1} a1_{ij} f1(y^j) - \sum_{j=1}^{i-1} a2_{ij}) / a1_{ii}.
+            #
+            # Note that `integrator.res .= integrator.u_tmp` is the solution `z` for the
+            # current `stage`.
             for j in 1:(stage - 1)
                 @. integrator.res = integrator.res - integrator.RK.a_im[stage, j] * integrator.stages_im[j] - integrator.RK.a_ex[stage, j] * integrator.stages[j]
             end
             @. integrator.stages_im[stage] = integrator.res / integrator.RK.a_im[stage, stage]
         end
     end
-    # Final update
+    # Finally, we compute the new step value
+    #
+    #   u^{n+1} = u^n + dt \sum_{i=1}^s b1_i f1(y^i) + dt \sum_{i=1}^s b2_i f2(y^i).
+    #
+    # To reduce rounding errors, we first accumulate the RHS values and 
+    # multiply them by the time step size later.
     fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
     for j in 1:stages(alg)
-        Δt_b_ex = integrator.dt * integrator.RK.b_ex[j]
-        Δt_b_im = integrator.dt * integrator.RK.b_im[j]
-        @. integrator.u_tmp = integrator.u_tmp + Δt_b_ex * integrator.stages[j] + Δt_b_im * integrator.stages_im[j]
+        b_ex = integrator.RK.b_ex[j]
+        b_im = integrator.RK.b_im[j]
+        @. integrator.u_tmp = integrator.u_tmp + b_ex * integrator.stages[j] + b_im * integrator.stages_im[j]
     end
-    @. integrator.u_tmp = integrator.u + integrator.u_tmp
+    @. integrator.u_tmp = integrator.u + integrator.dt * integrator.u_tmp
     return
 end
 
