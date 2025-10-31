@@ -24,8 +24,8 @@ function (::RKIMEX{N})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages_ex,
     end
 end
 
-function nonlinear_problem(alg::SimpleImplicitExplicitAlgorithm, f2::F2) where {F2}
-    return (res, u, (uₙ, Δt, f1, du, du_tmp, p, t, stages, stages_im, stage, RK)) -> alg(res, uₙ, Δt, f1, f2, du, du_tmp, u, p, t, stages, stages_im, stage, RK)
+function nonlinear_problem(alg::SimpleImplicitExplicitAlgorithm, f1::F1) where {F1}
+    return (res, u, (uₙ, Δt, f2, du, du_tmp, p, t, stages, stages_im, stage, RK)) -> alg(res, uₙ, Δt, f1, f2, du, du_tmp, u, p, t, stages, stages_im, stage, RK)
 end
 
 mutable struct SimpleImplicitExplicitOptions{Callback}
@@ -207,7 +207,7 @@ function stage!(integrator, alg::RKIMEX)
             @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a_ex[stage, j] * integrator.stages[j] + integrator.RK.a_im[stage, j] * integrator.stages_im[j]
         end
 	else
-        F! = nonlinear_problem(alg, integrator.f2)
+        F! = nonlinear_problem(alg, integrator.f1)
         # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
         _, stats = newton_krylov!(
             F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.f1, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage, integrator.RK), integrator.res;
