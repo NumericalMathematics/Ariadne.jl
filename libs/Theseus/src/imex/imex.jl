@@ -4,9 +4,9 @@ abstract type RKIMEX{N} <: SimpleImplicitExplicitAlgorithm{N} end
 
 stages(::RKIMEX{N}) where {N} = N
 
-function (::RKIMEX{N})(res, uₙ, Δt, f1!, f2!, du, du_tmp, u, p, t, stages_ex, stages_im, stage, RK) where {N}
+function (::RKIMEX{N})(res, uₙ, Δt, f1!, du, du_tmp, u, p, t, stages_ex, stages_im, stage, RK) where {N}
     if stage == N + 1
-        fill!(u, zero(eltype(u))
+        fill!(u, zero(eltype(u)))
         for j in 1:(stage - 1)
             Δt_b_ex = Δt * RK.b_ex[j]
             Δt_b_im = Δt * RK.b_im[j]
@@ -202,25 +202,25 @@ end
 
 function stage!(integrator, alg::RKIMEX)
     @. integrator.u_tmp = 0
-    for stage in 1:stages(alg)	
-	if iszero(integrator.RK.a_im[stage, stage])
-        @. integrator.u_tmp = 0
-        for j in 1:(stage - 1)
-            @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a_ex[stage, j] * integrator.stages[j] + integrator.RK.a_im[stage, j] * integrator.stages_im[j]
+    for stage in 1:stages(alg)
+        if iszero(integrator.RK.a_im[stage, stage])
+            @. integrator.u_tmp = 0
+            for j in 1:(stage - 1)
+                @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a_ex[stage, j] * integrator.stages[j] + integrator.RK.a_im[stage, j] * integrator.stages_im[j]
+            end
+        else
+            F! = nonlinear_problem(alg, integrator.f1)
+            # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
+            _, stats = newton_krylov!(
+                F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.f1, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage, integrator.RK), integrator.res;
+                verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
+                algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs
+            )
+            @assert stats.solved
         end
-	else
-        F! = nonlinear_problem(alg, integrator.f1)
-        # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
-        _, stats = newton_krylov!(
-            F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.f1, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage, integrator.RK), integrator.res;
-            verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
-            algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs,
-        )
-        @assert stats.solved
-	end
         # Store the solution for each stage in stages
         # For a split problem, we need to compute the stiff and non-stiff RHS.
-	    # We solve the non-linear problem in the z variable, thus u_tmp is z_i = (u_i - u_n) / dt 
+        # We solve the non-linear problem in the z variable, thus u_tmp is z_i = (u_i - u_n) / dt
         @. integrator.res = integrator.u_tmp * integrator.dt + integrator.u
         integrator.f2(integrator.du, integrator.res, integrator.p, integrator.t + integrator.RK.c_ex[stage] * integrator.dt)
         integrator.stages[stage] .= integrator.du
@@ -229,14 +229,14 @@ function stage!(integrator, alg::RKIMEX)
             @. integrator.du = integrator.u_tmp * integrator.dt + integrator.u
             integrator.f1(integrator.stages_im[stage], integrator.du, integrator.p, integrator.t + integrator.RK.c_im[stage] * integrator.dt)
         else
-	 # We avoid evaluating the stiff operator at the numerical solutions (due to the large Lipschitz constant)
+            # We avoid evaluating the stiff operator at the numerical solutions (due to the large Lipschitz constant)
             for j in 1:(stage - 1)
                 @. integrator.res = integrator.res - integrator.RK.a_im[stage, j] * integrator.stages_im[j] - integrator.RK.a_ex[stage, j] * integrator.stages[j]
             end
             @. integrator.stages_im[stage] = integrator.res / integrator.RK.a_im[stage, stage]
         end
         if stage == stages(alg)
-            alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.f2, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage + 1, integrator.RK)
+            alg(integrator.res, integrator.u, integrator.dt, integrator.f1, integrator.du, integrator.du_tmp, integrator.u_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage + 1, integrator.RK)
         end
     end
     return
