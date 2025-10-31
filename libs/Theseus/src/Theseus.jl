@@ -15,7 +15,7 @@ struct TimeIntegratorSolution{tType, uType, P}
     prob::P
 end
 
-# Abstract supertype of Implict.jl's own time integrators for dispatch
+# Abstract supertype of Theseus.jl's own time integrators for dispatch
 abstract type AbstractTimeIntegrator end
 
 using DiffEqBase: DiffEqBase
@@ -118,7 +118,7 @@ function (::TRBDF2)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
 
         # Bank1985 defines in eq 32
         # (2-γ)u + (1-γ)Δt * f(u, t+Δt) = 1/γ * u₁ - 1/γ * (1-γ)^2 * uₙ
-        # Manual derivation (devision by (2-γ) and then move everything to one side.)
+        # Manual derivation (division by (2-γ) and then move everything to one side.)
         # a₁ = -((1 - γ)^2) / (γ * (2 - γ))
         # a₂ = 1 / (γ * (2 - γ))
         # a₃ = - (1 - γ) / (2 - γ)
