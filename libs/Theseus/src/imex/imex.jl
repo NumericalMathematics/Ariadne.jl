@@ -59,7 +59,7 @@ mutable struct SimpleImplicitExplicit{
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi.jl
     sol::Sol # faked
-    f::F #TODO: that should be sum of f1 and f2
+    f::F # sum of f1 and f2 (stiff and non-stiff rhs)
     f1::F1 # stiff part (e.g., `rhs_parabolic!` in Trixi.jl)
     f2::F2 # non-stiff part (e.g., hyperbolic `rhs!` in Trixi.jl)
     alg::Alg # SimpleImplicitAlgorithm
@@ -91,7 +91,7 @@ function init(
     iter = 0
     integrator = SimpleImplicitExplicit(
         u, du, copy(du), u_tmp, stages, stages_im, res, t, dt, zero(dt), iter, ode.p,
-        (prob = ode,), ode.f #= TODO: this should be f1 + f2 =#,
+        (prob = ode,), ode.f,
         ode.f.f1, ode.f.f2, alg,
         SimpleImplicitExplicitOptions(
             callback, ode.tspan;
