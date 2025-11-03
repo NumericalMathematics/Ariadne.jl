@@ -50,6 +50,9 @@ examples = [
     "Implicit -- Heat 1D DG" => "heat_1D_DG",
     "Implicit -- Heat 2D" => "heat_2D",
     "Trixi" => "trixi",
+    "Trixi Rosenbrock" => "trixi_rosenbrock",
+    "Trixi Rosenbrock Warm Bubble" => "trixi_rosenbrock_warm_bubble",
+    "Trixi Rosenbrock Blast Wave" => "trixi_rosenbrock_blast_wave",
 ]
 
 for (_, name) in examples
