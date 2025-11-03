@@ -4,7 +4,7 @@ abstract type DIRK{N} <: SimpleDiagonallyImplicitAlgorithm{N} end
 
 stages(::DIRK{N}) where {N} = N
 
-# This method calculates the residual of an Diagonally Implicit Runge-Kutta method
+# This method calculates the residual of a diagonally implicit Runge-Kutta method
 #
 #   u^{n+1} = u^n + dt \sum_{i=1}^s b_i f(y^i)
 #
