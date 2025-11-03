@@ -8,12 +8,13 @@ end
 """
     Crouzeix23()
 
-A third-order A and L-stable DIRK method developed by Crouzeix (2005).
+A third-order A and L-stable DIRK method developed by Nørsett (1974) and Crouzeix (1975).
 
 ## References
-- Michel Crouzeix (1975)
-  *Sur l’approximation des équations différentielles opérationnelles linéaires par des méthodes de Runge–Kutta.*
-  *Thèse de 3ᵉ cycle, Université de Paris VI (Pierre et Marie Curie).*
+- Ernst Hairer, Syvert P. Nørsett, and Gerhard Wanner (1993) 
+  *Solving Ordinary Differential Equations I: Nonstiff Problems.* 
+  *Springer Series in Computational Mathematics,* 2nd edition. 
+  [DOI: 10.1007/978-3-540-78862-1](https://doi.org/10.1007/978-3-540-78862-1)
 """
 struct Crouzeix23 <: DIRK{2} end
 function RKTableau(alg::Crouzeix23, RealT)
@@ -30,5 +31,32 @@ function RKTableau(alg::Crouzeix23, RealT)
     c = zeros(Float64, nstage)
     c[1] = 1 // 2 + sqrt(3) / 6
     c[2] = 1 // 2 - sqrt(3) / 6
+    return DIRKButcher(a, b, c)
+end
+
+
+"""
+    LobattoIIIA()
+
+A second order and A-stable DIRK method.
+
+## References
+- Ernst Hairer, Syvert P. Nørsett, and Gerhard Wanner (1993) 
+  *Solving Ordinary Differential Equations I: Nonstiff Problems.* 
+  *Springer Series in Computational Mathematics,* 2nd edition. 
+  [DOI: 10.1007/978-3-540-78862-1](https://doi.org/10.1007/978-3-540-78862-1)
+"""
+struct LobattoIIIA <: DIRK{1} end
+function RKTableau(alg::Crouzeix23, RealT)
+    nstage = 2
+    a = zeros(RealT, nstage, nstage)
+    a[2, 1] = 1 // 2
+    a[2, 2] = 1 // 2 
+    b = zeros(RealT, nstage)
+    b[1] = 1 // 2
+    b[2] = 1 // 2
+
+    c = zeros(Float64, nstage)
+    c[2] = 1 
     return DIRKButcher(a, b, c)
 end
