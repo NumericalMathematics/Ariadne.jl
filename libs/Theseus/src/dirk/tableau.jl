@@ -51,12 +51,12 @@ function RKTableau(alg::Crouzeix23, RealT)
     nstage = 2
     a = zeros(RealT, nstage, nstage)
     a[2, 1] = 1 // 2
-    a[2, 2] = 1 // 2 
+    a[2, 2] = 1 // 2
     b = zeros(RealT, nstage)
     b[1] = 1 // 2
     b[2] = 1 // 2
 
     c = zeros(Float64, nstage)
-    c[2] = 1 
+    c[2] = 1
     return DIRKButcher(a, b, c)
 end
