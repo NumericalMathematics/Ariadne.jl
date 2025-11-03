@@ -47,7 +47,7 @@ A second order and A-stable DIRK method.
   [DOI: 10.1007/978-3-540-78862-1](https://doi.org/10.1007/978-3-540-78862-1)
 """
 struct LobattoIIIA <: DIRK{2} end
-function RKTableau(alg::Crouzeix23, RealT)
+function RKTableau(alg::LobattoIIIA, RealT)
     nstage = 2
     a = zeros(RealT, nstage, nstage)
     a[2, 1] = 1 // 2
