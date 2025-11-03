@@ -18,7 +18,7 @@ using CairoMakie
 @assert !Trixi._PREFERENCE_LOOPVECTORIZATION
 
 # First call to load callbacks
-trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion.jl"), sol = nothing);
+trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion.jl"), sol = nothing);
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 

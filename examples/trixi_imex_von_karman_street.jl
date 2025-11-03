@@ -18,7 +18,7 @@ using CairoMakie
 @assert !Trixi._PREFERENCE_LOOPVECTORIZATION
 
 # First call to load callbacks
-trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_vortex_street.jl"), sol = nothing, analysis_interval = 10);
+trixi_include(@__MODULE__, joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_vortex_street.jl"), sol = nothing, analysis_interval = 10);
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
