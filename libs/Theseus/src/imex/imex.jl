@@ -281,7 +281,7 @@ function stage!(integrator, alg::RKIMEX)
             #
             # as
             #
-            #   f1(y^j) = (z^i - \sum_{j=1}^{i-1} a1_{ij} f1(y^j) - \sum_{j=1}^{i-1} a2_{ij}) / a1_{ii}.
+            #   f1(y^j) = (z^i - \sum_{j=1}^{i-1} a1_{ij} f1(y^j) - \sum_{j=1}^{i-1} a2_{ij} f2(y^j)) / a1_{ii}.
             #
             # Note that `integrator.res .= integrator.u_tmp` is the solution `z` for the
             # current `stage`.
