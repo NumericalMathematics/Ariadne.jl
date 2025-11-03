@@ -281,7 +281,7 @@ function stage!(integrator, alg::RKIMEX)
             #
             # as
             #
-            #   f1(y^j) = (z^i - \sum_{j=1}^{i-1} a1_{ij} f1(y^j) - \sum_{j=1}^{i-1} a2_{ij}) / a1_{ii}.
+            #   f1(y^j) = (z^i - \sum_{j=1}^{i-1} a1_{ij} f1(y^j) - \sum_{j=1}^{i-1} a2_{ij} f2(y^j)) / a1_{ii}.
             #
             # Note that `integrator.res .= integrator.u_tmp` is the solution `z` for the
             # current `stage`.
@@ -295,7 +295,7 @@ function stage!(integrator, alg::RKIMEX)
     #
     #   u^{n+1} = u^n + dt \sum_{i=1}^s b1_i f1(y^i) + dt \sum_{i=1}^s b2_i f2(y^i).
     #
-    # To reduce rounding errors, we first accumulate the RHS values and 
+    # To reduce rounding errors, we first accumulate the RHS values and
     # multiply them by the time step size later.
     fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
     for j in 1:stages(alg)
