@@ -1,4 +1,4 @@
-# # Using a linearly implicit Rosenbrock solver based on Ariadne with Trixi.jl
+# # Using a diagonally implicit Runge-Kutta (DIRK) solver based on Ariadne with Trixi.jl
 
 using Trixi
 using Theseus
