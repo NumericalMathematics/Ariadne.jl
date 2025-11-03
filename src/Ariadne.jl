@@ -362,7 +362,7 @@ function newton_krylov!(
         M = nothing,
         N = nothing,
         krylov_kwargs = (;),
-        callback = (args...) -> nothing,
+        callback = (args...) -> nothing, workspace = nothing
     )
     t₀ = time_ns()
     F!(res, u, p) # res = F(u)
@@ -378,10 +378,6 @@ function newton_krylov!(
     verbose > 0 && @info "Jacobian-Free Newton-Krylov" algo res₀ = n_res tol tol_rel tol_abs η
 
     J = JacobianOperator(F!, res, u, p)
-
-    # TODO: Refactor to provide method that re-uses the cache here.
-    kc = KrylovConstructor(res)
-    workspace = krylov_workspace(algo, kc)
 
     stats = Stats(0, 0, n_res)
     while n_res > tol && stats.outer_iterations <= max_niter

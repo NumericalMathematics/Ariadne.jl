@@ -42,7 +42,7 @@ function nonlinear_problem(alg::SimpleImplicitExplicitAlgorithm, f1::F1) where {
     return (res, u, (uₙ, Δt, du, du_tmp, p, t, stages, stages_im, stage, RK)) -> alg(res, uₙ, Δt, f1, du, du_tmp, u, p, t, stages, stages_im, stage, RK)
 end
 
-mutable struct SimpleImplicitExplicitOptions{Callback}
+mutable struct SimpleImplicitExplicitOptions{Callback,KrylovWorkspace}
     callback::Callback # callbacks; used in Trixi.jl
     adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
@@ -51,16 +51,19 @@ mutable struct SimpleImplicitExplicitOptions{Callback}
     verbose::Int
     algo::Symbol
     krylov_tol_abs::Float64
+    workspace::KrylovWorkspace
     krylov_kwargs::Any
 end
 
-function SimpleImplicitExplicitOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_tol_abs = 1.0e-6, krylov_kwargs = (;), kwargs...)
-    return SimpleImplicitExplicitOptions{typeof(callback)}(
+function SimpleImplicitExplicitOptions(callback, tspan, kc; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_tol_abs = 1.0e-6, krylov_kwargs = (;), kwargs...)
+    workspace = krylov_workspace(krylov_algo, kc)
+    return SimpleImplicitExplicitOptions{typeof(callback), typeof(workspace)}(
         callback, false, Inf, maxiters,
         [last(tspan)],
         verbose,
         krylov_algo,
         krylov_tol_abs,
+	workspace,
         krylov_kwargs,
     )
 end
@@ -112,12 +115,16 @@ function init(
     stages_im = ntuple(_ -> similar(u), Val(N))
     t = first(ode.tspan)
     iter = 0
+
+    # TODO: Refactor to provide method that re-uses the cache here.
+    kc = KrylovConstructor(res)
+
     integrator = SimpleImplicitExplicit(
         u, du, copy(du), u_tmp, stages, stages_im, res, t, dt, zero(dt), iter, ode.p,
         (prob = ode,), ode.f,
         ode.f.f1, ode.f.f2, alg,
         SimpleImplicitExplicitOptions(
-            callback, ode.tspan;
+            callback, ode.tspan, kc;
             kwargs...,
         ), false, RKTableau(alg, eltype(u))
     )
@@ -255,7 +262,7 @@ function stage!(integrator, alg::RKIMEX)
             _, stats = newton_krylov!(
                 F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage, integrator.RK), integrator.res;
                 verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
-                algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs
+                algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs, workspace = integrator.opts.workspace
             )
             @assert stats.solved
         end
