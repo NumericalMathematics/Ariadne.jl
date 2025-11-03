@@ -24,7 +24,7 @@ stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, stepsize_callback)
 tspan = (0.0, 0.5)
-trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_vortex_street.jl"), sol = nothing, callbacks = callbacks, tspan = tspan);
+trixi_include(@__MODULE__, joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_navierstokes_vortex_street.jl"), sol = nothing, callbacks = callbacks, tspan = tspan);
 ###############################################################################
 # run the simulation
 

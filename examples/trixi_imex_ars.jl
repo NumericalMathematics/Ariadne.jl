@@ -24,7 +24,7 @@ stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, stepsize_callback)
 
-trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion.jl"), sol = nothing, callbacks = callbacks);
+trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion.jl"), sol = nothing, callbacks = callbacks);
 ###############################################################################
 # run the simulation
 
