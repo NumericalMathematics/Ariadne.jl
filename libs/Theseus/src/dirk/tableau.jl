@@ -12,6 +12,7 @@ A third-order, A- and L-stable diagonally implicit Runge-Kutta (DIRK) method
 developed by Nørsett (1974) and Crouzeix (1975).
 
 ## References
+See Table 7.2 on p. 207 for the Butcher tableau.  
 - Ernst Hairer, Syvert P. Nørsett, and Gerhard Wanner (1993) 
   *Solving Ordinary Differential Equations I: Nonstiff Problems.* 
   *Springer Series in Computational Mathematics,* 2nd edition. 
@@ -42,10 +43,10 @@ end
 A second order and A-stable DIRK method.
 
 ## References
-- Ernst Hairer, Syvert P. Nørsett, and Gerhard Wanner (1993) 
-  *Solving Ordinary Differential Equations I: Nonstiff Problems.* 
-  *Springer Series in Computational Mathematics,* 2nd edition. 
-  [DOI: 10.1007/978-3-540-78862-1](https://doi.org/10.1007/978-3-540-78862-1)
+See Table (213) on p. 69 for the Butcher tableau.  
+- Christopher A. Kennedy and Mark H. Carpenter (2016) 
+*Diagonally Implicit Runge–Kutta Methods for Ordinary Differential Equations: A Review.* 
+*NASA Technical Memorandum NASA/TM-2016-219173, Langley Research Center, Hampton, VA, United States.* 
 """
 struct LobattoIIIA2 <: DIRK{2} end
 function RKTableau(alg::LobattoIIIA2, RealT)
