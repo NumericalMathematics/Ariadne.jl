@@ -376,7 +376,9 @@ function newton_krylov!(
     end
 
     verbose > 0 && @info "Jacobian-Free Newton-Krylov" algo res₀ = n_res tol tol_rel tol_abs η
-
+#   # TODO: Refactor to provide method that re-uses the cache here.
+#	@trixi_timeit timer() "KrylovConstructor" kc = KrylovConstructor(res)
+#    @trixi_timeit timer() "workspace" workspace = krylov_workspace(algo, kc)
     @trixi_timeit timer() "jacobian" J = JacobianOperator(F!, res, u, p)
 
     stats = Stats(0, 0, n_res)

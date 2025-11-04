@@ -1,8 +1,9 @@
 module Theseus
 
 using UnPack
+using MuladdMacro
 using LinearAlgebra
-import Ariadne: JacobianOperator, newton_krylov!
+import Ariadne: JacobianOperator, newton_krylov!, @trixi_timeit, timer
 using Krylov
 
 abstract type RKTableau end
