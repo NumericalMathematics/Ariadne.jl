@@ -8,7 +8,7 @@ end
 """
     Crouzeix32()
 
-A third-order, A- and L-stable diagonally implicit Runge-Kutta (DIRK) method
+A third-order, two-stage, A- and L-stable diagonally implicit Runge-Kutta (DIRK) method
 developed by Nørsett (1974) and Crouzeix (1975).
 
 ## References
@@ -30,7 +30,7 @@ function RKTableau(alg::Crouzeix32, RealT)
     b[1] = 1 // 2
     b[2] = 1 // 2
 
-    c = zeros(Float64, nstage)
+    c = zeros(RealT, nstage)
     c[1] = 1 // 2 + sqrt(3) / 6
     c[2] = 1 // 2 - sqrt(3) / 6
     return DIRKButcher(a, b, c)
@@ -40,13 +40,14 @@ end
 """
     LobattoIIIA2()
 
-A second order and A-stable DIRK method.
+A second-order, two-stage, A-stable DIRK method from the general
+class of Lobatto IIIA methods.
 
 ## References
 See Table (213) on p. 69 for the Butcher tableau.  
 - Christopher A. Kennedy and Mark H. Carpenter (2016) 
-*Diagonally Implicit Runge–Kutta Methods for Ordinary Differential Equations: A Review.* 
-*NASA Technical Memorandum NASA/TM-2016-219173, Langley Research Center, Hampton, VA, United States.* 
+  *Diagonally Implicit Runge–Kutta Methods for Ordinary Differential Equations: A Review.* 
+  *NASA Technical Memorandum NASA/TM-2016-219173, Langley Research Center, Hampton, VA, United States.* 
 """
 struct LobattoIIIA2 <: DIRK{2} end
 function RKTableau(alg::LobattoIIIA2, RealT)
@@ -58,7 +59,7 @@ function RKTableau(alg::LobattoIIIA2, RealT)
     b[1] = 1 // 2
     b[2] = 1 // 2
 
-    c = zeros(Float64, nstage)
+    c = zeros(RealT, nstage)
     c[2] = 1
     return DIRKButcher(a, b, c)
 end
@@ -66,7 +67,7 @@ end
 """
     DIRK43()
 
-A fourth order and A-stable DIRK method.
+A fourth-order, three-stage, A-stable DIRK method.
 
 ## References
 - D. Fränken and Karlheinz Ochs (2003) 
@@ -90,7 +91,7 @@ function RKTableau(alg::DIRK43, RealT)
     b[2] = 1 // 3
     b[3] = 1 // 3
 
-    c = zeros(Float64, nstage)
+    c = zeros(RealT, nstage)
     c[1] = a[1, 1]
     c[2] = 1 // 2
     c[3] = 1 // 2 - 1 / (2 * sqrt(convert(RealT, 2)))
