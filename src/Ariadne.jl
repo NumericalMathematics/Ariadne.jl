@@ -1,7 +1,7 @@
 module Ariadne
 
 export newton_krylov, newton_krylov!
-import TrixiBase: @trixi_timeit
+using TrixiBase: @trixi_timeit, timer
 using Krylov
 using LinearAlgebra, SparseArrays
 using Enzyme
@@ -365,9 +365,9 @@ function newton_krylov!(
         callback = (args...) -> nothing, workspace = nothing
     )
     t₀ = time_ns()
-    F!(res, u, p) # res = F(u)
+    @trixi_timeit timer() "F!" F!(res, u, p) # res = F(u)
     n_res = norm(res)
-    @trixi_timeit "callback" callback(u, res, n_res)
+    callback(u, res, n_res)
 
     tol = tol_rel * n_res + tol_abs
 
@@ -377,7 +377,7 @@ function newton_krylov!(
 
     verbose > 0 && @info "Jacobian-Free Newton-Krylov" algo res₀ = n_res tol tol_rel tol_abs η
 
-    @trixi_timeit "jacobain" J = JacobianOperator(F!, res, u, p)
+   @trixi_timeit timer() "jacobian" J = JacobianOperator(F!, res, u, p)
 
     stats = Stats(0, 0, n_res)
     while n_res > tol && stats.outer_iterations <= max_niter
@@ -397,7 +397,7 @@ function newton_krylov!(
         # Solve: Jx = -res
         # res is modified by J, so we create a copy `-res`
         # TODO: provide a temporary storage for `-res`
-       @trixi_timeit "krylov" krylov_solve!(workspace, J, copy(res); kwargs...)
+	@trixi_timeit timer() "krylov" krylov_solve!(workspace, J, copy(res); kwargs...)
 
         d = workspace.x # Newton direction
         s = 1        # Newton step TODO: LineSearch
@@ -408,7 +408,7 @@ function newton_krylov!(
         # Update residual and norm
         n_res_prior = n_res
 
-        F!(res, u, p) # res = F(u)
+        @trixi_timeit timer() "F! inside" F!(res, u, p) # res = F(u)
         n_res = norm(res)
         callback(u, res, n_res)
 
@@ -426,7 +426,7 @@ function newton_krylov!(
             @info "Inexact Newton thinks our step is good enough " η stats
         end
 
-      @trixi_timeit "update" stats = update(stats, workspace.stats.niter, n_res)
+	stats = update(stats, workspace.stats.niter, n_res)
         verbose > 0 && @info "Newton" iter = n_res η stats
     end
     t = (time_ns() - t₀) / 1.0e9
