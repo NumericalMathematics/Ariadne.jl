@@ -24,7 +24,7 @@ stages(::DIRK{N}) where {N} = N
 #
 # Thus, the stage equations become
 #
-#   z^i - \sum_{j=1}^i a_{ij} f(y^j).
+#   z^i - \sum_{j=1}^i a_{ij} f(y^j) = 0.
 #
 # In the implementation below, `u = z` is the unknown for the current `stage`.
 function (::DIRK{N})(res, uₙ, Δt, f!, du, du_tmp, u, p, t, stages, stage, RK) where {N}
@@ -213,7 +213,7 @@ end
 function stage!(integrator, alg::DIRK)
     @. integrator.u_tmp = 0
     for stage in 1:stages(alg)
-        # This computes all stages of an Diagonally Implicit Runge-Kutta method
+        # This computes all stages of a diagonally implicit Runge-Kutta method
         #
         #   u^{n+1} = u^n + dt \sum_{i=1}^s b_i f(y^i)
         #
@@ -237,6 +237,8 @@ function stage!(integrator, alg::DIRK)
         #
         # The variable `integrator.u_tmp` is the update z^i for the current `stage`.
         if iszero(integrator.RK.a[stage, stage])
+            # In this case, the stage is explicit and can be computed directly
+            # without solving any (nonlinear) system.
             @. integrator.u_tmp = 0
             for j in 1:(stage - 1)
                 @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a[stage, j] * integrator.stages[j]
@@ -254,12 +256,10 @@ function stage!(integrator, alg::DIRK)
             @assert stats.solved
         end
         # Store the solution for each stage in stages
+        # Next, we need to compute the value of the RHS at the stage.
         # We solve the non-linear problem in the z variable, thus u_tmp is z_i = (u_i - u_n) / dt
-        @. integrator.res = integrator.u_tmp * integrator.dt + integrator.u
-        # First, we evaluate the RHS at the numerically computed solution
-        # of the stage equation.
         if iszero(integrator.RK.a[stage, stage])
-            # In this case, the stage is fully explicit. Thus, we also evaluate
+            # In this case, the stage is fully explicit. Thus, we have to evaluate
             # the RHS at the corresponding stage value.
             @. integrator.du = integrator.u_tmp * integrator.dt + integrator.u
             integrator.f(integrator.stages[stage], integrator.du, integrator.p, integrator.t + integrator.RK.c[stage] * integrator.dt)
@@ -284,7 +284,7 @@ function stage!(integrator, alg::DIRK)
     end
     # Finally, we compute the new step value
     #
-    #   u^{n+1} = u^n + dt \sum_{i=1}^s b_i f1(y^i).
+    #   u^{n+1} = u^n + dt \sum_{i=1}^s b_i f(y^i).
     #
     # To reduce rounding errors, we first accumulate the RHS values and
     # multiply them by the time step size later.

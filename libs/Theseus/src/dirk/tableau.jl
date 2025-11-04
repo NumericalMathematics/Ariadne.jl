@@ -8,7 +8,8 @@ end
 """
     Crouzeix32()
 
-A third-order A and L-stable DIRK method developed by Nørsett (1974) and Crouzeix (1975).
+A third-order, A- and L-stable diagonally implicit Runge-Kutta (DIRK) method
+developed by Nørsett (1974) and Crouzeix (1975).
 
 ## References
 - Ernst Hairer, Syvert P. Nørsett, and Gerhard Wanner (1993) 
