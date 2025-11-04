@@ -42,7 +42,7 @@ function nonlinear_problem(alg::SimpleImplicitExplicitAlgorithm, f1::F1) where {
     return (res, u, (uₙ, Δt, du, du_tmp, p, t, stages, stages_im, stage, RK)) -> alg(res, uₙ, Δt, f1, du, du_tmp, u, p, t, stages, stages_im, stage, RK)
 end
 
-mutable struct SimpleImplicitExplicitOptions{Callback,KrylovWorkspace}
+mutable struct SimpleImplicitExplicitOptions{Callback, KrylovWorkspace}
     callback::Callback # callbacks; used in Trixi.jl
     adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
@@ -63,7 +63,7 @@ function SimpleImplicitExplicitOptions(callback, tspan, kc; maxiters = typemax(I
         verbose,
         krylov_algo,
         krylov_tol_abs,
-	workspace,
+        workspace,
         krylov_kwargs,
     )
 end
