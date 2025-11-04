@@ -37,7 +37,7 @@ end
 
 
 """
-    LobattoIIIA()
+    LobattoIIIA2()
 
 A second order and A-stable DIRK method.
 
@@ -47,8 +47,8 @@ A second order and A-stable DIRK method.
   *Springer Series in Computational Mathematics,* 2nd edition. 
   [DOI: 10.1007/978-3-540-78862-1](https://doi.org/10.1007/978-3-540-78862-1)
 """
-struct LobattoIIIA <: DIRK{2} end
-function RKTableau(alg::LobattoIIIA, RealT)
+struct LobattoIIIA2 <: DIRK{2} end
+function RKTableau(alg::LobattoIIIA2, RealT)
     nstage = 2
     a = zeros(RealT, nstage, nstage)
     a[2, 1] = 1 // 2
