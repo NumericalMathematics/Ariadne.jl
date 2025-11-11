@@ -375,4 +375,5 @@ end
 
 include("rosenbrock/rosenbrock.jl")
 include("imex/imex.jl")
+include("dirk/dirk.jl")
 end # module Theseus
