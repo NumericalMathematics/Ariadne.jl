@@ -227,7 +227,7 @@ end
 
 # Compute all stages within one time step
 function stage!(integrator, alg::RKIMEX)
-	fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
+    fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
     for stage in 1:stages(alg)
         # This computes all stages of an additive Runge-Kutta IMEX method
         #

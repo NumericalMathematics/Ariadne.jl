@@ -36,11 +36,11 @@ function (::DIRK{N})(res, tmp, uₙ, Δt, f!, du, du_tmp, u, p, t, stages, stage
 end
 
 @muladd begin
-function (::DIRK{N})(res, stages, stage, RK) where {N}
-    for j in 1:(stage - 1)
-        @. res = res - RK.a[stage, j] * stages[j]
+    function (::DIRK{N})(res, stages, stage, RK) where {N}
+        for j in 1:(stage - 1)
+            @. res = res - RK.a[stage, j] * stages[j]
+        end
     end
-end
 end
 
 function nonlinear_problem(alg::SimpleDiagonallyImplicitAlgorithm, f::F) where {F}
@@ -61,14 +61,14 @@ mutable struct SimpleDiagonallyImplicitOptions{Callback, KrylovWorkspace}
 end
 
 function SimpleDiagonallyImplicitOptions(callback, tspan, kc; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_tol_abs = 1.0e-6, krylov_kwargs = (;), kwargs...)
-	workspace = krylov_workspace(krylov_algo, kc)
-	return SimpleDiagonallyImplicitOptions{typeof(callback), typeof(workspace)}(
+    workspace = krylov_workspace(krylov_algo, kc)
+    return SimpleDiagonallyImplicitOptions{typeof(callback), typeof(workspace)}(
         callback, false, Inf, maxiters,
         [last(tspan)],
         verbose,
         krylov_algo,
         krylov_tol_abs,
-	workspace,
+        workspace,
         krylov_kwargs,
     )
 end
@@ -223,7 +223,7 @@ end
 
 # Compute all stages within one time step
 function stage!(integrator, alg::DIRK)
-	fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
+    fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
     for stage in 1:stages(alg)
         # This computes all stages of a diagonally implicit Runge-Kutta method
         #
@@ -251,9 +251,9 @@ function stage!(integrator, alg::DIRK)
         if iszero(integrator.RK.a[stage, stage])
             # In this case, the stage is explicit and can be computed directly
             # without solving any (nonlinear) system.
-	fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
-        alg(integrator.u_tmp, integrator.stages, stage, integrator.RK)
-        @. integrator.u_tmp = -integrator.u_tmp
+            fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
+            alg(integrator.u_tmp, integrator.stages, stage, integrator.RK)
+            @. integrator.u_tmp = -integrator.u_tmp
         else
             # In this case, we have an implicit stage that requires solving a
             # nonlinear system.
