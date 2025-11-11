@@ -365,7 +365,7 @@ function newton_krylov!(
         callback = (args...) -> nothing, workspace = nothing
     )
     t₀ = time_ns()
-    @trixi_timeit timer() "F!" F!(res, u, p) # res = F(u)
+    F!(res, u, p) # res = F(u)
     n_res = norm(res)
     callback(u, res, n_res)
 
@@ -376,10 +376,12 @@ function newton_krylov!(
     end
 
     verbose > 0 && @info "Jacobian-Free Newton-Krylov" algo res₀ = n_res tol tol_rel tol_abs η
-#   # TODO: Refactor to provide method that re-uses the cache here.
-#	@trixi_timeit timer() "KrylovConstructor" kc = KrylovConstructor(res)
-#    @trixi_timeit timer() "workspace" workspace = krylov_workspace(algo, kc)
-    @trixi_timeit timer() "jacobian" J = JacobianOperator(F!, res, u, p)
+    #   # TODO: Refactor to provide method that re-uses the cache here.
+    if workspace == nothing
+        kc = KrylovConstructor(res)
+        workspace = krylov_workspace(algo, kc)
+    end
+    J = JacobianOperator(F!, res, u, p)
 
     stats = Stats(0, 0, n_res)
     while n_res > tol && stats.outer_iterations <= max_niter
@@ -399,7 +401,7 @@ function newton_krylov!(
         # Solve: Jx = -res
         # res is modified by J, so we create a copy `-res`
         # TODO: provide a temporary storage for `-res`
-        @trixi_timeit timer() "krylov" krylov_solve!(workspace, J, copy(res); kwargs...)
+        krylov_solve!(workspace, J, res; kwargs...)
 
         d = workspace.x # Newton direction
         s = 1        # Newton step TODO: LineSearch
@@ -410,7 +412,7 @@ function newton_krylov!(
         # Update residual and norm
         n_res_prior = n_res
 
-        @trixi_timeit timer() "F! inside" F!(res, u, p) # res = F(u)
+        F!(res, u, p) # res = F(u)
         n_res = norm(res)
         callback(u, res, n_res)
 

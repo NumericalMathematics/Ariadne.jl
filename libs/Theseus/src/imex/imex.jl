@@ -36,11 +36,11 @@ function (::RKIMEX{N})(res, tmp, uₙ, Δt, f1!, du, du_tmp, u, p, t, stages_ex,
 end
 
 @muladd begin
-function (::RKIMEX{N})(res, stages_ex, stages_im, stage, RK) where {N}
-    for j in 1:(stage - 1)
-        @. res = res - RK.a_ex[stage, j] * stages_ex[j] - RK.a_im[stage, j] * stages_im[j]
+    function (::RKIMEX{N})(res, stages_ex, stages_im, stage, RK) where {N}
+        for j in 1:(stage - 1)
+            @. res = res - RK.a_ex[stage, j] * stages_ex[j] - RK.a_im[stage, j] * stages_im[j]
+        end
     end
-end
 end
 
 function nonlinear_problem(alg::SimpleImplicitExplicitAlgorithm, f1::F1) where {F1}
@@ -229,7 +229,7 @@ end
 
 # Compute all stages within one time step
 function stage!(integrator, alg::RKIMEX)
-   @. integrator.u_tmp = zero(eltype(integrator.u_tmp)) 
+    @. integrator.u_tmp = zero(eltype(integrator.u_tmp))
     for stage in 1:stages(alg)
         # This computes all stages of an additive Runge-Kutta IMEX method
         #
@@ -257,17 +257,17 @@ function stage!(integrator, alg::RKIMEX)
         if iszero(integrator.RK.a_im[stage, stage])
             # In this case, the stage is explicit and can be computed directly
             # without solving any (nonlinear) system.
-   	    @. integrator.u_tmp = zero(eltype(integrator.u_tmp)) 
-	    alg(integrator.u_tmp, integrator.stages, integrator.stages_im, stage, integrator.RK)
-	    integrator.u_tmp = -integrator.u_tmp
+            @. integrator.u_tmp = zero(eltype(integrator.u_tmp))
+            alg(integrator.u_tmp, integrator.stages, integrator.stages_im, stage, integrator.RK)
+            integrator.u_tmp = -integrator.u_tmp
             #for j in 1:(stage - 1)
             #    @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a_ex[stage, j] * integrator.stages[j] + integrator.RK.a_im[stage, j] * integrator.stages_im[j]
             #end
         else
             # In this case, we have an implicit stage that requires solving a
-            # nonlinear system. 
-   	    @. integrator.tmp = zero(eltype(integrator.tmp)) 
-	    alg(integrator.tmp, integrator.stages, integrator.stages_im, stage, integrator.RK)
+            # nonlinear system.
+            @. integrator.tmp = zero(eltype(integrator.tmp))
+            alg(integrator.tmp, integrator.stages, integrator.stages_im, stage, integrator.RK)
             F! = nonlinear_problem(alg, integrator.f1)
             # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
             _, stats = newton_krylov!(
@@ -303,7 +303,7 @@ function stage!(integrator, alg::RKIMEX)
             #
             # Note that `integrator.res .= integrator.u_tmp` is the solution `z` for the
             # current `stage`.
-	    alg(integrator.res, integrator.stages, integrator.stages_im, stage, integrator.RK)
+            alg(integrator.res, integrator.stages, integrator.stages_im, stage, integrator.RK)
             @. integrator.stages_im[stage] = integrator.res / integrator.RK.a_im[stage, stage]
         end
     end
@@ -313,7 +313,7 @@ function stage!(integrator, alg::RKIMEX)
     #
     # To reduce rounding errors, we first accumulate the RHS values and
     # multiply them by the time step size later.
-   @. integrator.u_tmp = zero(eltype(integrator.u_tmp)) 
+    @. integrator.u_tmp = zero(eltype(integrator.u_tmp))
     for j in 1:stages(alg)
         b_ex = integrator.RK.b_ex[j]
         b_im = integrator.RK.b_im[j]
