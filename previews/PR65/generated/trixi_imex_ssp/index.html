@@ -9,8 +9,8 @@ backend = &quot;static&quot;</code></pre><pre><code class="language-julia hljs">
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, stepsize_callback)
-tspan = (0.0, 40.0)
-trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &quot;elixir_advection_diffusion.jl&quot;), sol = nothing, callbacks = callbacks, tspan = tspan);
+
+trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &quot;elixir_advection_diffusion.jl&quot;), sol = nothing, callbacks = callbacks);
 ###############################################################################</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.
 [ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.</code></pre><p>run the simulation</p><pre><code class="language-julia hljs">sol = solve(
     ode,
@@ -97,7 +97,7 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &
 │ Time integration                                                                                 │
 │ ════════════════                                                                                 │
 │ Start time: ………………………………………………… 0.0                                                              │
-│ Final time: ………………………………………………… 40.0                                                             │
+│ Final time: ………………………………………………… 1.5                                                              │
 │ time integrator: …………………………………… SSP3433                                                          │
 │ adaptive: ……………………………………………………… false                                                            │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -112,11 +112,11 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       3.31000000e-07 s
+ #timesteps:                  0                run time:       6.62000000e-07 s
  Δt:             1.00000000e-02                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:          4096                alloc&#39;d memory:        507.975 MiB
+ #DOFs per field:          4096                alloc&#39;d memory:        675.445 MiB
  #elements:                 256
 
  Variable:       scalar
@@ -125,24 +125,24 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &
  ∑∂S/∂U ⋅ Uₜ :  -1.23370054e-01
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 1.2500e-02 │ sim. time: 1.2500e-01 (0.312%)   │ run time: 5.1455e+01 s
-#timesteps:     20 │ Δt: 1.2500e-02 │ sim. time: 2.5000e-01 (0.625%)   │ run time: 5.1580e+01 s
-#timesteps:     30 │ Δt: 1.2500e-02 │ sim. time: 3.7500e-01 (0.938%)   │ run time: 5.1703e+01 s
-#timesteps:     40 │ Δt: 1.2500e-02 │ sim. time: 5.0000e-01 (1.250%)   │ run time: 5.1828e+01 s
-#timesteps:     50 │ Δt: 1.2500e-02 │ sim. time: 6.2500e-01 (1.562%)   │ run time: 5.1952e+01 s
-#timesteps:     60 │ Δt: 1.2500e-02 │ sim. time: 7.5000e-01 (1.875%)   │ run time: 5.2075e+01 s
-#timesteps:     70 │ Δt: 1.2500e-02 │ sim. time: 8.7500e-01 (2.187%)   │ run time: 5.2209e+01 s
-#timesteps:     80 │ Δt: 1.2500e-02 │ sim. time: 1.0000e+00 (2.500%)   │ run time: 5.2347e+01 s
-#timesteps:     90 │ Δt: 1.2500e-02 │ sim. time: 1.1250e+00 (2.812%)   │ run time: 5.2492e+01 s
+#timesteps:     10 │ Δt: 1.2500e-02 │ sim. time: 1.2500e-01 (8.333%)   │ run time: 5.1961e+01 s
+#timesteps:     20 │ Δt: 1.2500e-02 │ sim. time: 2.5000e-01 (16.667%)  │ run time: 5.2104e+01 s
+#timesteps:     30 │ Δt: 1.2500e-02 │ sim. time: 3.7500e-01 (25.000%)  │ run time: 5.2227e+01 s
+#timesteps:     40 │ Δt: 1.2500e-02 │ sim. time: 5.0000e-01 (33.333%)  │ run time: 5.2350e+01 s
+#timesteps:     50 │ Δt: 1.2500e-02 │ sim. time: 6.2500e-01 (41.667%)  │ run time: 5.2479e+01 s
+#timesteps:     60 │ Δt: 1.2500e-02 │ sim. time: 7.5000e-01 (50.000%)  │ run time: 5.2605e+01 s
+#timesteps:     70 │ Δt: 1.2500e-02 │ sim. time: 8.7500e-01 (58.333%)  │ run time: 5.2736e+01 s
+#timesteps:     80 │ Δt: 1.2500e-02 │ sim. time: 1.0000e+00 (66.667%)  │ run time: 5.2874e+01 s
+#timesteps:     90 │ Δt: 1.2500e-02 │ sim. time: 1.1250e+00 (75.000%)  │ run time: 5.3024e+01 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                100                run time:       5.26471441e+01 s
- Δt:             1.25000000e-02                └── GC time:    3.20678944e-01 s (0.609%)
- sim. time:      1.25000000e+00 (3.125%)       time/DOF/rhs!:  7.47953497e-08 s
-                                               PID:            3.21326361e-05 s
- #DOFs per field:          4096                alloc&#39;d memory:        571.569 MiB
+ #timesteps:                100                run time:       5.31764914e+01 s
+ Δt:             1.25000000e-02                └── GC time:    3.51923978e-01 s (0.662%)
+ sim. time:      1.25000000e+00 (83.333%)      time/DOF/rhs!:  7.50614073e-08 s
+                                               PID:            3.24556725e-05 s
+ #DOFs per field:          4096                alloc&#39;d memory:        598.844 MiB
  #elements:                 256
 
  Variable:       scalar
@@ -151,862 +151,74 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &
  ∑∂S/∂U ⋅ Uₜ :  -1.04542970e-02
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:    110 │ Δt: 1.2500e-02 │ sim. time: 1.3750e+00 (3.437%)   │ run time: 5.2800e+01 s
-#timesteps:    120 │ Δt: 1.2500e-02 │ sim. time: 1.5000e+00 (3.750%)   │ run time: 5.2975e+01 s
-#timesteps:    130 │ Δt: 1.2500e-02 │ sim. time: 1.6250e+00 (4.062%)   │ run time: 5.3154e+01 s
-#timesteps:    140 │ Δt: 1.2500e-02 │ sim. time: 1.7500e+00 (4.375%)   │ run time: 5.3337e+01 s
-#timesteps:    150 │ Δt: 1.2500e-02 │ sim. time: 1.8750e+00 (4.687%)   │ run time: 5.3532e+01 s
-#timesteps:    160 │ Δt: 1.2500e-02 │ sim. time: 2.0000e+00 (5.000%)   │ run time: 5.3727e+01 s
-#timesteps:    170 │ Δt: 1.2500e-02 │ sim. time: 2.1250e+00 (5.312%)   │ run time: 5.3922e+01 s
-#timesteps:    180 │ Δt: 1.2500e-02 │ sim. time: 2.2500e+00 (5.625%)   │ run time: 5.4122e+01 s
-#timesteps:    190 │ Δt: 1.2500e-02 │ sim. time: 2.3750e+00 (5.938%)   │ run time: 5.4317e+01 s
+#timesteps:    110 │ Δt: 1.2500e-02 │ sim. time: 1.3750e+00 (91.667%)  │ run time: 5.3330e+01 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                200                run time:       5.45134065e+01 s
- Δt:             1.25000000e-02                └── GC time:    3.70609597e-01 s (0.680%)
- sim. time:      2.50000000e+00 (6.250%)       time/DOF/rhs!:  7.43041206e-08 s
-                                               PID:            1.13842232e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        605.733 MiB
+ #timesteps:                120                run time:       5.35085332e+01 s
+ Δt:             1.25000000e-02                └── GC time:    3.64794592e-01 s (0.682%)
+ sim. time:      1.50000000e+00 (100.000%)     time/DOF/rhs!:  7.47828045e-08 s
+                                               PID:            1.01003960e-06 s
+ #DOFs per field:          4096                alloc&#39;d memory:        576.209 MiB
  #elements:                 256
 
  Variable:       scalar
- L2 error:       1.51402880e-02
- Linf error:     4.91012859e-01
- ∑∂S/∂U ⋅ Uₜ :  -2.20100728e-01
+ L2 error:       3.83145305e-05
+ Linf error:     1.86862669e-04
+ ∑∂S/∂U ⋅ Uₜ :  -6.38136198e-03
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:    210 │ Δt: 1.2500e-02 │ sim. time: 2.6250e+00 (6.563%)   │ run time: 5.4709e+01 s
-#timesteps:    220 │ Δt: 1.2500e-02 │ sim. time: 2.7500e+00 (6.875%)   │ run time: 5.4898e+01 s
-#timesteps:    230 │ Δt: 1.2500e-02 │ sim. time: 2.8750e+00 (7.188%)   │ run time: 5.5092e+01 s
-#timesteps:    240 │ Δt: 1.2500e-02 │ sim. time: 3.0000e+00 (7.500%)   │ run time: 5.5281e+01 s
-#timesteps:    250 │ Δt: 1.2500e-02 │ sim. time: 3.1250e+00 (7.813%)   │ run time: 5.5470e+01 s
-#timesteps:    260 │ Δt: 1.2500e-02 │ sim. time: 3.2500e+00 (8.125%)   │ run time: 5.5662e+01 s
-#timesteps:    270 │ Δt: 1.2500e-02 │ sim. time: 3.3750e+00 (8.438%)   │ run time: 5.5848e+01 s
-#timesteps:    280 │ Δt: 1.2500e-02 │ sim. time: 3.5000e+00 (8.750%)   │ run time: 5.6036e+01 s
-#timesteps:    290 │ Δt: 1.2500e-02 │ sim. time: 3.6250e+00 (9.063%)   │ run time: 5.6228e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                300                run time:       5.64161716e+01 s
- Δt:             1.25000000e-02                └── GC time:    4.24734215e-01 s (0.753%)
- sim. time:      3.75000000e+00 (9.375%)       time/DOF/rhs!:  7.42233570e-08 s
-                                               PID:            1.16068410e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        586.334 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       9.04087150e+02
- Linf error:     2.59852432e+04
- ∑∂S/∂U ⋅ Uₜ :  -7.58500440e+08
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:    310 │ Δt: 1.2500e-02 │ sim. time: 3.8750e+00 (9.688%)   │ run time: 5.6603e+01 s
-#timesteps:    320 │ Δt: 1.2500e-02 │ sim. time: 4.0000e+00 (10.000%)  │ run time: 5.6794e+01 s
-#timesteps:    330 │ Δt: 1.2500e-02 │ sim. time: 4.1250e+00 (10.313%)  │ run time: 5.6981e+01 s
-#timesteps:    340 │ Δt: 1.2500e-02 │ sim. time: 4.2500e+00 (10.625%)  │ run time: 5.7172e+01 s
-#timesteps:    350 │ Δt: 1.2500e-02 │ sim. time: 4.3750e+00 (10.938%)  │ run time: 5.7358e+01 s
-#timesteps:    360 │ Δt: 1.2500e-02 │ sim. time: 4.5000e+00 (11.250%)  │ run time: 5.7546e+01 s
-#timesteps:    370 │ Δt: 1.2500e-02 │ sim. time: 4.6250e+00 (11.563%)  │ run time: 5.7737e+01 s
-#timesteps:    380 │ Δt: 1.2500e-02 │ sim. time: 4.7500e+00 (11.875%)  │ run time: 5.7924e+01 s
-#timesteps:    390 │ Δt: 1.2500e-02 │ sim. time: 4.8750e+00 (12.188%)  │ run time: 5.8110e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                400                run time:       5.83021204e+01 s
- Δt:             1.25000000e-02                └── GC time:    4.79267445e-01 s (0.822%)
- sim. time:      5.00000000e+00 (12.500%)      time/DOF/rhs!:  7.41896128e-08 s
-                                               PID:            1.15043570e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        565.367 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       6.87119483e+07
- Linf error:     1.74261054e+09
- ∑∂S/∂U ⋅ Uₜ :  -4.34445797e+18
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:    410 │ Δt: 1.2500e-02 │ sim. time: 5.1250e+00 (12.813%)  │ run time: 5.8489e+01 s
-#timesteps:    420 │ Δt: 1.2500e-02 │ sim. time: 5.2500e+00 (13.125%)  │ run time: 5.8676e+01 s
-#timesteps:    430 │ Δt: 1.2500e-02 │ sim. time: 5.3750e+00 (13.438%)  │ run time: 5.8865e+01 s
-#timesteps:    440 │ Δt: 1.2500e-02 │ sim. time: 5.5000e+00 (13.750%)  │ run time: 5.9049e+01 s
-#timesteps:    450 │ Δt: 1.2500e-02 │ sim. time: 5.6250e+00 (14.063%)  │ run time: 5.9233e+01 s
-#timesteps:    460 │ Δt: 1.2500e-02 │ sim. time: 5.7500e+00 (14.375%)  │ run time: 5.9421e+01 s
-#timesteps:    470 │ Δt: 1.2500e-02 │ sim. time: 5.8750e+00 (14.688%)  │ run time: 5.9605e+01 s
-#timesteps:    480 │ Δt: 1.2500e-02 │ sim. time: 6.0000e+00 (15.000%)  │ run time: 5.9793e+01 s
-#timesteps:    490 │ Δt: 1.2500e-02 │ sim. time: 6.1250e+00 (15.313%)  │ run time: 5.9977e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                500                run time:       6.01618158e+01 s
- Δt:             1.25000000e-02                └── GC time:    5.29780913e-01 s (0.881%)
- sim. time:      6.25000000e+00 (15.625%)      time/DOF/rhs!:  7.42655691e-08 s
-                                               PID:            1.13441469e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        597.382 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       5.52262140e+12
- Linf error:     1.28297338e+14
- ∑∂S/∂U ⋅ Uₜ :  -2.79574411e+28
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:    510 │ Δt: 1.2500e-02 │ sim. time: 6.3750e+00 (15.938%)  │ run time: 6.0350e+01 s
-#timesteps:    520 │ Δt: 1.2500e-02 │ sim. time: 6.5000e+00 (16.250%)  │ run time: 6.0534e+01 s
-#timesteps:    530 │ Δt: 1.2500e-02 │ sim. time: 6.6250e+00 (16.563%)  │ run time: 6.0718e+01 s
-#timesteps:    540 │ Δt: 1.2500e-02 │ sim. time: 6.7500e+00 (16.875%)  │ run time: 6.0906e+01 s
-#timesteps:    550 │ Δt: 1.2500e-02 │ sim. time: 6.8750e+00 (17.188%)  │ run time: 6.1089e+01 s
-#timesteps:    560 │ Δt: 1.2500e-02 │ sim. time: 7.0000e+00 (17.500%)  │ run time: 6.1274e+01 s
-#timesteps:    570 │ Δt: 1.2500e-02 │ sim. time: 7.1250e+00 (17.813%)  │ run time: 6.1462e+01 s
-#timesteps:    580 │ Δt: 1.2500e-02 │ sim. time: 7.2500e+00 (18.125%)  │ run time: 6.1647e+01 s
-#timesteps:    590 │ Δt: 1.2500e-02 │ sim. time: 7.3750e+00 (18.438%)  │ run time: 6.1835e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                600                run time:       6.20196660e+01 s
- Δt:             1.25000000e-02                └── GC time:    5.84504252e-01 s (0.942%)
- sim. time:      7.50000000e+00 (18.750%)      time/DOF/rhs!:  7.42085865e-08 s
-                                               PID:            1.13329057e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        578.246 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       4.54439192e+17
- Linf error:     1.00501314e+19
- ∑∂S/∂U ⋅ Uₜ :  -1.88990021e+38
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:    610 │ Δt: 1.2500e-02 │ sim. time: 7.6250e+00 (19.063%)  │ run time: 6.2204e+01 s
-#timesteps:    620 │ Δt: 1.2500e-02 │ sim. time: 7.7500e+00 (19.375%)  │ run time: 6.2393e+01 s
-#timesteps:    630 │ Δt: 1.2500e-02 │ sim. time: 7.8750e+00 (19.688%)  │ run time: 6.2577e+01 s
-#timesteps:    640 │ Δt: 1.2500e-02 │ sim. time: 8.0000e+00 (20.000%)  │ run time: 6.2761e+01 s
-#timesteps:    650 │ Δt: 1.2500e-02 │ sim. time: 8.1250e+00 (20.313%)  │ run time: 6.2949e+01 s
-#timesteps:    660 │ Δt: 1.2500e-02 │ sim. time: 8.2500e+00 (20.625%)  │ run time: 6.3133e+01 s
-#timesteps:    670 │ Δt: 1.2500e-02 │ sim. time: 8.3750e+00 (20.938%)  │ run time: 6.3317e+01 s
-#timesteps:    680 │ Δt: 1.2500e-02 │ sim. time: 8.5000e+00 (21.250%)  │ run time: 6.3505e+01 s
-#timesteps:    690 │ Δt: 1.2500e-02 │ sim. time: 8.6250e+00 (21.563%)  │ run time: 6.3691e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                700                run time:       6.38763577e+01 s
- Δt:             1.25000000e-02                └── GC time:    6.36184569e-01 s (0.996%)
- sim. time:      8.75000000e+00 (21.875%)      time/DOF/rhs!:  7.43645967e-08 s
-                                               PID:            1.13258659e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        610.196 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       3.77617998e+22
- Linf error:     7.99384538e+23
- ∑∂S/∂U ⋅ Uₜ :  -1.30406702e+48
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:    710 │ Δt: 1.2500e-02 │ sim. time: 8.8750e+00 (22.188%)  │ run time: 6.4064e+01 s
-#timesteps:    720 │ Δt: 1.2500e-02 │ sim. time: 9.0000e+00 (22.500%)  │ run time: 6.4249e+01 s
-#timesteps:    730 │ Δt: 1.2500e-02 │ sim. time: 9.1250e+00 (22.813%)  │ run time: 6.4436e+01 s
-#timesteps:    740 │ Δt: 1.2500e-02 │ sim. time: 9.2500e+00 (23.125%)  │ run time: 6.4621e+01 s
-#timesteps:    750 │ Δt: 1.2500e-02 │ sim. time: 9.3750e+00 (23.438%)  │ run time: 6.4805e+01 s
-#timesteps:    760 │ Δt: 1.2500e-02 │ sim. time: 9.5000e+00 (23.750%)  │ run time: 6.4994e+01 s
-#timesteps:    770 │ Δt: 1.2500e-02 │ sim. time: 9.6250e+00 (24.062%)  │ run time: 6.5178e+01 s
-#timesteps:    780 │ Δt: 1.2500e-02 │ sim. time: 9.7500e+00 (24.375%)  │ run time: 6.5362e+01 s
-#timesteps:    790 │ Δt: 1.2500e-02 │ sim. time: 9.8750e+00 (24.687%)  │ run time: 6.5552e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                800                run time:       6.57377550e+01 s
- Δt:             1.25000000e-02                └── GC time:    6.90895156e-01 s (1.051%)
- sim. time:      1.00000000e+01 (25.000%)      time/DOF/rhs!:  7.43991303e-08 s
-                                               PID:            1.13308789e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        589.255 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       3.15014381e+27
- Linf error:     6.40332404e+28
- ∑∂S/∂U ⋅ Uₜ :  -9.07275945e+57
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:    810 │ Δt: 1.2500e-02 │ sim. time: 1.0125e+01 (25.312%)  │ run time: 6.5926e+01 s
-#timesteps:    820 │ Δt: 1.2500e-02 │ sim. time: 1.0250e+01 (25.625%)  │ run time: 6.6111e+01 s
-#timesteps:    830 │ Δt: 1.2500e-02 │ sim. time: 1.0375e+01 (25.937%)  │ run time: 6.6295e+01 s
-#timesteps:    840 │ Δt: 1.2500e-02 │ sim. time: 1.0500e+01 (26.250%)  │ run time: 6.6483e+01 s
-#timesteps:    850 │ Δt: 1.2500e-02 │ sim. time: 1.0625e+01 (26.562%)  │ run time: 6.6667e+01 s
-#timesteps:    860 │ Δt: 1.2500e-02 │ sim. time: 1.0750e+01 (26.875%)  │ run time: 6.6853e+01 s
-#timesteps:    870 │ Δt: 1.2500e-02 │ sim. time: 1.0875e+01 (27.187%)  │ run time: 6.7041e+01 s
-#timesteps:    880 │ Δt: 1.2500e-02 │ sim. time: 1.1000e+01 (27.500%)  │ run time: 6.7226e+01 s
-#timesteps:    890 │ Δt: 1.2500e-02 │ sim. time: 1.1125e+01 (27.812%)  │ run time: 6.7410e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                900                run time:       6.76010183e+01 s
- Δt:             1.25000000e-02                └── GC time:    7.46050706e-01 s (1.104%)
- sim. time:      1.12500000e+01 (28.125%)      time/DOF/rhs!:  7.45694733e-08 s
-                                               PID:            1.13659308e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        569.909 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       2.63194690e+32
- Linf error:     5.32182651e+33
- ∑∂S/∂U ⋅ Uₜ :  -6.33267941e+67
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:    910 │ Δt: 1.2500e-02 │ sim. time: 1.1375e+01 (28.437%)  │ run time: 6.7785e+01 s
-#timesteps:    920 │ Δt: 1.2500e-02 │ sim. time: 1.1500e+01 (28.750%)  │ run time: 6.7969e+01 s
-#timesteps:    930 │ Δt: 1.2500e-02 │ sim. time: 1.1625e+01 (29.062%)  │ run time: 6.8158e+01 s
-#timesteps:    940 │ Δt: 1.2500e-02 │ sim. time: 1.1750e+01 (29.375%)  │ run time: 6.8342e+01 s
-#timesteps:    950 │ Δt: 1.2500e-02 │ sim. time: 1.1875e+01 (29.687%)  │ run time: 6.8531e+01 s
-#timesteps:    960 │ Δt: 1.2500e-02 │ sim. time: 1.2000e+01 (30.000%)  │ run time: 6.8715e+01 s
-#timesteps:    970 │ Δt: 1.2500e-02 │ sim. time: 1.2125e+01 (30.312%)  │ run time: 6.8900e+01 s
-#timesteps:    980 │ Δt: 1.2500e-02 │ sim. time: 1.2250e+01 (30.625%)  │ run time: 6.9089e+01 s
-#timesteps:    990 │ Δt: 1.2500e-02 │ sim. time: 1.2375e+01 (30.937%)  │ run time: 6.9273e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               1000                run time:       6.94581960e+01 s
- Δt:             1.25000000e-02                └── GC time:    7.97518083e-01 s (1.148%)
- sim. time:      1.25000000e+01 (31.250%)      time/DOF/rhs!:  7.43332956e-08 s
-                                               PID:            1.13287865e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        601.201 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       2.20031644e+37
- Linf error:     4.38089145e+38
- ∑∂S/∂U ⋅ Uₜ :  -4.42573959e+77
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   1010 │ Δt: 1.2500e-02 │ sim. time: 1.2625e+01 (31.562%)  │ run time: 6.9647e+01 s
-#timesteps:   1020 │ Δt: 1.2500e-02 │ sim. time: 1.2750e+01 (31.875%)  │ run time: 6.9831e+01 s
-#timesteps:   1030 │ Δt: 1.2500e-02 │ sim. time: 1.2875e+01 (32.187%)  │ run time: 7.0016e+01 s
-#timesteps:   1040 │ Δt: 1.2500e-02 │ sim. time: 1.3000e+01 (32.500%)  │ run time: 7.0205e+01 s
-#timesteps:   1050 │ Δt: 1.2500e-02 │ sim. time: 1.3125e+01 (32.812%)  │ run time: 7.0390e+01 s
-#timesteps:   1060 │ Δt: 1.2500e-02 │ sim. time: 1.3250e+01 (33.125%)  │ run time: 7.0579e+01 s
-#timesteps:   1070 │ Δt: 1.2500e-02 │ sim. time: 1.3375e+01 (33.437%)  │ run time: 7.0763e+01 s
-#timesteps:   1080 │ Δt: 1.2500e-02 │ sim. time: 1.3500e+01 (33.750%)  │ run time: 7.0947e+01 s
-#timesteps:   1090 │ Δt: 1.2500e-02 │ sim. time: 1.3625e+01 (34.062%)  │ run time: 7.1136e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               1100                run time:       7.13222189e+01 s
- Δt:             1.25000000e-02                └── GC time:    8.53477427e-01 s (1.197%)
- sim. time:      1.37500000e+01 (34.375%)      time/DOF/rhs!:  7.44765326e-08 s
-                                               PID:            1.13706241e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        580.249 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       1.83990292e+42
- Linf error:     3.59114304e+43
- ∑∂S/∂U ⋅ Uₜ :  -3.09455712e+87
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   1110 │ Δt: 1.2500e-02 │ sim. time: 1.3875e+01 (34.687%)  │ run time: 7.1507e+01 s
-#timesteps:   1120 │ Δt: 1.2500e-02 │ sim. time: 1.4000e+01 (35.000%)  │ run time: 7.1696e+01 s
-#timesteps:   1130 │ Δt: 1.2500e-02 │ sim. time: 1.4125e+01 (35.312%)  │ run time: 7.1880e+01 s
-#timesteps:   1140 │ Δt: 1.2500e-02 │ sim. time: 1.4250e+01 (35.625%)  │ run time: 7.2064e+01 s
-#timesteps:   1150 │ Δt: 1.2500e-02 │ sim. time: 1.4375e+01 (35.937%)  │ run time: 7.2253e+01 s
-#timesteps:   1160 │ Δt: 1.2500e-02 │ sim. time: 1.4500e+01 (36.250%)  │ run time: 7.2437e+01 s
-#timesteps:   1170 │ Δt: 1.2500e-02 │ sim. time: 1.4625e+01 (36.562%)  │ run time: 7.2622e+01 s
-#timesteps:   1180 │ Δt: 1.2500e-02 │ sim. time: 1.4750e+01 (36.875%)  │ run time: 7.2811e+01 s
-#timesteps:   1190 │ Δt: 1.2500e-02 │ sim. time: 1.4875e+01 (37.187%)  │ run time: 7.2995e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               1200                run time:       7.31847440e+01 s
- Δt:             1.25000000e-02                └── GC time:    9.09621486e-01 s (1.243%)
- sim. time:      1.50000000e+01 (37.500%)      time/DOF/rhs!:  7.43622249e-08 s
-                                               PID:            1.13613908e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        561.033 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       1.53866562e+47
- Linf error:     3.03171538e+48
- ∑∂S/∂U ⋅ Uₜ :  -2.16418563e+97
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   1210 │ Δt: 1.2500e-02 │ sim. time: 1.5125e+01 (37.812%)  │ run time: 7.3369e+01 s
-#timesteps:   1220 │ Δt: 1.2500e-02 │ sim. time: 1.5250e+01 (38.125%)  │ run time: 7.3555e+01 s
-#timesteps:   1230 │ Δt: 1.2500e-02 │ sim. time: 1.5375e+01 (38.437%)  │ run time: 7.3744e+01 s
-#timesteps:   1240 │ Δt: 1.2500e-02 │ sim. time: 1.5500e+01 (38.750%)  │ run time: 7.3928e+01 s
-#timesteps:   1250 │ Δt: 1.2500e-02 │ sim. time: 1.5625e+01 (39.062%)  │ run time: 7.4112e+01 s
-#timesteps:   1260 │ Δt: 1.2500e-02 │ sim. time: 1.5750e+01 (39.375%)  │ run time: 7.4300e+01 s
-#timesteps:   1270 │ Δt: 1.2500e-02 │ sim. time: 1.5875e+01 (39.687%)  │ run time: 7.4484e+01 s
-#timesteps:   1280 │ Δt: 1.2500e-02 │ sim. time: 1.6000e+01 (40.000%)  │ run time: 7.4668e+01 s
-#timesteps:   1290 │ Δt: 1.2500e-02 │ sim. time: 1.6125e+01 (40.312%)  │ run time: 7.4857e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               1300                run time:       7.50420836e+01 s
- Δt:             1.25000000e-02                └── GC time:    9.60871667e-01 s (1.280%)
- sim. time:      1.62500000e+01 (40.625%)      time/DOF/rhs!:  7.44358793e-08 s
-                                               PID:            1.13295483e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        593.048 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       1.28679386e+52
- Linf error:     2.52270280e+53
- ∑∂S/∂U ⋅ Uₜ :  -1.51364115e+107
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   1310 │ Δt: 1.2500e-02 │ sim. time: 1.6375e+01 (40.937%)  │ run time: 7.5230e+01 s
-#timesteps:   1320 │ Δt: 1.2500e-02 │ sim. time: 1.6500e+01 (41.250%)  │ run time: 7.5414e+01 s
-#timesteps:   1330 │ Δt: 1.2500e-02 │ sim. time: 1.6625e+01 (41.562%)  │ run time: 7.5599e+01 s
-#timesteps:   1340 │ Δt: 1.2500e-02 │ sim. time: 1.6750e+01 (41.875%)  │ run time: 7.5787e+01 s
-#timesteps:   1350 │ Δt: 1.2500e-02 │ sim. time: 1.6875e+01 (42.187%)  │ run time: 7.5971e+01 s
-#timesteps:   1360 │ Δt: 1.2500e-02 │ sim. time: 1.7000e+01 (42.500%)  │ run time: 7.6155e+01 s
-#timesteps:   1370 │ Δt: 1.2500e-02 │ sim. time: 1.7125e+01 (42.812%)  │ run time: 7.6343e+01 s
-#timesteps:   1380 │ Δt: 1.2500e-02 │ sim. time: 1.7250e+01 (43.125%)  │ run time: 7.6527e+01 s
-#timesteps:   1390 │ Δt: 1.2500e-02 │ sim. time: 1.7375e+01 (43.437%)  │ run time: 7.6711e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               1400                run time:       7.69002744e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.01582026e+00 s (1.321%)
- sim. time:      1.75000000e+01 (43.750%)      time/DOF/rhs!:  7.42784127e-08 s
-                                               PID:            1.13349869e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        572.094 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       1.07616704e+57
- Linf error:     2.07645663e+58
- ∑∂S/∂U ⋅ Uₜ :  -1.05867813e+117
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   1410 │ Δt: 1.2500e-02 │ sim. time: 1.7625e+01 (44.062%)  │ run time: 7.7084e+01 s
-#timesteps:   1420 │ Δt: 1.2500e-02 │ sim. time: 1.7750e+01 (44.375%)  │ run time: 7.7272e+01 s
-#timesteps:   1430 │ Δt: 1.2500e-02 │ sim. time: 1.7875e+01 (44.687%)  │ run time: 7.7457e+01 s
-#timesteps:   1440 │ Δt: 1.2500e-02 │ sim. time: 1.8000e+01 (45.000%)  │ run time: 7.7641e+01 s
-#timesteps:   1450 │ Δt: 1.2500e-02 │ sim. time: 1.8125e+01 (45.312%)  │ run time: 7.7829e+01 s
-#timesteps:   1460 │ Δt: 1.2500e-02 │ sim. time: 1.8250e+01 (45.625%)  │ run time: 7.8013e+01 s
-#timesteps:   1470 │ Δt: 1.2500e-02 │ sim. time: 1.8375e+01 (45.937%)  │ run time: 7.8197e+01 s
-#timesteps:   1480 │ Δt: 1.2500e-02 │ sim. time: 1.8500e+01 (46.250%)  │ run time: 7.8385e+01 s
-#timesteps:   1490 │ Δt: 1.2500e-02 │ sim. time: 1.8625e+01 (46.562%)  │ run time: 7.8569e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               1500                run time:       7.87536518e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.06705148e+00 s (1.355%)
- sim. time:      1.87500000e+01 (46.875%)      time/DOF/rhs!:  7.42732806e-08 s
-                                               PID:            1.13054943e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        604.031 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       9.00021168e+61
- Linf error:     1.76156362e+63
- ∑∂S/∂U ⋅ Uₜ :  -7.40474071e+126
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   1510 │ Δt: 1.2500e-02 │ sim. time: 1.8875e+01 (47.187%)  │ run time: 7.8942e+01 s
-#timesteps:   1520 │ Δt: 1.2500e-02 │ sim. time: 1.9000e+01 (47.500%)  │ run time: 7.9126e+01 s
-#timesteps:   1530 │ Δt: 1.2500e-02 │ sim. time: 1.9125e+01 (47.812%)  │ run time: 7.9311e+01 s
-#timesteps:   1540 │ Δt: 1.2500e-02 │ sim. time: 1.9250e+01 (48.125%)  │ run time: 7.9499e+01 s
-#timesteps:   1550 │ Δt: 1.2500e-02 │ sim. time: 1.9375e+01 (48.437%)  │ run time: 7.9684e+01 s
-#timesteps:   1560 │ Δt: 1.2500e-02 │ sim. time: 1.9500e+01 (48.750%)  │ run time: 7.9872e+01 s
-#timesteps:   1570 │ Δt: 1.2500e-02 │ sim. time: 1.9625e+01 (49.062%)  │ run time: 8.0056e+01 s
-#timesteps:   1580 │ Δt: 1.2500e-02 │ sim. time: 1.9750e+01 (49.375%)  │ run time: 8.0241e+01 s
-#timesteps:   1590 │ Δt: 1.2500e-02 │ sim. time: 1.9875e+01 (49.687%)  │ run time: 8.0429e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               1600                run time:       8.06160292e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.12284435e+00 s (1.393%)
- sim. time:      2.00000000e+01 (50.000%)      time/DOF/rhs!:  7.44229190e-08 s
-                                               PID:            1.13605282e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        584.800 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       7.52708227e+66
- Linf error:     1.47046752e+68
- ∑∂S/∂U ⋅ Uₜ :  -5.17914026e+136
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   1610 │ Δt: 1.2500e-02 │ sim. time: 2.0125e+01 (50.312%)  │ run time: 8.0800e+01 s
-#timesteps:   1620 │ Δt: 1.2500e-02 │ sim. time: 2.0250e+01 (50.625%)  │ run time: 8.0989e+01 s
-#timesteps:   1630 │ Δt: 1.2500e-02 │ sim. time: 2.0375e+01 (50.937%)  │ run time: 8.1173e+01 s
-#timesteps:   1640 │ Δt: 1.2500e-02 │ sim. time: 2.0500e+01 (51.250%)  │ run time: 8.1358e+01 s
-#timesteps:   1650 │ Δt: 1.2500e-02 │ sim. time: 2.0625e+01 (51.562%)  │ run time: 8.1547e+01 s
-#timesteps:   1660 │ Δt: 1.2500e-02 │ sim. time: 2.0750e+01 (51.875%)  │ run time: 8.1731e+01 s
-#timesteps:   1670 │ Δt: 1.2500e-02 │ sim. time: 2.0875e+01 (52.187%)  │ run time: 8.1919e+01 s
-#timesteps:   1680 │ Δt: 1.2500e-02 │ sim. time: 2.1000e+01 (52.500%)  │ run time: 8.2103e+01 s
-#timesteps:   1690 │ Δt: 1.2500e-02 │ sim. time: 2.1125e+01 (52.812%)  │ run time: 8.2287e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               1700                run time:       8.24777224e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.17878471e+00 s (1.429%)
- sim. time:      2.12500000e+01 (53.125%)      time/DOF/rhs!:  7.43532336e-08 s
-                                               PID:            1.13563448e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        563.826 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       6.29507565e+71
- Linf error:     1.21010741e+73
- ∑∂S/∂U ⋅ Uₜ :  -3.62248195e+146
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   1710 │ Δt: 1.2500e-02 │ sim. time: 2.1375e+01 (53.437%)  │ run time: 8.2662e+01 s
-#timesteps:   1720 │ Δt: 1.2500e-02 │ sim. time: 2.1500e+01 (53.750%)  │ run time: 8.2847e+01 s
-#timesteps:   1730 │ Δt: 1.2500e-02 │ sim. time: 2.1625e+01 (54.062%)  │ run time: 8.3035e+01 s
-#timesteps:   1740 │ Δt: 1.2500e-02 │ sim. time: 2.1750e+01 (54.375%)  │ run time: 8.3220e+01 s
-#timesteps:   1750 │ Δt: 1.2500e-02 │ sim. time: 2.1875e+01 (54.687%)  │ run time: 8.3404e+01 s
-#timesteps:   1760 │ Δt: 1.2500e-02 │ sim. time: 2.2000e+01 (55.000%)  │ run time: 8.3593e+01 s
-#timesteps:   1770 │ Δt: 1.2500e-02 │ sim. time: 2.2125e+01 (55.312%)  │ run time: 8.3777e+01 s
-#timesteps:   1780 │ Δt: 1.2500e-02 │ sim. time: 2.2250e+01 (55.625%)  │ run time: 8.3960e+01 s
-#timesteps:   1790 │ Δt: 1.2500e-02 │ sim. time: 2.2375e+01 (55.937%)  │ run time: 8.4148e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               1800                run time:       8.43336316e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.23068233e+00 s (1.459%)
- sim. time:      2.25000000e+01 (56.250%)      time/DOF/rhs!:  7.43099625e-08 s
-                                               PID:            1.13211019e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        595.849 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       5.26472124e+76
- Linf error:     1.02845624e+78
- ∑∂S/∂U ⋅ Uₜ :  -2.53369932e+156
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   1810 │ Δt: 1.2500e-02 │ sim. time: 2.2625e+01 (56.562%)  │ run time: 8.4522e+01 s
-#timesteps:   1820 │ Δt: 1.2500e-02 │ sim. time: 2.2750e+01 (56.875%)  │ run time: 8.4705e+01 s
-#timesteps:   1830 │ Δt: 1.2500e-02 │ sim. time: 2.2875e+01 (57.187%)  │ run time: 8.4890e+01 s
-#timesteps:   1840 │ Δt: 1.2500e-02 │ sim. time: 2.3000e+01 (57.500%)  │ run time: 8.5078e+01 s
-#timesteps:   1850 │ Δt: 1.2500e-02 │ sim. time: 2.3125e+01 (57.812%)  │ run time: 8.5262e+01 s
-#timesteps:   1860 │ Δt: 1.2500e-02 │ sim. time: 2.3250e+01 (58.125%)  │ run time: 8.5446e+01 s
-#timesteps:   1870 │ Δt: 1.2500e-02 │ sim. time: 2.3375e+01 (58.437%)  │ run time: 8.5634e+01 s
-#timesteps:   1880 │ Δt: 1.2500e-02 │ sim. time: 2.3500e+01 (58.750%)  │ run time: 8.5818e+01 s
-#timesteps:   1890 │ Δt: 1.2500e-02 │ sim. time: 2.3625e+01 (59.062%)  │ run time: 8.6002e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               1900                run time:       8.61909732e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.28627985e+00 s (1.492%)
- sim. time:      2.37500000e+01 (59.375%)      time/DOF/rhs!:  7.41333807e-08 s
-                                               PID:            1.13297774e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        574.879 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       4.40301191e+81
- Linf error:     8.59696585e+82
- ∑∂S/∂U ⋅ Uₜ :  -1.77216450e+166
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   1910 │ Δt: 1.2500e-02 │ sim. time: 2.3875e+01 (59.687%)  │ run time: 8.6375e+01 s
-#timesteps:   1920 │ Δt: 1.2500e-02 │ sim. time: 2.4000e+01 (60.000%)  │ run time: 8.6563e+01 s
-#timesteps:   1930 │ Δt: 1.2500e-02 │ sim. time: 2.4125e+01 (60.312%)  │ run time: 8.6747e+01 s
-#timesteps:   1940 │ Δt: 1.2500e-02 │ sim. time: 2.4250e+01 (60.625%)  │ run time: 8.6930e+01 s
-#timesteps:   1950 │ Δt: 1.2500e-02 │ sim. time: 2.4375e+01 (60.937%)  │ run time: 8.7119e+01 s
-#timesteps:   1960 │ Δt: 1.2500e-02 │ sim. time: 2.4500e+01 (61.250%)  │ run time: 8.7303e+01 s
-#timesteps:   1970 │ Δt: 1.2500e-02 │ sim. time: 2.4625e+01 (61.562%)  │ run time: 8.7487e+01 s
-#timesteps:   1980 │ Δt: 1.2500e-02 │ sim. time: 2.4750e+01 (61.875%)  │ run time: 8.7675e+01 s
-#timesteps:   1990 │ Δt: 1.2500e-02 │ sim. time: 2.4875e+01 (62.187%)  │ run time: 8.7859e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               2000                run time:       8.80445479e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.33794114e+00 s (1.520%)
- sim. time:      2.50000000e+01 (62.500%)      time/DOF/rhs!:  7.42366680e-08 s
-                                               PID:            1.13067493e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        607.021 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       3.68234403e+86
- Linf error:     7.06778246e+87
- ∑∂S/∂U ⋅ Uₜ :  -1.23951855e+176
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   2010 │ Δt: 1.2500e-02 │ sim. time: 2.5125e+01 (62.812%)  │ run time: 8.8233e+01 s
-#timesteps:   2020 │ Δt: 1.2500e-02 │ sim. time: 2.5250e+01 (63.125%)  │ run time: 8.8417e+01 s
-#timesteps:   2030 │ Δt: 1.2500e-02 │ sim. time: 2.5375e+01 (63.437%)  │ run time: 8.8606e+01 s
-#timesteps:   2040 │ Δt: 1.2500e-02 │ sim. time: 2.5500e+01 (63.750%)  │ run time: 8.8790e+01 s
-#timesteps:   2050 │ Δt: 1.2500e-02 │ sim. time: 2.5625e+01 (64.062%)  │ run time: 8.8974e+01 s
-#timesteps:   2060 │ Δt: 1.2500e-02 │ sim. time: 2.5750e+01 (64.375%)  │ run time: 8.9162e+01 s
-#timesteps:   2070 │ Δt: 1.2500e-02 │ sim. time: 2.5875e+01 (64.687%)  │ run time: 8.9346e+01 s
-#timesteps:   2080 │ Δt: 1.2500e-02 │ sim. time: 2.6000e+01 (65.000%)  │ run time: 8.9530e+01 s
-#timesteps:   2090 │ Δt: 1.2500e-02 │ sim. time: 2.6125e+01 (65.312%)  │ run time: 8.9718e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               2100                run time:       8.99028337e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.39412783e+00 s (1.551%)
- sim. time:      2.62500000e+01 (65.625%)      time/DOF/rhs!:  7.41359354e-08 s
-                                               PID:            1.13355180e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        586.106 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       3.07963233e+91
- Linf error:     6.01125178e+92
- ∑∂S/∂U ⋅ Uₜ :  -8.66965965e+185
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   2110 │ Δt: 1.2500e-02 │ sim. time: 2.6375e+01 (65.937%)  │ run time: 9.0086e+01 s
-#timesteps:   2120 │ Δt: 1.2500e-02 │ sim. time: 2.6500e+01 (66.250%)  │ run time: 9.0275e+01 s
-#timesteps:   2130 │ Δt: 1.2500e-02 │ sim. time: 2.6625e+01 (66.562%)  │ run time: 9.0459e+01 s
-#timesteps:   2140 │ Δt: 1.2500e-02 │ sim. time: 2.6750e+01 (66.875%)  │ run time: 9.0643e+01 s
-#timesteps:   2150 │ Δt: 1.2500e-02 │ sim. time: 2.6875e+01 (67.187%)  │ run time: 9.0831e+01 s
-#timesteps:   2160 │ Δt: 1.2500e-02 │ sim. time: 2.7000e+01 (67.500%)  │ run time: 9.1015e+01 s
-#timesteps:   2170 │ Δt: 1.2500e-02 │ sim. time: 2.7125e+01 (67.812%)  │ run time: 9.1203e+01 s
-#timesteps:   2180 │ Δt: 1.2500e-02 │ sim. time: 2.7250e+01 (68.125%)  │ run time: 9.1388e+01 s
-#timesteps:   2190 │ Δt: 1.2500e-02 │ sim. time: 2.7375e+01 (68.437%)  │ run time: 9.1575e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               2200                run time:       9.17636689e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.45062378e+00 s (1.581%)
- sim. time:      2.75000000e+01 (68.750%)      time/DOF/rhs!:  7.43549017e-08 s
-                                               PID:            1.13511134e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        565.105 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       2.57557014e+96
- Linf error:     5.02969775e+97
- ∑∂S/∂U ⋅ Uₜ :  -6.06388661e+195
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   2210 │ Δt: 1.2500e-02 │ sim. time: 2.7625e+01 (69.062%)  │ run time: 9.1948e+01 s
-#timesteps:   2220 │ Δt: 1.2500e-02 │ sim. time: 2.7750e+01 (69.375%)  │ run time: 9.2131e+01 s
-#timesteps:   2230 │ Δt: 1.2500e-02 │ sim. time: 2.7875e+01 (69.687%)  │ run time: 9.2321e+01 s
-#timesteps:   2240 │ Δt: 1.2500e-02 │ sim. time: 2.8000e+01 (70.000%)  │ run time: 9.2506e+01 s
-#timesteps:   2250 │ Δt: 1.2500e-02 │ sim. time: 2.8125e+01 (70.312%)  │ run time: 9.2689e+01 s
-#timesteps:   2260 │ Δt: 1.2500e-02 │ sim. time: 2.8250e+01 (70.625%)  │ run time: 9.2878e+01 s
-#timesteps:   2270 │ Δt: 1.2500e-02 │ sim. time: 2.8375e+01 (70.937%)  │ run time: 9.3062e+01 s
-#timesteps:   2280 │ Δt: 1.2500e-02 │ sim. time: 2.8500e+01 (71.250%)  │ run time: 9.3247e+01 s
-#timesteps:   2290 │ Δt: 1.2500e-02 │ sim. time: 2.8625e+01 (71.562%)  │ run time: 9.3435e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               2300                run time:       9.36206422e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.50303815e+00 s (1.605%)
- sim. time:      2.87500000e+01 (71.875%)      time/DOF/rhs!:  7.43044930e-08 s
-                                               PID:            1.13274632e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        595.356 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       2.15401089e+101
- Linf error:     4.13879554e+102
- ∑∂S/∂U ⋅ Uₜ :  -4.24131080e+205
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   2310 │ Δt: 1.2500e-02 │ sim. time: 2.8875e+01 (72.187%)  │ run time: 9.3809e+01 s
-#timesteps:   2320 │ Δt: 1.2500e-02 │ sim. time: 2.9000e+01 (72.500%)  │ run time: 9.3993e+01 s
-#timesteps:   2330 │ Δt: 1.2500e-02 │ sim. time: 2.9125e+01 (72.812%)  │ run time: 9.4178e+01 s
-#timesteps:   2340 │ Δt: 1.2500e-02 │ sim. time: 2.9250e+01 (73.125%)  │ run time: 9.4366e+01 s
-#timesteps:   2350 │ Δt: 1.2500e-02 │ sim. time: 2.9375e+01 (73.437%)  │ run time: 9.4550e+01 s
-#timesteps:   2360 │ Δt: 1.2500e-02 │ sim. time: 2.9500e+01 (73.750%)  │ run time: 9.4734e+01 s
-#timesteps:   2370 │ Δt: 1.2500e-02 │ sim. time: 2.9625e+01 (74.062%)  │ run time: 9.4923e+01 s
-#timesteps:   2380 │ Δt: 1.2500e-02 │ sim. time: 2.9750e+01 (74.375%)  │ run time: 9.5107e+01 s
-#timesteps:   2390 │ Δt: 1.2500e-02 │ sim. time: 2.9875e+01 (74.687%)  │ run time: 9.5291e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               2400                run time:       9.54806361e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.55935395e+00 s (1.633%)
- sim. time:      3.00000000e+01 (75.000%)      time/DOF/rhs!:  7.43208338e-08 s
-                                               PID:            1.13459857e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        574.357 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       1.80145081e+106
- Linf error:     3.51441899e+107
- ∑∂S/∂U ⋅ Uₜ :  -2.96653260e+215
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   2410 │ Δt: 1.2500e-02 │ sim. time: 3.0125e+01 (75.312%)  │ run time: 9.5665e+01 s
-#timesteps:   2420 │ Δt: 1.2500e-02 │ sim. time: 3.0250e+01 (75.625%)  │ run time: 9.5853e+01 s
-#timesteps:   2430 │ Δt: 1.2500e-02 │ sim. time: 3.0375e+01 (75.937%)  │ run time: 9.6038e+01 s
-#timesteps:   2440 │ Δt: 1.2500e-02 │ sim. time: 3.0500e+01 (76.250%)  │ run time: 9.6222e+01 s
-#timesteps:   2450 │ Δt: 1.2500e-02 │ sim. time: 3.0625e+01 (76.562%)  │ run time: 9.6410e+01 s
-#timesteps:   2460 │ Δt: 1.2500e-02 │ sim. time: 3.0750e+01 (76.875%)  │ run time: 9.6594e+01 s
-#timesteps:   2470 │ Δt: 1.2500e-02 │ sim. time: 3.0875e+01 (77.187%)  │ run time: 9.6778e+01 s
-#timesteps:   2480 │ Δt: 1.2500e-02 │ sim. time: 3.1000e+01 (77.500%)  │ run time: 9.6966e+01 s
-#timesteps:   2490 │ Δt: 1.2500e-02 │ sim. time: 3.1125e+01 (77.812%)  │ run time: 9.7151e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               2500                run time:       9.73362032e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.61157034e+00 s (1.656%)
- sim. time:      3.12500000e+01 (78.125%)      time/DOF/rhs!:  7.41645834e-08 s
-                                               PID:            1.13176891e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        604.597 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       1.50659639e+111
- Linf error:     2.94304779e+112
- ∑∂S/∂U ⋅ Uₜ :  -2.07490469e+225
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   2510 │ Δt: 1.2500e-02 │ sim. time: 3.1375e+01 (78.437%)  │ run time: 9.7525e+01 s
-#timesteps:   2520 │ Δt: 1.2500e-02 │ sim. time: 3.1500e+01 (78.750%)  │ run time: 9.7709e+01 s
-#timesteps:   2530 │ Δt: 1.2500e-02 │ sim. time: 3.1625e+01 (79.062%)  │ run time: 9.7894e+01 s
-#timesteps:   2540 │ Δt: 1.2500e-02 │ sim. time: 3.1750e+01 (79.375%)  │ run time: 9.8083e+01 s
-#timesteps:   2550 │ Δt: 1.2500e-02 │ sim. time: 3.1875e+01 (79.687%)  │ run time: 9.8267e+01 s
-#timesteps:   2560 │ Δt: 1.2500e-02 │ sim. time: 3.2000e+01 (80.000%)  │ run time: 9.8451e+01 s
-#timesteps:   2570 │ Δt: 1.2500e-02 │ sim. time: 3.2125e+01 (80.312%)  │ run time: 9.8640e+01 s
-#timesteps:   2580 │ Δt: 1.2500e-02 │ sim. time: 3.2250e+01 (80.625%)  │ run time: 9.8823e+01 s
-#timesteps:   2590 │ Δt: 1.2500e-02 │ sim. time: 3.2375e+01 (80.937%)  │ run time: 9.9011e+01 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               2600                run time:       9.91965614e+01 s
- Δt:             1.25000000e-02                └── GC time:    1.66787171e+00 s (1.681%)
- sim. time:      3.25000000e+01 (81.250%)      time/DOF/rhs!:  7.42607882e-08 s
-                                               PID:            1.13481703e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        581.949 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       1.26000259e+116
- Linf error:     2.42380110e+117
- ∑∂S/∂U ⋅ Uₜ :  -1.45126653e+235
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   2610 │ Δt: 1.2500e-02 │ sim. time: 3.2625e+01 (81.562%)  │ run time: 9.9381e+01 s
-#timesteps:   2620 │ Δt: 1.2500e-02 │ sim. time: 3.2750e+01 (81.875%)  │ run time: 9.9569e+01 s
-#timesteps:   2630 │ Δt: 1.2500e-02 │ sim. time: 3.2875e+01 (82.187%)  │ run time: 9.9753e+01 s
-#timesteps:   2640 │ Δt: 1.2500e-02 │ sim. time: 3.3000e+01 (82.500%)  │ run time: 9.9938e+01 s
-#timesteps:   2650 │ Δt: 1.2500e-02 │ sim. time: 3.3125e+01 (82.812%)  │ run time: 1.0013e+02 s
-#timesteps:   2660 │ Δt: 1.2500e-02 │ sim. time: 3.3250e+01 (83.125%)  │ run time: 1.0031e+02 s
-#timesteps:   2670 │ Δt: 1.2500e-02 │ sim. time: 3.3375e+01 (83.437%)  │ run time: 1.0050e+02 s
-#timesteps:   2680 │ Δt: 1.2500e-02 │ sim. time: 3.3500e+01 (83.750%)  │ run time: 1.0068e+02 s
-#timesteps:   2690 │ Δt: 1.2500e-02 │ sim. time: 3.3625e+01 (84.062%)  │ run time: 1.0087e+02 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               2700                run time:       1.01053004e+02 s
- Δt:             1.25000000e-02                └── GC time:    1.72042220e+00 s (1.702%)
- sim. time:      3.37500000e+01 (84.375%)      time/DOF/rhs!:  7.42528973e-08 s
-                                               PID:            1.13242446e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        612.113 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       1.05377029e+121
- Linf error:     2.05472704e+122
- ∑∂S/∂U ⋅ Uₜ :  -1.01507050e+245
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   2710 │ Δt: 1.2500e-02 │ sim. time: 3.3875e+01 (84.687%)  │ run time: 1.0124e+02 s
-#timesteps:   2720 │ Δt: 1.2500e-02 │ sim. time: 3.4000e+01 (85.000%)  │ run time: 1.0143e+02 s
-#timesteps:   2730 │ Δt: 1.2500e-02 │ sim. time: 3.4125e+01 (85.312%)  │ run time: 1.0161e+02 s
-#timesteps:   2740 │ Δt: 1.2500e-02 │ sim. time: 3.4250e+01 (85.625%)  │ run time: 1.0180e+02 s
-#timesteps:   2750 │ Δt: 1.2500e-02 │ sim. time: 3.4375e+01 (85.937%)  │ run time: 1.0198e+02 s
-#timesteps:   2760 │ Δt: 1.2500e-02 │ sim. time: 3.4500e+01 (86.250%)  │ run time: 1.0217e+02 s
-#timesteps:   2770 │ Δt: 1.2500e-02 │ sim. time: 3.4625e+01 (86.562%)  │ run time: 1.0236e+02 s
-#timesteps:   2780 │ Δt: 1.2500e-02 │ sim. time: 3.4750e+01 (86.875%)  │ run time: 1.0254e+02 s
-#timesteps:   2790 │ Δt: 1.2500e-02 │ sim. time: 3.4875e+01 (87.187%)  │ run time: 1.0273e+02 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               2800                run time:       1.02916736e+02 s
- Δt:             1.25000000e-02                └── GC time:    1.77740959e+00 s (1.727%)
- sim. time:      3.50000000e+01 (87.500%)      time/DOF/rhs!:  7.43207954e-08 s
-                                               PID:            1.13436659e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        589.190 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       8.81293291e+125
- Linf error:     1.72208468e+127
- ∑∂S/∂U ⋅ Uₜ :  -7.09978563e+254
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   2810 │ Δt: 1.2500e-02 │ sim. time: 3.5125e+01 (87.812%)  │ run time: 1.0310e+02 s
-#timesteps:   2820 │ Δt: 1.2500e-02 │ sim. time: 3.5250e+01 (88.125%)  │ run time: 1.0329e+02 s
-#timesteps:   2830 │ Δt: 1.2500e-02 │ sim. time: 3.5375e+01 (88.437%)  │ run time: 1.0347e+02 s
-#timesteps:   2840 │ Δt: 1.2500e-02 │ sim. time: 3.5500e+01 (88.750%)  │ run time: 1.0366e+02 s
-#timesteps:   2850 │ Δt: 1.2500e-02 │ sim. time: 3.5625e+01 (89.062%)  │ run time: 1.0385e+02 s
-#timesteps:   2860 │ Δt: 1.2500e-02 │ sim. time: 3.5750e+01 (89.375%)  │ run time: 1.0403e+02 s
-#timesteps:   2870 │ Δt: 1.2500e-02 │ sim. time: 3.5875e+01 (89.687%)  │ run time: 1.0422e+02 s
-#timesteps:   2880 │ Δt: 1.2500e-02 │ sim. time: 3.6000e+01 (90.000%)  │ run time: 1.0441e+02 s
-#timesteps:   2890 │ Δt: 1.2500e-02 │ sim. time: 3.6125e+01 (90.312%)  │ run time: 1.0459e+02 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               2900                run time:       1.04782518e+02 s
- Δt:             1.25000000e-02                └── GC time:    1.83485233e+00 s (1.751%)
- sim. time:      3.62500000e+01 (90.625%)      time/DOF/rhs!:  7.44279500e-08 s
-                                               PID:            1.13812883e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        564.617 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       7.37046652e+130
- Linf error:     1.41942966e+132
- ∑∂S/∂U ⋅ Uₜ :  -4.96585762e+264
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   2910 │ Δt: 1.2500e-02 │ sim. time: 3.6375e+01 (90.937%)  │ run time: 1.0497e+02 s
-#timesteps:   2920 │ Δt: 1.2500e-02 │ sim. time: 3.6500e+01 (91.250%)  │ run time: 1.0517e+02 s
-#timesteps:   2930 │ Δt: 1.2500e-02 │ sim. time: 3.6625e+01 (91.562%)  │ run time: 1.0536e+02 s
-#timesteps:   2940 │ Δt: 1.2500e-02 │ sim. time: 3.6750e+01 (91.875%)  │ run time: 1.0555e+02 s
-#timesteps:   2950 │ Δt: 1.2500e-02 │ sim. time: 3.6875e+01 (92.187%)  │ run time: 1.0573e+02 s
-#timesteps:   2960 │ Δt: 1.2500e-02 │ sim. time: 3.7000e+01 (92.500%)  │ run time: 1.0592e+02 s
-#timesteps:   2970 │ Δt: 1.2500e-02 │ sim. time: 3.7125e+01 (92.812%)  │ run time: 1.0610e+02 s
-#timesteps:   2980 │ Δt: 1.2500e-02 │ sim. time: 3.7250e+01 (93.125%)  │ run time: 1.0629e+02 s
-#timesteps:   2990 │ Δt: 1.2500e-02 │ sim. time: 3.7375e+01 (93.437%)  │ run time: 1.0648e+02 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               3000                run time:       1.06663498e+02 s
- Δt:             1.25000000e-02                └── GC time:    1.88802383e+00 s (1.770%)
- sim. time:      3.75000000e+01 (93.750%)      time/DOF/rhs!:  7.52746824e-08 s
-                                               PID:            1.14740554e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        594.680 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       6.16409739e+135
- Linf error:     1.20128144e+137
- ∑∂S/∂U ⋅ Uₜ :  -3.47330796e+274
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   3010 │ Δt: 1.2500e-02 │ sim. time: 3.7625e+01 (94.062%)  │ run time: 1.0685e+02 s
-#timesteps:   3020 │ Δt: 1.2500e-02 │ sim. time: 3.7750e+01 (94.375%)  │ run time: 1.0704e+02 s
-#timesteps:   3030 │ Δt: 1.2500e-02 │ sim. time: 3.7875e+01 (94.688%)  │ run time: 1.0722e+02 s
-#timesteps:   3040 │ Δt: 1.2500e-02 │ sim. time: 3.8000e+01 (95.000%)  │ run time: 1.0741e+02 s
-#timesteps:   3050 │ Δt: 1.2500e-02 │ sim. time: 3.8125e+01 (95.313%)  │ run time: 1.0760e+02 s
-#timesteps:   3060 │ Δt: 1.2500e-02 │ sim. time: 3.8250e+01 (95.625%)  │ run time: 1.0778e+02 s
-#timesteps:   3070 │ Δt: 1.2500e-02 │ sim. time: 3.8375e+01 (95.938%)  │ run time: 1.0797e+02 s
-#timesteps:   3080 │ Δt: 1.2500e-02 │ sim. time: 3.8500e+01 (96.250%)  │ run time: 1.0815e+02 s
-#timesteps:   3090 │ Δt: 1.2500e-02 │ sim. time: 3.8625e+01 (96.563%)  │ run time: 1.0834e+02 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               3100                run time:       1.08527987e+02 s
- Δt:             1.25000000e-02                └── GC time:    1.94457974e+00 s (1.792%)
- sim. time:      3.87500000e+01 (96.875%)      time/DOF/rhs!:  7.43737090e-08 s
-                                               PID:            1.13732924e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        570.006 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       5.15518204e+140
- Linf error:     1.00762503e+142
- ∑∂S/∂U ⋅ Uₜ :  -2.42936247e+284
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
-#timesteps:   3110 │ Δt: 1.2500e-02 │ sim. time: 3.8875e+01 (97.188%)  │ run time: 1.0871e+02 s
-#timesteps:   3120 │ Δt: 1.2500e-02 │ sim. time: 3.9000e+01 (97.500%)  │ run time: 1.0890e+02 s
-#timesteps:   3130 │ Δt: 1.2500e-02 │ sim. time: 3.9125e+01 (97.813%)  │ run time: 1.0909e+02 s
-#timesteps:   3140 │ Δt: 1.2500e-02 │ sim. time: 3.9250e+01 (98.125%)  │ run time: 1.0927e+02 s
-#timesteps:   3150 │ Δt: 1.2500e-02 │ sim. time: 3.9375e+01 (98.438%)  │ run time: 1.0946e+02 s
-#timesteps:   3160 │ Δt: 1.2500e-02 │ sim. time: 3.9500e+01 (98.750%)  │ run time: 1.0965e+02 s
-#timesteps:   3170 │ Δt: 1.2500e-02 │ sim. time: 3.9625e+01 (99.063%)  │ run time: 1.0983e+02 s
-#timesteps:   3180 │ Δt: 1.2500e-02 │ sim. time: 3.9750e+01 (99.375%)  │ run time: 1.1002e+02 s
-#timesteps:   3190 │ Δt: 1.2500e-02 │ sim. time: 3.9875e+01 (99.688%)  │ run time: 1.1021e+02 s
-
-────────────────────────────────────────────────────────────────────────────────────────────────────
- Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
-────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:               3200                run time:       1.10393821e+02 s
- Δt:             1.25000000e-02                └── GC time:    1.99794912e+00 s (1.810%)
- sim. time:      4.00000000e+01 (100.000%)     time/DOF/rhs!:  7.47257635e-08 s
-                                               PID:            1.13815936e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        598.317 MiB
- #elements:                 256
-
- Variable:       scalar
- L2 error:       4.31140200e+145
- Linf error:     8.31219825e+146
- ∑∂S/∂U ⋅ Uₜ :  -1.69918766e+294
-────────────────────────────────────────────────────────────────────────────────────────────────────
-
 ────────────────────────────────────────────────────────────────────────────────────────────────────
-Trixi.jl simulation finished.  Final time: 40.0  Time steps: 3200 (accepted), 3200 (total)
+Trixi.jl simulation finished.  Final time: 1.5  Time steps: 120 (accepted), 120 (total)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
 ───────────────────────────────────────────────────────────────────────────────────────
               Trixi.jl                        Time                    Allocations
                                      ───────────────────────   ────────────────────────
-          Tot / % measured:                110s /  39.0%           23.8GiB /   0.3%
+          Tot / % measured:               53.5s /   2.2%           2.48GiB /   0.3%
 
 Section                      ncalls     time    %tot     avg     alloc    %tot      avg
 ───────────────────────────────────────────────────────────────────────────────────────
-parabolic rhs!                 203k    41.8s   97.0%   206μs   8.70KiB    0.0%    0.04B
-  calculate gradient           203k    18.8s   43.6%  92.5μs   3.33KiB    0.0%    0.02B
-    volume integral            203k    12.1s   28.1%  59.7μs     0.00B    0.0%    0.00B
-    Jacobian                   203k    1.95s    4.5%  9.59μs     0.00B    0.0%    0.00B
-    surface integral           203k    1.43s    3.3%  7.02μs     0.00B    0.0%    0.00B
-    interface flux             203k    1.34s    3.1%  6.61μs     0.00B    0.0%    0.00B
-    prolong2interfaces         203k    1.27s    2.9%  6.24μs     0.00B    0.0%    0.00B
-    reset gradients            203k    436ms    1.0%  2.15μs     0.00B    0.0%    0.00B
-    ~calculate gradient~       203k    197ms    0.5%   972ns   3.33KiB    0.0%    0.02B
-    prolong2mortars            203k   18.6ms    0.0%  91.5ns     0.00B    0.0%    0.00B
-    prolong2boundaries         203k   13.1ms    0.0%  64.5ns     0.00B    0.0%    0.00B
-    mortar flux                203k   12.2ms    0.0%  59.9ns     0.00B    0.0%    0.00B
-    boundary flux              203k   6.05ms    0.0%  29.8ns     0.00B    0.0%    0.00B
-  volume integral              203k    12.2s   28.4%  60.2μs     0.00B    0.0%    0.00B
-  calculate viscous fluxes     203k    4.07s    9.4%  20.0μs     0.00B    0.0%    0.00B
-  transform variables          203k    1.39s    3.2%  6.86μs     0.00B    0.0%    0.00B
-  interface flux               203k    1.32s    3.1%  6.50μs     0.00B    0.0%    0.00B
-  surface integral             203k    1.25s    2.9%  6.15μs     0.00B    0.0%    0.00B
-  prolong2interfaces           203k    1.23s    2.9%  6.08μs     0.00B    0.0%    0.00B
-  Jacobian                     203k    962ms    2.2%  4.74μs     0.00B    0.0%    0.00B
-  ~parabolic rhs!~             203k    275ms    0.6%  1.35μs   5.38KiB    0.0%    0.03B
-  reset ∂u/∂t                  203k    226ms    0.5%  1.11μs     0.00B    0.0%    0.00B
-  prolong2mortars              203k   17.1ms    0.0%  84.4ns     0.00B    0.0%    0.00B
-  mortar flux                  203k   12.3ms    0.0%  60.5ns     0.00B    0.0%    0.00B
-  prolong2boundaries           203k   11.9ms    0.0%  58.8ns     0.00B    0.0%    0.00B
-  boundary flux                203k   6.80ms    0.0%  33.5ns     0.00B    0.0%    0.00B
-rhs!                          12.8k    1.26s    2.9%  98.4μs   4.78KiB    0.0%    0.38B
-  volume integral             12.8k    852ms    2.0%  66.6μs     0.00B    0.0%    0.00B
-  interface flux              12.8k    105ms    0.2%  8.22μs     0.00B    0.0%    0.00B
-  surface integral            12.8k   98.5ms    0.2%  7.69μs     0.00B    0.0%    0.00B
-  prolong2interfaces          12.8k   87.3ms    0.2%  6.82μs     0.00B    0.0%    0.00B
-  Jacobian                    12.8k   87.1ms    0.2%  6.81μs     0.00B    0.0%    0.00B
-  ~rhs!~                      12.8k   15.7ms    0.0%  1.23μs   4.78KiB    0.0%    0.38B
-  reset ∂u/∂t                 12.8k   9.87ms    0.0%   771ns     0.00B    0.0%    0.00B
-  prolong2boundaries          12.8k   1.53ms    0.0%   120ns     0.00B    0.0%    0.00B
-  prolong2mortars             12.8k   1.04ms    0.0%  81.5ns     0.00B    0.0%    0.00B
-  mortar flux                 12.8k    758μs    0.0%  59.2ns     0.00B    0.0%    0.00B
-  source terms                12.8k    381μs    0.0%  29.7ns     0.00B    0.0%    0.00B
-  boundary flux               12.8k    372μs    0.0%  29.0ns     0.00B    0.0%    0.00B
-analyze solution                 33   43.6ms    0.1%  1.32ms   79.7MiB   99.4%  2.42MiB
-calculate dt                  3.20k   2.57ms    0.0%   801ns    450KiB    0.5%     144B
-───────────────────────────────────────────────────────────────────────────────────────</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../trixi/">« Trixi</a><a class="docs-footer-nextpage" href="../trixi_imex_ars/">Trixi IMEX ARS »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.15.0 on <span class="colophon-date" title="Tuesday 11 November 2025 13:43">Tuesday 11 November 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+parabolic rhs!                5.49k    1.14s   95.7%   208μs   8.70KiB    0.1%    1.62B
+  calculate gradient          5.49k    517ms   43.3%  94.1μs   3.33KiB    0.0%    0.62B
+    volume integral           5.49k    332ms   27.8%  60.4μs     0.00B    0.0%    0.00B
+    Jacobian                  5.49k   56.5ms    4.7%  10.3μs     0.00B    0.0%    0.00B
+    surface integral          5.49k   40.0ms    3.3%  7.28μs     0.00B    0.0%    0.00B
+    interface flux            5.49k   36.5ms    3.1%  6.64μs     0.00B    0.0%    0.00B
+    prolong2interfaces        5.49k   33.7ms    2.8%  6.14μs     0.00B    0.0%    0.00B
+    reset gradients           5.49k   11.4ms    1.0%  2.08μs     0.00B    0.0%    0.00B
+    ~calculate gradient~      5.49k   5.22ms    0.4%   951ns   3.33KiB    0.0%    0.62B
+    prolong2mortars           5.49k    474μs    0.0%  86.3ns     0.00B    0.0%    0.00B
+    mortar flux               5.49k    356μs    0.0%  64.8ns     0.00B    0.0%    0.00B
+    prolong2boundaries        5.49k    328μs    0.0%  59.7ns     0.00B    0.0%    0.00B
+    boundary flux             5.49k    164μs    0.0%  29.8ns     0.00B    0.0%    0.00B
+  volume integral             5.49k    337ms   28.3%  61.4μs     0.00B    0.0%    0.00B
+  calculate viscous fluxes    5.49k    106ms    8.9%  19.4μs     0.00B    0.0%    0.00B
+  transform variables         5.49k   37.1ms    3.1%  6.76μs     0.00B    0.0%    0.00B
+  interface flux              5.49k   36.0ms    3.0%  6.56μs     0.00B    0.0%    0.00B
+  surface integral            5.49k   34.9ms    2.9%  6.36μs     0.00B    0.0%    0.00B
+  prolong2interfaces          5.49k   32.6ms    2.7%  5.94μs     0.00B    0.0%    0.00B
+  Jacobian                    5.49k   27.9ms    2.3%  5.08μs     0.00B    0.0%    0.00B
+  ~parabolic rhs!~            5.49k   7.33ms    0.6%  1.34μs   5.38KiB    0.1%    1.00B
+  reset ∂u/∂t                 5.49k   5.72ms    0.5%  1.04μs     0.00B    0.0%    0.00B
+  prolong2mortars             5.49k    423μs    0.0%  77.0ns     0.00B    0.0%    0.00B
+  mortar flux                 5.49k    298μs    0.0%  54.3ns     0.00B    0.0%    0.00B
+  prolong2boundaries          5.49k    294μs    0.0%  53.6ns     0.00B    0.0%    0.00B
+  boundary flux               5.49k    181μs    0.0%  32.9ns     0.00B    0.0%    0.00B
+rhs!                            480   47.4ms    4.0%  98.7μs   4.78KiB    0.1%    10.2B
+  volume integral               480   32.1ms    2.7%  67.0μs     0.00B    0.0%    0.00B
+  interface flux                480   3.94ms    0.3%  8.20μs     0.00B    0.0%    0.00B
+  surface integral              480   3.74ms    0.3%  7.79μs     0.00B    0.0%    0.00B
+  Jacobian                      480   3.25ms    0.3%  6.76μs     0.00B    0.0%    0.00B
+  prolong2interfaces            480   3.21ms    0.3%  6.69μs     0.00B    0.0%    0.00B
+  ~rhs!~                        480    611μs    0.1%  1.27μs   4.78KiB    0.1%    10.2B
+  reset ∂u/∂t                   480    323μs    0.0%   673ns     0.00B    0.0%    0.00B
+  prolong2boundaries            480   46.7μs    0.0%  97.4ns     0.00B    0.0%    0.00B
+  prolong2mortars               480   43.0μs    0.0%  89.5ns     0.00B    0.0%    0.00B
+  mortar flux                   480   39.2μs    0.0%  81.7ns     0.00B    0.0%    0.00B
+  boundary flux                 480   14.1μs    0.0%  29.4ns     0.00B    0.0%    0.00B
+  source terms                  480   13.8μs    0.0%  28.7ns     0.00B    0.0%    0.00B
+analyze solution                  3   3.28ms    0.3%  1.09ms   7.23MiB   99.6%  2.41MiB
+calculate dt                    121   91.7μs    0.0%   758ns   17.0KiB    0.2%     144B
+───────────────────────────────────────────────────────────────────────────────────────</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../trixi/">« Trixi</a><a class="docs-footer-nextpage" href="../trixi_imex_ars/">Trixi IMEX ARS »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.15.0 on <span class="colophon-date" title="Tuesday 11 November 2025 14:15">Tuesday 11 November 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
