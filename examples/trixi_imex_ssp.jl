@@ -23,8 +23,8 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_adv
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, stepsize_callback)
-tspan = (0.0, 40.0)
-trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion.jl"), sol = nothing, callbacks = callbacks, tspan = tspan);
+
+trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_diffusion.jl"), sol = nothing, callbacks = callbacks);
 ###############################################################################
 # run the simulation
 

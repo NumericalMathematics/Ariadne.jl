@@ -122,10 +122,8 @@ function init(
     stages_im = ntuple(_ -> similar(u), Val(N))
     t = first(ode.tspan)
     iter = 0
-
     # TODO: Refactor to provide method that re-uses the cache here.
     kc = KrylovConstructor(res)
-
     integrator = SimpleImplicitExplicit(
         u, du, copy(du), u_tmp, tmp, stages, stages_im, res, t, dt, zero(dt), iter, ode.p,
         (prob = ode,), ode.f,
@@ -229,7 +227,7 @@ end
 
 # Compute all stages within one time step
 function stage!(integrator, alg::RKIMEX)
-    @. integrator.u_tmp = zero(eltype(integrator.u_tmp))
+	fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
     for stage in 1:stages(alg)
         # This computes all stages of an additive Runge-Kutta IMEX method
         #
@@ -259,7 +257,7 @@ function stage!(integrator, alg::RKIMEX)
             # without solving any (nonlinear) system.
             @. integrator.u_tmp = zero(eltype(integrator.u_tmp))
             alg(integrator.u_tmp, integrator.stages, integrator.stages_im, stage, integrator.RK)
-            integrator.u_tmp = -integrator.u_tmp
+            @. integrator.u_tmp = -integrator.u_tmp
             #for j in 1:(stage - 1)
             #    @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a_ex[stage, j] * integrator.stages[j] + integrator.RK.a_im[stage, j] * integrator.stages_im[j]
             #end
