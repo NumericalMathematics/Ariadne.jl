@@ -99,7 +99,7 @@ uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
 version = "1.1.2"
 
 [[deps.Ariadne]]
-deps = ["Enzyme", "Krylov", "LinearAlgebra", "SparseArrays", "TrixiBase"]
+deps = ["Enzyme", "Krylov", "LinearAlgebra", "SparseArrays"]
 path = "../../.."
 uuid = "0be81120-40bf-4f8b-adf0-26103efb66f1"
 version = "0.1.0"
@@ -245,12 +245,6 @@ weakdeps = ["SparseArrays"]
 
     [deps.ChainRulesCore.extensions]
     ChainRulesCoreSparseArraysExt = "SparseArrays"
-
-[[deps.ChangePrecision]]
-deps = ["LinearAlgebra", "Random", "Statistics"]
-git-tree-sha1 = "2ac5097b3caf70b772901abd824e09f991e47296"
-uuid = "3cb15238-376d-56a3-8042-d33272777c9a"
-version = "1.1.1"
 
 [[deps.CloseOpenIntervals]]
 deps = ["Static", "StaticArrayInterface"]
@@ -2043,18 +2037,6 @@ git-tree-sha1 = "98b9352a24cb6a2066f9ababcc6802de9aed8ad8"
 uuid = "731e570b-9d59-4bfa-96dc-6df516fadf69"
 version = "0.11.6"
 
-[[deps.TimerOutputs]]
-deps = ["ExprTools", "Printf"]
-git-tree-sha1 = "3748bd928e68c7c346b52125cf41fff0de6937d0"
-uuid = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
-version = "0.5.29"
-
-    [deps.TimerOutputs.extensions]
-    FlameGraphsExt = "FlameGraphs"
-
-    [deps.TimerOutputs.weakdeps]
-    FlameGraphs = "08572546-2f56-4bcf-ba4e-bab62c3a3f89"
-
 [[deps.Tracy]]
 deps = ["ExprTools", "LibTracyClient_jll", "Libdl"]
 git-tree-sha1 = "73e3ff50fd3990874c59fef0f35d10644a1487bc"
@@ -2081,18 +2063,6 @@ version = "0.1.13"
 git-tree-sha1 = "4d4ed7f294cda19382ff7de4c137d24d16adc89b"
 uuid = "981d1d27-644d-49a2-9326-4793e63143c3"
 version = "0.1.0"
-
-[[deps.TrixiBase]]
-deps = ["ChangePrecision", "TimerOutputs"]
-git-tree-sha1 = "e3349c809f5f6677312ffe2e62fc6a49cb3e82f1"
-uuid = "9a0f1c46-06d5-4909-a5a3-ce25d3fa3284"
-version = "0.1.8"
-
-    [deps.TrixiBase.extensions]
-    TrixiBaseMPIExt = "MPI"
-
-    [deps.TrixiBase.weakdeps]
-    MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
 
 [[deps.URIs]]
 git-tree-sha1 = "bef26fb046d031353ef97a82e3fdb6afe7f21b1a"
