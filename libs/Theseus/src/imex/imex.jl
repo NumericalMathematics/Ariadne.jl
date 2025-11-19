@@ -29,14 +29,12 @@ stages(::RKIMEX{N}) where {N} = N
 # In the implementation below, `u = z` is the unknown for the current `stage`.
 # `tmp` is the contribution of the previous stages computed in the method
 # defined below.
-@muladd begin
-    function (::RKIMEX{N})(res, tmp, uₙ, Δt, f1!, du, du_tmp, u, p, t, stage, RK) where {N}
-        @. res = tmp + u
-        @. du = u * Δt + uₙ
-        f1!(du_tmp, du, p, t + RK.c_im[stage] * Δt)
-        @. res = res - RK.a_im[stage, stage] * du_tmp
-        return res
-    end
+@muladd function (::RKIMEX{N})(res, tmp, uₙ, Δt, f1!, du, du_tmp, u, p, t, stage, RK) where {N}
+    @. res = tmp + u
+    @. du = u * Δt + uₙ
+    f1!(du_tmp, du, p, t + RK.c_im[stage] * Δt)
+    @. res = res - RK.a_im[stage, stage] * du_tmp
+    return res
 end
 
 function nonlinear_problem(alg::SimpleImplicitExplicitAlgorithm, f1::F1) where {F1}

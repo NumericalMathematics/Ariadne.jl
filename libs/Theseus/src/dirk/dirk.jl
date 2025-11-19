@@ -37,14 +37,6 @@ stages(::DIRK{N}) where {N} = N
     return res
 end
 
-@muladd begin
-    function (::DIRK{N})(res, stages, stage, RK) where {N}
-        for j in 1:(stage - 1)
-            @. res = res - RK.a[stage, j] * stages[j]
-        end
-    end
-end
-
 function nonlinear_problem(alg::SimpleDiagonallyImplicitAlgorithm, f::F) where {F}
     return (res, u, (tmp, uₙ, Δt, du, du_tmp, p, t, stage, RK)) -> alg(res, tmp, uₙ, Δt, f, du, du_tmp, u, p, t, stage, RK)
 end
