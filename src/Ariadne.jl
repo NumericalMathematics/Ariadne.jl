@@ -1,7 +1,6 @@
 module Ariadne
 
 export newton_krylov, newton_krylov!
-using TrixiBase: @trixi_timeit, timer
 using Krylov
 using LinearAlgebra, SparseArrays
 using Enzyme
