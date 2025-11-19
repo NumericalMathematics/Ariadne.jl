@@ -27,7 +27,9 @@ stages(::DIRK{N}) where {N} = N
 #   z^i - \sum_{j=1}^i a_{ij} f(y^j) = 0.
 #
 # In the implementation below, `u = z` is the unknown for the current `stage`.
-function (::DIRK{N})(res, tmp, uₙ, Δt, f!, du, du_tmp, u, p, t, stages, stage, RK) where {N}
+# `tmp` is the contribution of the previous stages computed in the method
+# defined below.
+@muladd function (::DIRK{N})(res, tmp, uₙ, Δt, f!, du, du_tmp, u, p, t, stages, stage, RK) where {N}
     @. res = tmp + u
     @. du = u * Δt + uₙ
     f!(du_tmp, du, p, t + RK.c[stage] * Δt)
