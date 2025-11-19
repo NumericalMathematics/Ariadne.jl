@@ -21,8 +21,8 @@ abstract type AbstractTimeIntegrator end
 
 using DiffEqBase: DiffEqBase
 
-import DiffEqBase: solve, CallbackSet, ODEProblem
-export solve, ODEProblem
+import DiffEqBase: solve, CallbackSet, ODEProblem, SplitODEProblem
+export solve, ODEProblem, SplitODEProblem
 
 # Interface required by DiffEqCallbacks.jl
 function DiffEqBase.get_tstops(integrator::AbstractTimeIntegrator)
