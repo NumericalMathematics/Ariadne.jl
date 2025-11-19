@@ -24,8 +24,8 @@ F!(res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))
 
 @time mul!(u, J, v)
 @time F!(res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.
-  0.000205 seconds (82 allocations: 8.719 KiB)
-  0.000132 seconds (7 allocations: 352 bytes)</code></pre><p>Cost of time(mul!) ≈ 2 * time(F!)</p><h3 id="Solve-using-ODE-interface"><a class="docs-heading-anchor" href="#Solve-using-ODE-interface">Solve using ODE interface</a><a id="Solve-using-ODE-interface-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-ODE-interface" title="Permalink"></a></h3><pre><code class="language-julia hljs">sol_trbdf2 = solve(
+  0.000207 seconds (82 allocations: 8.719 KiB)
+  0.000142 seconds (7 allocations: 352 bytes)</code></pre><p>Cost of time(mul!) ≈ 2 * time(F!)</p><h3 id="Solve-using-ODE-interface"><a class="docs-heading-anchor" href="#Solve-using-ODE-interface">Solve using ODE interface</a><a id="Solve-using-ODE-interface-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-ODE-interface" title="Permalink"></a></h3><pre><code class="language-julia hljs">sol_trbdf2 = solve(
     ode, Theseus.TRBDF2();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
@@ -129,11 +129,11 @@ F!(res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       1.17044656e+00 s
+ #timesteps:                  0                run time:       1.17089908e+00 s
  Δt:             1.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  2.67785645e-08 s
+ sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  2.56840210e-08 s
                                                PID:                   Inf s
- #DOFs per field:          4096                alloc&#39;d memory:        506.429 MiB
+ #DOFs per field:          4096                alloc&#39;d memory:        435.186 MiB
  #elements:                 256
 
  Variable:       scalar
@@ -174,11 +174,11 @@ F!(res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 18                run time:       3.34034021e+01 s
- Δt:             5.55555556e-02                └── GC time:    2.53057286e-01 s (0.758%)
- sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  2.15441675e-08 s
-                                               PID:            1.46645432e-05 s
- #DOFs per field:          4096                alloc&#39;d memory:        493.458 MiB
+ #timesteps:                 18                run time:       3.30867639e+01 s
+ Δt:             5.55555556e-02                └── GC time:    2.16690348e-01 s (0.655%)
+ sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  2.10025182e-08 s
+                                               PID:            1.45208153e-05 s
+ #DOFs per field:          4096                alloc&#39;d memory:        498.698 MiB
  #elements:                 256
 
  Variable:       scalar
@@ -190,31 +190,31 @@ F!(res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))
 ────────────────────────────────────────────────────────────────────────────────────
              Trixi.jl                      Time                    Allocations
                                   ───────────────────────   ────────────────────────
-        Tot / % measured:              33.7s /   7.2%           1.20GiB /   3.9%
+        Tot / % measured:              33.4s /   7.3%           1.20GiB /   3.9%
 
 Section                   ncalls     time    %tot     avg     alloc    %tot      avg
 ────────────────────────────────────────────────────────────────────────────────────
-I/O                            3    2.16s   89.0%   719ms   29.0MiB   60.9%  9.66MiB
-  ~I/O~                        3    1.67s   69.0%   557ms   17.3MiB   36.3%  5.76MiB
-  save solution                2    478ms   19.7%   239ms   11.1MiB   23.3%  5.54MiB
-  get element variables        2   6.37ms    0.3%  3.19ms    621KiB    1.3%   311KiB
-  get node variables           2    952ns    0.0%   476ns     0.00B    0.0%    0.00B
-  save mesh                    2    411ns    0.0%   206ns     0.00B    0.0%    0.00B
-analyze solution               2    219ms    9.0%   109ms   18.6MiB   39.1%  9.30MiB
-rhs!                         533   46.9ms    1.9%  88.1μs   4.78KiB    0.0%    9.19B
-  volume integral            533   31.2ms    1.3%  58.5μs     0.00B    0.0%    0.00B
-  interface flux             533   4.59ms    0.2%  8.62μs     0.00B    0.0%    0.00B
-  prolong2interfaces         533   3.51ms    0.1%  6.59μs     0.00B    0.0%    0.00B
-  surface integral           533   3.51ms    0.1%  6.58μs     0.00B    0.0%    0.00B
-  Jacobian                   533   2.85ms    0.1%  5.34μs     0.00B    0.0%    0.00B
-  reset ∂u/∂t                533    618μs    0.0%  1.16μs     0.00B    0.0%    0.00B
-  ~rhs!~                     533    544μs    0.0%  1.02μs   4.78KiB    0.0%    9.19B
-  prolong2mortars            533   40.9μs    0.0%  76.7ns     0.00B    0.0%    0.00B
-  prolong2boundaries         533   35.0μs    0.0%  65.7ns     0.00B    0.0%    0.00B
-  mortar flux                533   27.2μs    0.0%  51.1ns     0.00B    0.0%    0.00B
-  boundary flux              533   16.1μs    0.0%  30.1ns     0.00B    0.0%    0.00B
-  source terms               533   15.8μs    0.0%  29.6ns     0.00B    0.0%    0.00B
-calculate dt                  19   14.9μs    0.0%   784ns   2.67KiB    0.0%     144B
+I/O                            3    2.17s   89.3%   722ms   29.0MiB   60.9%  9.66MiB
+  ~I/O~                        3    1.68s   69.2%   560ms   17.3MiB   36.3%  5.76MiB
+  save solution                2    479ms   19.7%   240ms   11.1MiB   23.3%  5.54MiB
+  get element variables        2   6.54ms    0.3%  3.27ms    620KiB    1.3%   310KiB
+  get node variables           2    912ns    0.0%   456ns     0.00B    0.0%    0.00B
+  save mesh                    2    511ns    0.0%   256ns     0.00B    0.0%    0.00B
+analyze solution               2    215ms    8.9%   108ms   18.6MiB   39.1%  9.30MiB
+rhs!                         533   45.7ms    1.9%  85.8μs   4.78KiB    0.0%    9.19B
+  volume integral            533   30.5ms    1.3%  57.2μs     0.00B    0.0%    0.00B
+  interface flux             533   4.48ms    0.2%  8.40μs     0.00B    0.0%    0.00B
+  surface integral           533   3.45ms    0.1%  6.47μs     0.00B    0.0%    0.00B
+  prolong2interfaces         533   3.26ms    0.1%  6.12μs     0.00B    0.0%    0.00B
+  Jacobian                   533   2.83ms    0.1%  5.30μs     0.00B    0.0%    0.00B
+  ~rhs!~                     533    561μs    0.0%  1.05μs   4.78KiB    0.0%    9.19B
+  reset ∂u/∂t                533    544μs    0.0%  1.02μs     0.00B    0.0%    0.00B
+  prolong2mortars            533   50.9μs    0.0%  95.5ns     0.00B    0.0%    0.00B
+  prolong2boundaries         533   33.7μs    0.0%  63.3ns     0.00B    0.0%    0.00B
+  mortar flux                533   25.3μs    0.0%  47.4ns     0.00B    0.0%    0.00B
+  boundary flux              533   15.6μs    0.0%  29.3ns     0.00B    0.0%    0.00B
+  source terms               533   15.5μs    0.0%  29.2ns     0.00B    0.0%    0.00B
+calculate dt                  19   14.0μs    0.0%   738ns   2.67KiB    0.0%     144B
 ────────────────────────────────────────────────────────────────────────────────────</code></pre><h4 id="Plot-the-solution"><a class="docs-heading-anchor" href="#Plot-the-solution">Plot the solution</a><a id="Plot-the-solution-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-the-solution" title="Permalink"></a></h4><p>We have to manually convert the sol since Theseus has it&#39;s own lightweight solution type.</p><pre><code class="language-julia hljs">plot(Trixi.PlotData2DTriangulated(sol_trbdf2.u[end], sol_trbdf2.prob.p))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"></code></pre><h3 id="Solve-using-OrdinaryDiffEqSDIRK"><a class="docs-heading-anchor" href="#Solve-using-OrdinaryDiffEqSDIRK">Solve using OrdinaryDiffEqSDIRK</a><a id="Solve-using-OrdinaryDiffEqSDIRK-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-OrdinaryDiffEqSDIRK" title="Permalink"></a></h3><pre><code class="language-julia hljs">import OrdinaryDiffEqSDIRK
 import DifferentiationInterface: AutoFiniteDiff
 sol_sdrik = solve(
@@ -319,11 +319,11 @@ sol_sdrik = solve(
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       6.41000000e-07 s
+ #timesteps:                  0                run time:       6.91000000e-07 s
  Δt:             1.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  2.39118652e-08 s
+ sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  2.32888184e-08 s
                                                PID:                   Inf s
- #DOFs per field:          4096                alloc&#39;d memory:        799.016 MiB
+ #DOFs per field:          4096                alloc&#39;d memory:        794.213 MiB
  #elements:                 256
 
  Variable:       scalar
@@ -336,11 +336,11 @@ sol_sdrik = solve(
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 18                run time:       3.93251837e+01 s
- Δt:             5.55555556e-02                └── GC time:    9.36734604e-01 s (2.382%)
- sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  2.38522521e-08 s
-                                               PID:            6.50736176e-08 s
- #DOFs per field:          4096                alloc&#39;d memory:        924.905 MiB
+ #timesteps:                 18                run time:       3.89326121e+01 s
+ Δt:             5.55555556e-02                └── GC time:    8.74579324e-01 s (2.246%)
+ sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  2.35563367e-08 s
+                                               PID:            6.44244139e-08 s
+ #DOFs per field:          4096                alloc&#39;d memory:        924.885 MiB
  #elements:                 256
 
  Variable:       scalar
@@ -352,31 +352,31 @@ sol_sdrik = solve(
 ────────────────────────────────────────────────────────────────────────────────────
              Trixi.jl                      Time                    Allocations
                                   ───────────────────────   ────────────────────────
-        Tot / % measured:              39.3s /  36.6%           4.62GiB /   0.1%
+        Tot / % measured:              38.9s /  36.6%           4.62GiB /   0.1%
 
 Section                   ncalls     time    %tot     avg     alloc    %tot      avg
 ────────────────────────────────────────────────────────────────────────────────────
-rhs!                        148k    14.4s   99.9%  97.6μs   4.78KiB    0.1%    0.03B
-  volume integral           148k    9.91s   68.7%  67.2μs     0.00B    0.0%    0.00B
-  interface flux            148k    1.15s    8.0%  7.81μs     0.00B    0.0%    0.00B
-  surface integral          148k    1.12s    7.8%  7.59μs     0.00B    0.0%    0.00B
-  Jacobian                  148k    996ms    6.9%  6.75μs     0.00B    0.0%    0.00B
-  prolong2interfaces        148k    986ms    6.8%  6.68μs     0.00B    0.0%    0.00B
-  ~rhs!~                    148k    125ms    0.9%   845ns   4.78KiB    0.1%    0.03B
-  reset ∂u/∂t               148k   90.6ms    0.6%   614ns     0.00B    0.0%    0.00B
-  prolong2boundaries        148k   5.76ms    0.0%  39.0ns     0.00B    0.0%    0.00B
-  prolong2mortars           148k   5.74ms    0.0%  38.9ns     0.00B    0.0%    0.00B
-  mortar flux               148k   5.42ms    0.0%  36.7ns     0.00B    0.0%    0.00B
-  boundary flux             148k   4.34ms    0.0%  29.4ns     0.00B    0.0%    0.00B
-  source terms              148k   4.30ms    0.0%  29.2ns     0.00B    0.0%    0.00B
-analyze solution               2   9.92ms    0.1%  4.96ms   6.08MiB   96.7%  3.04MiB
-I/O                            3   1.97ms    0.0%   656μs    205KiB    3.2%  68.2KiB
-  save solution                2   1.96ms    0.0%   980μs    202KiB    3.1%   101KiB
-  ~I/O~                        3   4.31μs    0.0%  1.44μs   1.70KiB    0.0%     581B
-  get node variables           2   1.47μs    0.0%   736ns     0.00B    0.0%    0.00B
-  get element variables        2   1.44μs    0.0%   722ns   1.41KiB    0.0%     720B
-  save mesh                    2    180ns    0.0%  90.0ns     0.00B    0.0%    0.00B
-calculate dt                  19   79.7μs    0.0%  4.19μs   2.67KiB    0.0%     144B
+rhs!                        148k    14.2s   99.9%  96.4μs   4.78KiB    0.1%    0.03B
+  volume integral           148k    9.74s   68.4%  66.0μs     0.00B    0.0%    0.00B
+  interface flux            148k    1.15s    8.1%  7.83μs     0.00B    0.0%    0.00B
+  surface integral          148k    1.11s    7.8%  7.53μs     0.00B    0.0%    0.00B
+  Jacobian                  148k    1.00s    7.0%  6.79μs     0.00B    0.0%    0.00B
+  prolong2interfaces        148k    969ms    6.8%  6.57μs     0.00B    0.0%    0.00B
+  ~rhs!~                    148k    125ms    0.9%   844ns   4.78KiB    0.1%    0.03B
+  reset ∂u/∂t               148k    100ms    0.7%   679ns     0.00B    0.0%    0.00B
+  prolong2mortars           148k   5.61ms    0.0%  38.1ns     0.00B    0.0%    0.00B
+  prolong2boundaries        148k   5.59ms    0.0%  37.9ns     0.00B    0.0%    0.00B
+  mortar flux               148k   5.41ms    0.0%  36.7ns     0.00B    0.0%    0.00B
+  boundary flux             148k   4.32ms    0.0%  29.3ns     0.00B    0.0%    0.00B
+  source terms              148k   4.32ms    0.0%  29.3ns     0.00B    0.0%    0.00B
+analyze solution               2   9.61ms    0.1%  4.81ms   6.08MiB   96.7%  3.04MiB
+I/O                            3   1.94ms    0.0%   648μs    205KiB    3.2%  68.2KiB
+  save solution                2   1.94ms    0.0%   968μs    202KiB    3.1%   101KiB
+  ~I/O~                        3   4.12μs    0.0%  1.37μs   1.70KiB    0.0%     581B
+  get element variables        2   2.30μs    0.0%  1.15μs   1.41KiB    0.0%     720B
+  get node variables           2    852ns    0.0%   426ns     0.00B    0.0%    0.00B
+  save mesh                    2    190ns    0.0%  95.0ns     0.00B    0.0%    0.00B
+calculate dt                  19   75.4μs    0.0%  3.97μs   2.67KiB    0.0%     144B
 ────────────────────────────────────────────────────────────────────────────────────</code></pre><h4 id="Plot-the-solution-2"><a class="docs-heading-anchor" href="#Plot-the-solution-2">Plot the solution</a><a class="docs-heading-anchor-permalink" href="#Plot-the-solution-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">plot(Trixi.PlotData2DTriangulated(sol_sdrik.u[end], sol_sdrik.prob.p))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"></code></pre><h2 id="Increase-CFL-numbers"><a class="docs-heading-anchor" href="#Increase-CFL-numbers">Increase CFL numbers</a><a id="Increase-CFL-numbers-1"></a><a class="docs-heading-anchor-permalink" href="#Increase-CFL-numbers" title="Permalink"></a></h2><pre><code class="language-julia hljs">trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &quot;elixir_advection_basic.jl&quot;), cfl = 10, sol = nothing);
 
 sol = solve(
@@ -394,4 +394,4 @@ sol = solve(
 │ CFL Advective: ………………………………………… Returns{Int64}(10)                                               │
 │ CFL Diffusive: ………………………………………… Returns{Float64}(0.0)                                            │
 │ Interval: ……………………………………………………… 1                                                                │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><h3 id="Plot-the-solution-3"><a class="docs-heading-anchor" href="#Plot-the-solution-3">Plot the solution</a><a class="docs-heading-anchor-permalink" href="#Plot-the-solution-3" title="Permalink"></a></h3><pre><code class="language-julia hljs">plot(Trixi.PlotData2DTriangulated(sol.u[end], sol.prob.p))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"></code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_2D/">« Implicit – Heat 2D</a><a class="docs-footer-nextpage" href="../trixi_imex_ssp/">Trixi IMEX SSP »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.0 on <span class="colophon-date" title="Wednesday 19 November 2025 16:13">Wednesday 19 November 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><h3 id="Plot-the-solution-3"><a class="docs-heading-anchor" href="#Plot-the-solution-3">Plot the solution</a><a class="docs-heading-anchor-permalink" href="#Plot-the-solution-3" title="Permalink"></a></h3><pre><code class="language-julia hljs">plot(Trixi.PlotData2DTriangulated(sol.u[end], sol.prob.p))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"></code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_2D/">« Implicit – Heat 2D</a><a class="docs-footer-nextpage" href="../trixi_imex_ssp/">Trixi IMEX SSP »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.0 on <span class="colophon-date" title="Wednesday 19 November 2025 16:14">Wednesday 19 November 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
