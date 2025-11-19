@@ -4,7 +4,7 @@ using UnPack
 using MuladdMacro: @muladd
 using LinearAlgebra
 import Ariadne: JacobianOperator, newton_krylov!, @trixi_timeit, timer
-using Krylov
+using Krylov: KrylovConstructor, krylov_workspace
 
 abstract type RKTableau end
 

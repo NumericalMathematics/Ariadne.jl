@@ -29,7 +29,7 @@ stages(::DIRK{N}) where {N} = N
 # In the implementation below, `u = z` is the unknown for the current `stage`.
 # `tmp` is the contribution of the previous stages computed in the method
 # defined below.
-@muladd function (::DIRK{N})(res, tmp, uₙ, Δt, f!, du, du_tmp, u, p, t, stages, stage, RK) where {N}
+@muladd function (::DIRK{N})(res, tmp, uₙ, Δt, f!, du, du_tmp, u, p, t, stage, RK) where {N}
     @. res = tmp + u
     @. du = u * Δt + uₙ
     f!(du_tmp, du, p, t + RK.c[stage] * Δt)
@@ -46,7 +46,7 @@ end
 end
 
 function nonlinear_problem(alg::SimpleDiagonallyImplicitAlgorithm, f::F) where {F}
-    return (res, u, (tmp, uₙ, Δt, du, du_tmp, p, t, stages, stage, RK)) -> alg(res, tmp, uₙ, Δt, f, du, du_tmp, u, p, t, stages, stage, RK)
+    return (res, u, (tmp, uₙ, Δt, du, du_tmp, p, t, stage, RK)) -> alg(res, tmp, uₙ, Δt, f, du, du_tmp, u, p, t, stage, RK)
 end
 
 mutable struct SimpleDiagonallyImplicitOptions{Callback, KrylovWorkspace}
@@ -254,17 +254,20 @@ function stage!(integrator, alg::DIRK)
             # In this case, the stage is explicit and can be computed directly
             # without solving any (nonlinear) system.
             fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
-            alg(integrator.u_tmp, integrator.stages, stage, integrator.RK)
-            @. integrator.u_tmp = -integrator.u_tmp
+            for j in 1:(stage - 1)
+                @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a[stage, j] * integrator.stages[j]
+            end
         else
             # In this case, we have an implicit stage that requires solving a
             # nonlinear system.
-            @. integrator.tmp = zero(eltype(integrator.tmp))
-            alg(integrator.tmp, integrator.stages, stage, integrator.RK)
+            fill!(integrator.tmp, zero(eltype(integrator.tmp)))
+            for j in 1:(stage - 1)
+                @. integrator.tmp = integrator.tmp - integrator.RK.a[stage, j] * integrator.stages[j]
+            end
             F! = nonlinear_problem(alg, integrator.f)
             # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
             _, stats = newton_krylov!(
-                F!, integrator.u_tmp, (integrator.tmp, integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, stage, integrator.RK), integrator.res;
+                F!, integrator.u_tmp, (integrator.tmp, integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, stage, integrator.RK), integrator.res;
                 verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
                 algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs, workspace = integrator.opts.workspace
             )
@@ -291,7 +294,9 @@ function stage!(integrator, alg::DIRK)
             # Note that `integrator.res .= integrator.u_tmp` is the solution `z` for the
             # current `stage`.
             @. integrator.res = integrator.u_tmp
-            alg(integrator.res, integrator.stages, stage, integrator.RK)
+            for j in 1:(stage - 1)
+                @. integrator.res = integrator.res - integrator.RK.a[stage, j] * integrator.stages[j]
+            end
             @. integrator.stages[stage] = integrator.res / integrator.RK.a[stage, stage]
         end
     end
@@ -307,7 +312,7 @@ function stage!(integrator, alg::DIRK)
         @. integrator.u_tmp = integrator.u_tmp + b * integrator.stages[j]
     end
     @. integrator.u_tmp = integrator.u + integrator.dt * integrator.u_tmp
-    return
+    return nothing
 end
 
 # get a cache where the RHS can be stored

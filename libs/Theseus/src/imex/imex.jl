@@ -27,24 +27,20 @@ stages(::RKIMEX{N}) where {N} = N
 #   z^i - \sum_{j=1}^i a1_{ij} f1(y^j) - \sum_{j=1}^{i-1} a2_{ij} f2(y^j) = 0.
 #
 # In the implementation below, `u = z` is the unknown for the current `stage`.
-function (::RKIMEX{N})(res, tmp, uₙ, Δt, f1!, du, du_tmp, u, p, t, stages_ex, stages_im, stage, RK) where {N}
-    @. res = tmp + u
-    @. du = u * Δt + uₙ
-    f1!(du_tmp, du, p, t + RK.c_im[stage] * Δt)
-    @. res = res - RK.a_im[stage, stage] * du_tmp
-    return res
-end
-
+# `tmp` is the contribution of the previous stages computed in the method
+# defined below.
 @muladd begin
-    function (::RKIMEX{N})(res, stages_ex, stages_im, stage, RK) where {N}
-        for j in 1:(stage - 1)
-            @. res = res - RK.a_ex[stage, j] * stages_ex[j] - RK.a_im[stage, j] * stages_im[j]
-        end
+    function (::RKIMEX{N})(res, tmp, uₙ, Δt, f1!, du, du_tmp, u, p, t, stage, RK) where {N}
+        @. res = tmp + u
+        @. du = u * Δt + uₙ
+        f1!(du_tmp, du, p, t + RK.c_im[stage] * Δt)
+        @. res = res - RK.a_im[stage, stage] * du_tmp
+        return res
     end
 end
 
 function nonlinear_problem(alg::SimpleImplicitExplicitAlgorithm, f1::F1) where {F1}
-    return (res, u, (tmp, uₙ, Δt, du, du_tmp, p, t, stages, stages_im, stage, RK)) -> alg(res, tmp, uₙ, Δt, f1, du, du_tmp, u, p, t, stages, stages_im, stage, RK)
+    return (res, u, (tmp, uₙ, Δt, du, du_tmp, p, t, stage, RK)) -> alg(res, tmp, uₙ, Δt, f1, du, du_tmp, u, p, t, stage, RK)
 end
 
 mutable struct SimpleImplicitExplicitOptions{Callback, KrylovWorkspace}
@@ -256,20 +252,20 @@ function stage!(integrator, alg::RKIMEX)
             # In this case, the stage is explicit and can be computed directly
             # without solving any (nonlinear) system.
             @. integrator.u_tmp = zero(eltype(integrator.u_tmp))
-            alg(integrator.u_tmp, integrator.stages, integrator.stages_im, stage, integrator.RK)
-            @. integrator.u_tmp = -integrator.u_tmp
-            #for j in 1:(stage - 1)
-            #    @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a_ex[stage, j] * integrator.stages[j] + integrator.RK.a_im[stage, j] * integrator.stages_im[j]
-            #end
+            for j in 1:(stage - 1)
+                @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a_ex[stage, j] * integrator.stages[j] + integrator.RK.a_im[stage, j] * integrator.stages_im[j]
+            end
         else
             # In this case, we have an implicit stage that requires solving a
             # nonlinear system.
             @. integrator.tmp = zero(eltype(integrator.tmp))
-            alg(integrator.tmp, integrator.stages, integrator.stages_im, stage, integrator.RK)
+            for j in 1:(stage - 1)
+                @. integrator.tmp = integrator.tmp - integrator.RK.a_ex[stage, j] * integrator.stages[j] - integrator.RK.a_im[stage, j] * integrator.stages_im[j]
+            end
             F! = nonlinear_problem(alg, integrator.f1)
             # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
             _, stats = newton_krylov!(
-                F!, integrator.u_tmp, (integrator.tmp, integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage, integrator.RK), integrator.res;
+                F!, integrator.u_tmp, (integrator.tmp, integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, stage, integrator.RK), integrator.res;
                 verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
                 algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs, workspace = integrator.opts.workspace
             )
@@ -301,7 +297,9 @@ function stage!(integrator, alg::RKIMEX)
             #
             # Note that `integrator.res .= integrator.u_tmp` is the solution `z` for the
             # current `stage`.
-            alg(integrator.res, integrator.stages, integrator.stages_im, stage, integrator.RK)
+            for j in 1:(stage - 1)
+                @. integrator.res = integrator.res - integrator.RK.a_ex[stage, j] * integrator.stages[j] - integrator.RK.a_im[stage, j] * integrator.stages_im[j]
+            end
             @. integrator.stages_im[stage] = integrator.res / integrator.RK.a_im[stage, stage]
         end
     end
@@ -318,7 +316,7 @@ function stage!(integrator, alg::RKIMEX)
         @. integrator.u_tmp = integrator.u_tmp + b_ex * integrator.stages[j] + b_im * integrator.stages_im[j]
     end
     @. integrator.u_tmp = integrator.u + integrator.dt * integrator.u_tmp
-    return
+    return nothing
 end
 
 # get a cache where the RHS can be stored
