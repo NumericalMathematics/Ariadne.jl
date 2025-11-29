@@ -33,31 +33,53 @@ end
         end
         u_ana = [sin(ode.tspan[end])]
 
-        @testset "LobattoIIIA2" begin
-            alg = Theseus.LobattoIIIA2()
-            order = 2
-            dts = 2.0 .^ (-2:-1:-6)
-            @show errors = compute_errors(ode, u_ana, alg, dts)
-            eoc = compute_eoc(dts, errors)
-            @test isapprox(eoc, order; atol = 0.1)
+        @testset "DIRK methods" begin
+            @testset "LobattoIIIA2" begin
+                alg = Theseus.LobattoIIIA2()
+                order = 2
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
+            @testset "Crouzeix32" begin
+                alg = Theseus.Crouzeix32()
+                order = 3 + 1 # Gaussian quadrature
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
+            @testset "DIRK43" begin
+                alg = Theseus.DIRK43()
+                order = 4
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
         end
 
-        @testset "Crouzeix32" begin
-            alg = Theseus.Crouzeix32()
-            order = 3 + 1 # Gaussian quadrature
-            dts = 2.0 .^ (-2:-1:-6)
-            @show errors = compute_errors(ode, u_ana, alg, dts)
-            eoc = compute_eoc(dts, errors)
-            @test isapprox(eoc, order; atol = 0.1)
-        end
+        @testset "Rosenbrock methods" begin
+            @testset "SSPKnoth" begin
+                alg = Theseus.SSPKnoth()
+                order = 2
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test_broken isapprox(eoc, order; atol = 0.1)
+            end
 
-        @testset "DIRK43" begin
-            alg = Theseus.DIRK43()
-            order = 4
-            dts = 2.0 .^ (-2:-1:-6)
-            @show errors = compute_errors(ode, u_ana, alg, dts)
-            eoc = compute_eoc(dts, errors)
-            @test isapprox(eoc, order; atol = 0.1)
+            @testset "ROS2" begin
+                alg = Theseus.ROS2()
+                order = 2
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test_broken isapprox(eoc, order; atol = 0.1)
+            end
         end
     end
 end
