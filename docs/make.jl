@@ -97,5 +97,5 @@ deploydocs(;
     # Only push previews if all the relevant environment variables are non-empty.
     push_preview = all(!isempty,
                        (get(ENV, "GITHUB_TOKEN", ""),
-                        get(ENV, "DOCUMENTER_KEY", ""))))
+                        get(ENV, "DOCUMENTER_KEY", "")))
 )
