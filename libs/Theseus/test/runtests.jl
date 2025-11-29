@@ -176,6 +176,14 @@ end
             du[3] = -u[3]
             return nothing
         end
+        function rhs_split!(du, u, p, t)
+            du[1] = -u[2] / 2
+            du[2] = u[1] / 2
+            du[3] = -u[3] / 2
+            return nothing
+        end
+        ode_split = SplitODEProblem(rhs_split!, rhs_split!,
+                                    ode.u0, ode.tspan)
         u_ana = [cos(ode.tspan[end]),
                  sin(ode.tspan[end]),
                  exp(-ode.tspan[end])]
@@ -254,5 +262,93 @@ end
                 # TODO: Is this a second- or a third-order method?
             end
         end # Rosenbrock methods
+
+        @testset "IMEX methods" begin
+            @testset "SSP2222" begin
+                alg = Theseus.SSP2222()
+                order = 2
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts;
+                                        krylov_tol_abs = 1.0e-8)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
+            @testset "SSP2322" begin
+                alg = Theseus.SSP2322()
+                order = 2
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts;
+                                        krylov_tol_abs = 1.0e-8)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
+            @testset "SSP2332" begin
+                alg = Theseus.SSP2332()
+                order = 2
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts;
+                                        krylov_tol_abs = 1.0e-8)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
+            @testset "SSP3332" begin
+                alg = Theseus.SSP3332()
+                order = 3
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts;
+                                        krylov_tol_abs = 1.0e-8)
+                eoc = compute_eoc(dts, errors)
+                @test_broken isapprox(eoc, order; atol = 0.1)
+                # This appears to be only second-order accurate,
+                # but it is documented to be third-order.
+            end
+
+            @testset "SSP3433" begin
+                alg = Theseus.SSP3433()
+                order = 3
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts;
+                                        krylov_tol_abs = 1.0e-8)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
+            @testset "ARS111" begin
+                alg = Theseus.ARS111()
+                order = 1
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts;
+                                        krylov_tol_abs = 1.0e-8)
+                eoc = compute_eoc(dts, errors)
+                @test_broken isapprox(eoc, order; atol = 0.1)
+                # This appears to be even second-order accurate,
+                # but it is documented to be third-order.
+            end
+
+            @testset "ARS222" begin
+                alg = Theseus.ARS222()
+                order = 2
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts;
+                                        krylov_tol_abs = 1.0e-8)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
+            @testset "ARS443" begin
+                alg = Theseus.ARS443()
+                order = 3
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts;
+                                        krylov_tol_abs = 1.0e-8)
+                eoc = compute_eoc(dts, errors)
+                @test_broken isapprox(eoc, order; atol = 0.1)
+                # TODO: Why can't we get closer to machine precision?
+                # https://github.com/NumericalMathematics/Ariadne.jl/issues/78
+            end
+        end # IMEX methods
     end
 end
