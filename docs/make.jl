@@ -95,7 +95,11 @@ deploydocs(;
     repo = "github.com/NumericalMathematics/Ariadne.jl.git",
     devbranch = "main",
     # Only push previews if all the relevant environment variables are non-empty.
-    push_preview = all(!isempty,
-                       (get(ENV, "GITHUB_TOKEN", ""),
-                        get(ENV, "DOCUMENTER_KEY", "")))
+    push_preview = all(
+        !isempty,
+        (
+            get(ENV, "GITHUB_TOKEN", ""),
+            get(ENV, "DOCUMENTER_KEY", ""),
+        )
+    )
 )
