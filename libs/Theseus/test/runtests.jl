@@ -10,7 +10,7 @@ function compute_eoc(dts, errors)
     eocs[begin] = 0 # no EOC defined for the first grid
     for idx in Iterators.drop(eachindex(errors, dts, eocs), 1)
         eocs[idx] = log(errors[idx] / errors[idx - 1]) /
-                    log(dts[idx] / dts[idx - 1])
+            log(dts[idx] / dts[idx - 1])
     end
     return mean(eocs[(begin + 1):end])
 end
@@ -18,8 +18,10 @@ end
 function compute_errors(prob, u_ana, alg, dts; kwargs...)
     errors = similar(dts)
     for (i, dt) in enumerate(dts)
-        sol = @inferred solve(prob, alg;
-                              dt, adaptive = false, kwargs...)
+        sol = @inferred solve(
+            prob, alg;
+            dt, adaptive = false, kwargs...
+        )
         u_num = sol.u[end]
         errors[i] = norm(u_num - u_ana)
     end
@@ -35,8 +37,10 @@ end
         function rhs_split!(du, u, p, t)
             du[begin] = cos(t) / 2
         end
-        ode_split = SplitODEProblem(rhs_split!, rhs_split!,
-                                    ode.u0, ode.tspan)
+        ode_split = SplitODEProblem(
+            rhs_split!, rhs_split!,
+            ode.u0, ode.tspan
+        )
         u_ana = [sin(ode.tspan[end])]
 
         @testset "DIRK methods" begin
@@ -182,11 +186,15 @@ end
             du[3] = -u[3] / 2
             return nothing
         end
-        ode_split = SplitODEProblem(rhs_split!, rhs_split!,
-                                    ode.u0, ode.tspan)
-        u_ana = [cos(ode.tspan[end]),
-                 sin(ode.tspan[end]),
-                 exp(-ode.tspan[end])]
+        ode_split = SplitODEProblem(
+            rhs_split!, rhs_split!,
+            ode.u0, ode.tspan
+        )
+        u_ana = [
+            cos(ode.tspan[end]),
+            sin(ode.tspan[end]),
+            exp(-ode.tspan[end]),
+        ]
 
         @testset "DIRK methods" begin
             @testset "LobattoIIIA2" begin
@@ -202,8 +210,10 @@ end
                 alg = Theseus.Crouzeix32()
                 order = 3
                 dts = 2.0 .^ (-2:-1:-6)
-                errors = compute_errors(ode, u_ana, alg, dts;
-                                        krylov_tol_abs = 1.0e-8)
+                errors = compute_errors(
+                    ode, u_ana, alg, dts;
+                    krylov_tol_abs = 1.0e-8
+                )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
             end
@@ -268,8 +278,10 @@ end
                 alg = Theseus.SSP2222()
                 order = 2
                 dts = 2.0 .^ (-2:-1:-6)
-                errors = compute_errors(ode_split, u_ana, alg, dts;
-                                        krylov_tol_abs = 1.0e-8)
+                errors = compute_errors(
+                    ode_split, u_ana, alg, dts;
+                    krylov_tol_abs = 1.0e-8
+                )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
             end
@@ -278,8 +290,10 @@ end
                 alg = Theseus.SSP2322()
                 order = 2
                 dts = 2.0 .^ (-2:-1:-6)
-                errors = compute_errors(ode_split, u_ana, alg, dts;
-                                        krylov_tol_abs = 1.0e-8)
+                errors = compute_errors(
+                    ode_split, u_ana, alg, dts;
+                    krylov_tol_abs = 1.0e-8
+                )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
             end
@@ -288,8 +302,10 @@ end
                 alg = Theseus.SSP2332()
                 order = 2
                 dts = 2.0 .^ (-2:-1:-6)
-                errors = compute_errors(ode_split, u_ana, alg, dts;
-                                        krylov_tol_abs = 1.0e-8)
+                errors = compute_errors(
+                    ode_split, u_ana, alg, dts;
+                    krylov_tol_abs = 1.0e-8
+                )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
             end
@@ -298,8 +314,10 @@ end
                 alg = Theseus.SSP3332()
                 order = 3
                 dts = 2.0 .^ (-2:-1:-6)
-                errors = compute_errors(ode_split, u_ana, alg, dts;
-                                        krylov_tol_abs = 1.0e-8)
+                errors = compute_errors(
+                    ode_split, u_ana, alg, dts;
+                    krylov_tol_abs = 1.0e-8
+                )
                 eoc = compute_eoc(dts, errors)
                 @test_broken isapprox(eoc, order; atol = 0.1)
                 # This appears to be only second-order accurate,
@@ -310,8 +328,10 @@ end
                 alg = Theseus.SSP3433()
                 order = 3
                 dts = 2.0 .^ (-2:-1:-6)
-                errors = compute_errors(ode_split, u_ana, alg, dts;
-                                        krylov_tol_abs = 1.0e-8)
+                errors = compute_errors(
+                    ode_split, u_ana, alg, dts;
+                    krylov_tol_abs = 1.0e-8
+                )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
             end
@@ -320,8 +340,10 @@ end
                 alg = Theseus.ARS111()
                 order = 1
                 dts = 2.0 .^ (-2:-1:-6)
-                errors = compute_errors(ode_split, u_ana, alg, dts;
-                                        krylov_tol_abs = 1.0e-8)
+                errors = compute_errors(
+                    ode_split, u_ana, alg, dts;
+                    krylov_tol_abs = 1.0e-8
+                )
                 eoc = compute_eoc(dts, errors)
                 @test_broken isapprox(eoc, order; atol = 0.1)
                 # This appears to be even second-order accurate,
@@ -332,8 +354,10 @@ end
                 alg = Theseus.ARS222()
                 order = 2
                 dts = 2.0 .^ (-2:-1:-6)
-                errors = compute_errors(ode_split, u_ana, alg, dts;
-                                        krylov_tol_abs = 1.0e-8)
+                errors = compute_errors(
+                    ode_split, u_ana, alg, dts;
+                    krylov_tol_abs = 1.0e-8
+                )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
             end
@@ -342,8 +366,10 @@ end
                 alg = Theseus.ARS443()
                 order = 3
                 dts = 2.0 .^ (-2:-1:-6)
-                errors = compute_errors(ode_split, u_ana, alg, dts;
-                                        krylov_tol_abs = 1.0e-8)
+                errors = compute_errors(
+                    ode_split, u_ana, alg, dts;
+                    krylov_tol_abs = 1.0e-8
+                )
                 eoc = compute_eoc(dts, errors)
                 @test_broken isapprox(eoc, order; atol = 0.1)
                 # TODO: Why can't we get closer to machine precision?
