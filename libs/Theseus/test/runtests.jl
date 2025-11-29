@@ -80,6 +80,7 @@ end
                 errors = compute_errors(ode, u_ana, alg, dts)
                 eoc = compute_eoc(dts, errors)
                 @test_broken isapprox(eoc, order; atol = 0.1)
+                # https://github.com/NumericalMathematics/Ariadne.jl/issues/77
             end
 
             @testset "ROS2" begin
@@ -89,6 +90,7 @@ end
                 errors = compute_errors(ode, u_ana, alg, dts)
                 eoc = compute_eoc(dts, errors)
                 @test_broken isapprox(eoc, order; atol = 0.1)
+                # https://github.com/NumericalMathematics/Ariadne.jl/issues/77
             end
         end # Rosenbrock methods
 
@@ -212,7 +214,7 @@ end
                 dts = 2.0 .^ (-2:-1:-6)
                 errors = compute_errors(
                     ode, u_ana, alg, dts;
-                    krylov_tol_abs = 1.0e-8
+                    newton_tol_abs = 1.0e-8
                 )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
@@ -238,7 +240,7 @@ end
                 0.001953125
                 0.0009765625
 
-                julia> errors = compute_errors(ode, u_ana, alg, dts; krylov_tol_abs = 1.0e-14)
+                julia> errors = compute_errors(ode, u_ana, alg, dts; newton_tol_abs = 1.0e-14)
                 8-element Vector{Float64}:
                 6.902787265585153e-5
                 4.536884404070524e-6
@@ -280,7 +282,7 @@ end
                 dts = 2.0 .^ (-2:-1:-6)
                 errors = compute_errors(
                     ode_split, u_ana, alg, dts;
-                    krylov_tol_abs = 1.0e-8
+                    newton_tol_abs = 1.0e-8
                 )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
@@ -292,7 +294,7 @@ end
                 dts = 2.0 .^ (-2:-1:-6)
                 errors = compute_errors(
                     ode_split, u_ana, alg, dts;
-                    krylov_tol_abs = 1.0e-8
+                    newton_tol_abs = 1.0e-8
                 )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
@@ -304,7 +306,8 @@ end
                 dts = 2.0 .^ (-2:-1:-6)
                 errors = compute_errors(
                     ode_split, u_ana, alg, dts;
-                    krylov_tol_abs = 1.0e-8
+                    newton_tol_abs = 1.0e-8,
+                    krylov_kwargs = ( atol = 1.0e-8, rtol = 1.0e-8)
                 )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
@@ -316,7 +319,7 @@ end
                 dts = 2.0 .^ (-2:-1:-6)
                 errors = compute_errors(
                     ode_split, u_ana, alg, dts;
-                    krylov_tol_abs = 1.0e-8
+                    newton_tol_abs = 1.0e-8
                 )
                 eoc = compute_eoc(dts, errors)
                 @test_broken isapprox(eoc, order; atol = 0.1)
@@ -330,7 +333,8 @@ end
                 dts = 2.0 .^ (-2:-1:-6)
                 errors = compute_errors(
                     ode_split, u_ana, alg, dts;
-                    krylov_tol_abs = 1.0e-8
+                    newton_tol_abs = 1.0e-8,
+                    krylov_kwargs = ( atol = 1.0e-8, rtol = 1.0e-8)
                 )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
@@ -342,7 +346,7 @@ end
                 dts = 2.0 .^ (-2:-1:-6)
                 errors = compute_errors(
                     ode_split, u_ana, alg, dts;
-                    krylov_tol_abs = 1.0e-8
+                    newton_tol_abs = 1.0e-8
                 )
                 eoc = compute_eoc(dts, errors)
                 @test_broken isapprox(eoc, order; atol = 0.1)
@@ -356,7 +360,7 @@ end
                 dts = 2.0 .^ (-2:-1:-6)
                 errors = compute_errors(
                     ode_split, u_ana, alg, dts;
-                    krylov_tol_abs = 1.0e-8
+                    newton_tol_abs = 1.0e-8
                 )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
@@ -368,7 +372,7 @@ end
                 dts = 2.0 .^ (-2:-1:-6)
                 errors = compute_errors(
                     ode_split, u_ana, alg, dts;
-                    krylov_tol_abs = 1.0e-8
+                    newton_tol_abs = 1.0e-8
                 )
                 eoc = compute_eoc(dts, errors)
                 @test_broken isapprox(eoc, order; atol = 0.1)
