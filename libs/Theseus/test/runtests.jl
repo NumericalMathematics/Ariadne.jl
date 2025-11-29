@@ -223,34 +223,14 @@ end
             @testset "DIRK43" begin
                 alg = Theseus.DIRK43()
                 order = 4
-                dts = 2.0 .^ (-2:-1:-6)
-                errors = compute_errors(ode, u_ana, alg, dts)
+                dts = 2.0 .^ (-3:-1:-7)
+                errors = compute_errors(ode, u_ana, alg, dts;
+                    newton_tol_abs = 1.0e-8,
+                    newton_tol_rel = 1.0e-8,
+                    krylov_kwargs = (; atol = 1.0e-8, rtol = 1.0e-8)
+                )
                 eoc = compute_eoc(dts, errors)
-                @test_broken isapprox(eoc, order; atol = 0.1)
-                # TODO: Why can't we get closer to machine precision?
-                #=
-                julia> dts = 2.0 .^ (-3:-1:-10)
-                8-element Vector{Float64}:
-                0.125
-                0.0625
-                0.03125
-                0.015625
-                0.0078125
-                0.00390625
-                0.001953125
-                0.0009765625
-
-                julia> errors = compute_errors(ode, u_ana, alg, dts; newton_tol_abs = 1.0e-14)
-                8-element Vector{Float64}:
-                6.902787265585153e-5
-                4.536884404070524e-6
-                2.312461892802833e-7
-                2.1474333974267422e-8
-                6.248482209851633e-8
-                7.765078477201435e-9
-                7.009412413653584e-9
-                1.453399550413022e-7
-                =#
+                @test isapprox(eoc, order; atol = 0.1)
             end
         end # DIRK methods
 
@@ -307,7 +287,7 @@ end
                 errors = compute_errors(
                     ode_split, u_ana, alg, dts;
                     newton_tol_abs = 1.0e-8,
-                    krylov_kwargs = ( atol = 1.0e-8, rtol = 1.0e-8)
+                    krylov_kwargs = (; atol = 1.0e-8, rtol = 1.0e-8)
                 )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
@@ -334,7 +314,7 @@ end
                 errors = compute_errors(
                     ode_split, u_ana, alg, dts;
                     newton_tol_abs = 1.0e-8,
-                    krylov_kwargs = ( atol = 1.0e-8, rtol = 1.0e-8)
+                    krylov_kwargs = (; atol = 1.0e-8, rtol = 1.0e-8)
                 )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
