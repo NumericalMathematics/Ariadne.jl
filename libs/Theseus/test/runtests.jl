@@ -32,6 +32,11 @@ end
         ode = ODEProblem([0.0], (0.0, 1.0)) do du, u, p, t
             du[begin] = cos(t)
         end
+        function rhs_split!(du, u, p, t)
+            du[begin] = cos(t) / 2
+        end
+        ode_split = SplitODEProblem(rhs_split!, rhs_split!,
+                                    ode.u0, ode.tspan)
         u_ana = [sin(ode.tspan[end])]
 
         @testset "DIRK methods" begin
@@ -82,6 +87,86 @@ end
                 @test_broken isapprox(eoc, order; atol = 0.1)
             end
         end # Rosenbrock methods
+
+        @testset "IMEX methods" begin
+            @testset "SSP2222" begin
+                alg = Theseus.SSP2222()
+                order = 2
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
+            @testset "SSP2322" begin
+                alg = Theseus.SSP2322()
+                order = 2
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
+            @testset "SSP2332" begin
+                alg = Theseus.SSP2332()
+                order = 2
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
+            @testset "SSP3332" begin
+                alg = Theseus.SSP3332()
+                order = 3
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test_broken isapprox(eoc, order; atol = 0.1)
+                # This appears to be only second-order accurate,
+                # but it is documented to be third-order.
+            end
+
+            @testset "SSP3433" begin
+                alg = Theseus.SSP3433()
+                order = 3
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test_broken isapprox(eoc, order; atol = 0.1)
+                # This appears to be even fourth-order accurate,
+                # but it is documented to be third-order.
+            end
+
+            @testset "ARS111" begin
+                alg = Theseus.ARS111()
+                order = 1
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test_broken isapprox(eoc, order; atol = 0.1)
+                # This appears to be even second-order accurate,
+                # but it is documented to be third-order.
+            end
+
+            @testset "ARS222" begin
+                alg = Theseus.ARS222()
+                order = 2
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
+            @testset "ARS443" begin
+                alg = Theseus.ARS443()
+                order = 3
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+        end # IMEX methods
     end
 
     @testset "Convergence linear system" begin
