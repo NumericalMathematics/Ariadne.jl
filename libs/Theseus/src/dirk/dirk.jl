@@ -271,7 +271,7 @@ function stage!(integrator, alg::DIRK)
             )
             if !stats.solved
                 @warn "Newton did not converge" stats integrator.t
-                errro("Newton did not converge")
+                error("Newton did not converge")
             end
         end
         # Store the solution for each stage in stages
