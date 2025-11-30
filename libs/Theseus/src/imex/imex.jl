@@ -56,7 +56,8 @@ mutable struct SimpleImplicitExplicitOptions{Callback}
     krylov_kwargs::Any
 end
 
-function SimpleImplicitExplicitOptions(callback, tspan;
+function SimpleImplicitExplicitOptions(
+        callback, tspan;
         maxiters = typemax(Int),
         verbose = 0,
         newton_tol_abs = 1.0e-6,
@@ -64,7 +65,8 @@ function SimpleImplicitExplicitOptions(callback, tspan;
         newton_max_niter = 50,
         krylov_algo = :gmres,
         krylov_kwargs = (;),
-        kwargs...)
+        kwargs...
+    )
     return SimpleImplicitExplicitOptions{typeof(callback)}(
         callback, false, Inf, maxiters,
         [last(tspan)],
