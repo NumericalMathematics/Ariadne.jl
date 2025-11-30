@@ -49,18 +49,30 @@ mutable struct SimpleImplicitExplicitOptions{Callback}
     maxiters::Int # maximal number of time steps
     tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
     verbose::Int
-    algo::Symbol
-    krylov_tol_abs::Float64
+    newton_tol_abs::Float64
+    newton_tol_rel::Float64
+    newton_max_niter::Int
+    krylov_algo::Symbol
     krylov_kwargs::Any
 end
 
-function SimpleImplicitExplicitOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_tol_abs = 1.0e-6, krylov_kwargs = (;), kwargs...)
+function SimpleImplicitExplicitOptions(callback, tspan;
+        maxiters = typemax(Int),
+        verbose = 0,
+        newton_tol_abs = 1.0e-6,
+        newton_tol_rel = 1.0e-6,
+        newton_max_niter = 50,
+        krylov_algo = :gmres,
+        krylov_kwargs = (;),
+        kwargs...)
     return SimpleImplicitExplicitOptions{typeof(callback)}(
         callback, false, Inf, maxiters,
         [last(tspan)],
         verbose,
+        newton_tol_abs,
+        newton_tol_rel,
+        newton_max_niter,
         krylov_algo,
-        krylov_tol_abs,
         krylov_kwargs,
     )
 end
@@ -254,10 +266,17 @@ function stage!(integrator, alg::RKIMEX)
             # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
             _, stats = newton_krylov!(
                 F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage, integrator.RK), integrator.res;
-                verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
-                algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs
+                verbose = integrator.opts.verbose,
+                tol_abs = integrator.opts.newton_tol_abs,
+                tol_rel = integrator.opts.newton_tol_rel,
+                max_niter = integrator.opts.newton_max_niter,
+                algo = integrator.opts.krylov_algo,
+                krylov_kwargs = integrator.opts.krylov_kwargs
             )
-            @assert stats.solved
+            if !stats.solved
+                @warn "Newton did not converge" stats integrator.t
+                error("Newton did not converge")
+            end
         end
         # Store the solution for each stage in stages
         # For a split problem, we need to compute the stiff and non-stiff RHS.

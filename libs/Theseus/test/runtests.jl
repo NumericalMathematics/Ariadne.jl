@@ -286,7 +286,6 @@ end
                 errors = compute_errors(
                     ode_split, u_ana, alg, dts;
                     newton_tol_abs = 1.0e-8,
-                    krylov_kwargs = (; atol = 1.0e-8, rtol = 1.0e-8)
                 )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
@@ -313,7 +312,6 @@ end
                 errors = compute_errors(
                     ode_split, u_ana, alg, dts;
                     newton_tol_abs = 1.0e-8,
-                    krylov_kwargs = (; atol = 1.0e-8, rtol = 1.0e-8)
                 )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
