@@ -226,8 +226,7 @@ end
                 dts = 2.0 .^ (-3:-1:-7)
                 errors = compute_errors(ode, u_ana, alg, dts;
                     newton_tol_abs = 1.0e-8,
-                    newton_tol_rel = 1.0e-8,
-                    krylov_kwargs = (; atol = 1.0e-8, rtol = 1.0e-8)
+                    newton_tol_rel = 1.0e-8
                 )
                 eoc = compute_eoc(dts, errors)
                 @test isapprox(eoc, order; atol = 0.1)
