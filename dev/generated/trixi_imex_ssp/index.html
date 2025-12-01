@@ -112,11 +112,11 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       5.81000000e-07 s
+ #timesteps:                  0                run time:       6.31000000e-07 s
  Δt:             1.00000000e-02                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:          4096                alloc&#39;d memory:        599.122 MiB
+ #DOFs per field:          4096                alloc&#39;d memory:        519.165 MiB
  #elements:                 256
 
  Variable:       scalar
@@ -155,7 +155,7 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &
 │  [13] preprocess
 │     @ ./broadcast.jl:952
 │  [14] override_bc_copyto!
-│     @ ~/.julia/packages/Enzyme/xxXAx/src/compiler/interpreter.jl:818
+│     @ ~/.julia/packages/Enzyme/OhLFb/src/compiler/interpreter.jl:818
 │  [15] copyto!
 │     @ ./broadcast.jl:925
 │  [16] materialize!
@@ -164,7 +164,7 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &
 │     @ ./broadcast.jl:880
 │  [18] RKIMEX
 │     @ ~/work/Ariadne.jl/Ariadne.jl/libs/Theseus/src/imex/imex.jl:33
-└ @ Enzyme.Compiler ~/.julia/packages/Enzyme/xxXAx/src/rules/llvmrules.jl:806
+└ @ Enzyme.Compiler ~/.julia/packages/Enzyme/OhLFb/src/rules/llvmrules.jl:812
 ┌ Warning: TODO forward zero-set of memorycopy used memset rather than runtime type
 │ Caused by:
 │ Stacktrace:
@@ -191,7 +191,7 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &
 │  [11] preprocess
 │     @ ./broadcast.jl:952
 │  [12] override_bc_copyto!
-│     @ ~/.julia/packages/Enzyme/xxXAx/src/compiler/interpreter.jl:818
+│     @ ~/.julia/packages/Enzyme/OhLFb/src/compiler/interpreter.jl:818
 │  [13] copyto!
 │     @ ./broadcast.jl:925
 │  [14] materialize!
@@ -200,25 +200,25 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &
 │     @ ./broadcast.jl:880
 │  [16] RKIMEX
 │     @ ~/work/Ariadne.jl/Ariadne.jl/libs/Theseus/src/imex/imex.jl:33
-└ @ Enzyme.Compiler ~/.julia/packages/Enzyme/xxXAx/src/rules/llvmrules.jl:806
-#timesteps:     10 │ Δt: 1.2500e-02 │ sim. time: 1.2500e-01 (8.333%)   │ run time: 5.1657e+01 s
-#timesteps:     20 │ Δt: 1.2500e-02 │ sim. time: 2.5000e-01 (16.667%)  │ run time: 5.1787e+01 s
-#timesteps:     30 │ Δt: 1.2500e-02 │ sim. time: 3.7500e-01 (25.000%)  │ run time: 5.1917e+01 s
-#timesteps:     40 │ Δt: 1.2500e-02 │ sim. time: 5.0000e-01 (33.333%)  │ run time: 5.2048e+01 s
-#timesteps:     50 │ Δt: 1.2500e-02 │ sim. time: 6.2500e-01 (41.667%)  │ run time: 5.2181e+01 s
-#timesteps:     60 │ Δt: 1.2500e-02 │ sim. time: 7.5000e-01 (50.000%)  │ run time: 5.2318e+01 s
-#timesteps:     70 │ Δt: 1.2500e-02 │ sim. time: 8.7500e-01 (58.333%)  │ run time: 5.2462e+01 s
-#timesteps:     80 │ Δt: 1.2500e-02 │ sim. time: 1.0000e+00 (66.667%)  │ run time: 5.2612e+01 s
-#timesteps:     90 │ Δt: 1.2500e-02 │ sim. time: 1.1250e+00 (75.000%)  │ run time: 5.2768e+01 s
+└ @ Enzyme.Compiler ~/.julia/packages/Enzyme/OhLFb/src/rules/llvmrules.jl:812
+#timesteps:     10 │ Δt: 1.2500e-02 │ sim. time: 1.2500e-01 (8.333%)   │ run time: 5.2352e+01 s
+#timesteps:     20 │ Δt: 1.2500e-02 │ sim. time: 2.5000e-01 (16.667%)  │ run time: 5.2481e+01 s
+#timesteps:     30 │ Δt: 1.2500e-02 │ sim. time: 3.7500e-01 (25.000%)  │ run time: 5.2610e+01 s
+#timesteps:     40 │ Δt: 1.2500e-02 │ sim. time: 5.0000e-01 (33.333%)  │ run time: 5.2740e+01 s
+#timesteps:     50 │ Δt: 1.2500e-02 │ sim. time: 6.2500e-01 (41.667%)  │ run time: 5.2871e+01 s
+#timesteps:     60 │ Δt: 1.2500e-02 │ sim. time: 7.5000e-01 (50.000%)  │ run time: 5.3004e+01 s
+#timesteps:     70 │ Δt: 1.2500e-02 │ sim. time: 8.7500e-01 (58.333%)  │ run time: 5.3147e+01 s
+#timesteps:     80 │ Δt: 1.2500e-02 │ sim. time: 1.0000e+00 (66.667%)  │ run time: 5.3295e+01 s
+#timesteps:     90 │ Δt: 1.2500e-02 │ sim. time: 1.1250e+00 (75.000%)  │ run time: 5.3449e+01 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                100                run time:       5.29282922e+01 s
- Δt:             1.25000000e-02                └── GC time:    3.09465761e-01 s (0.585%)
- sim. time:      1.25000000e+00 (83.333%)      time/DOF/rhs!:  7.51068416e-08 s
-                                               PID:            3.23042414e-05 s
- #DOFs per field:          4096                alloc&#39;d memory:        591.496 MiB
+ #timesteps:                100                run time:       5.36086754e+01 s
+ Δt:             1.25000000e-02                └── GC time:    2.75962695e-01 s (0.515%)
+ sim. time:      1.25000000e+00 (83.333%)      time/DOF/rhs!:  7.52953237e-08 s
+                                               PID:            3.27194665e-05 s
+ #DOFs per field:          4096                alloc&#39;d memory:        598.308 MiB
  #elements:                 256
 
  Variable:       scalar
@@ -227,16 +227,16 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &
  ∑∂S/∂U ⋅ Uₜ :  -1.04542976e-02
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:    110 │ Δt: 1.2500e-02 │ sim. time: 1.3750e+00 (91.667%)  │ run time: 5.3101e+01 s
+#timesteps:    110 │ Δt: 1.2500e-02 │ sim. time: 1.3750e+00 (91.667%)  │ run time: 5.3777e+01 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                120                run time:       5.32895254e+01 s
- Δt:             1.25000000e-02                └── GC time:    3.24205065e-01 s (0.608%)
- sim. time:      1.50000000e+00 (100.000%)     time/DOF/rhs!:  7.48793852e-08 s
-                                               PID:            1.09911496e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:        600.158 MiB
+ #timesteps:                120                run time:       5.39615445e+01 s
+ Δt:             1.25000000e-02                └── GC time:    2.88348266e-01 s (0.534%)
+ sim. time:      1.50000000e+00 (100.000%)     time/DOF/rhs!:  7.51798042e-08 s
+                                               PID:            1.07355228e-06 s
+ #DOFs per field:          4096                alloc&#39;d memory:        609.681 MiB
  #elements:                 256
 
  Variable:       scalar
@@ -252,49 +252,49 @@ Trixi.jl simulation finished.  Final time: 1.5  Time steps: 120 (accepted), 120 
 ───────────────────────────────────────────────────────────────────────────────────────
               Trixi.jl                        Time                    Allocations
                                      ───────────────────────   ────────────────────────
-          Tot / % measured:               53.3s /   2.3%           2.78GiB /   0.3%
+          Tot / % measured:               54.0s /   2.2%           2.76GiB /   0.3%
 
 Section                      ncalls     time    %tot     avg     alloc    %tot      avg
 ───────────────────────────────────────────────────────────────────────────────────────
-parabolic rhs!                5.59k    1.16s   95.8%   208μs   8.70KiB    0.1%    1.59B
-  calculate gradient          5.59k    525ms   43.2%  93.8μs   3.33KiB    0.0%    0.61B
-    volume integral           5.59k    335ms   27.6%  59.9μs     0.00B    0.0%    0.00B
-    Jacobian                  5.59k   57.0ms    4.7%  10.2μs     0.00B    0.0%    0.00B
-    surface integral          5.59k   39.9ms    3.3%  7.13μs     0.00B    0.0%    0.00B
-    interface flux            5.59k   37.1ms    3.1%  6.63μs     0.00B    0.0%    0.00B
-    prolong2interfaces        5.59k   34.7ms    2.9%  6.19μs     0.00B    0.0%    0.00B
-    reset gradients           5.59k   14.6ms    1.2%  2.62μs     0.00B    0.0%    0.00B
-    ~calculate gradient~      5.59k   5.20ms    0.4%   929ns   3.33KiB    0.0%    0.61B
-    prolong2mortars           5.59k    459μs    0.0%  82.0ns     0.00B    0.0%    0.00B
-    prolong2boundaries        5.59k    398μs    0.0%  71.2ns     0.00B    0.0%    0.00B
-    mortar flux               5.59k    358μs    0.0%  63.9ns     0.00B    0.0%    0.00B
-    boundary flux             5.59k    167μs    0.0%  29.9ns     0.00B    0.0%    0.00B
-  volume integral             5.59k    343ms   28.3%  61.4μs     0.00B    0.0%    0.00B
-  calculate viscous fluxes    5.59k    109ms    8.9%  19.4μs     0.00B    0.0%    0.00B
-  transform variables         5.59k   37.1ms    3.1%  6.63μs     0.00B    0.0%    0.00B
-  interface flux              5.59k   36.4ms    3.0%  6.51μs     0.00B    0.0%    0.00B
-  surface integral            5.59k   35.7ms    2.9%  6.38μs     0.00B    0.0%    0.00B
-  prolong2interfaces          5.59k   34.0ms    2.8%  6.08μs     0.00B    0.0%    0.00B
-  Jacobian                    5.59k   28.3ms    2.3%  5.05μs     0.00B    0.0%    0.00B
-  reset ∂u/∂t                 5.59k   7.54ms    0.6%  1.35μs     0.00B    0.0%    0.00B
-  ~parabolic rhs!~            5.59k   7.41ms    0.6%  1.32μs   5.38KiB    0.1%    0.98B
-  prolong2mortars             5.59k    428μs    0.0%  76.5ns     0.00B    0.0%    0.00B
-  prolong2boundaries          5.59k    353μs    0.0%  63.1ns     0.00B    0.0%    0.00B
-  mortar flux                 5.59k    275μs    0.0%  49.2ns     0.00B    0.0%    0.00B
-  boundary flux               5.59k    167μs    0.0%  29.8ns     0.00B    0.0%    0.00B
-rhs!                            480   47.5ms    3.9%  98.9μs   4.78KiB    0.1%    10.2B
-  volume integral               480   31.6ms    2.6%  65.9μs     0.00B    0.0%    0.00B
-  interface flux                480   4.03ms    0.3%  8.40μs     0.00B    0.0%    0.00B
-  surface integral              480   3.66ms    0.3%  7.62μs     0.00B    0.0%    0.00B
-  prolong2interfaces            480   3.63ms    0.3%  7.56μs     0.00B    0.0%    0.00B
-  Jacobian                      480   3.34ms    0.3%  6.95μs     0.00B    0.0%    0.00B
-  ~rhs!~                        480    631μs    0.1%  1.31μs   4.78KiB    0.1%    10.2B
-  reset ∂u/∂t                   480    420μs    0.0%   876ns     0.00B    0.0%    0.00B
-  prolong2boundaries            480   43.3μs    0.0%  90.2ns     0.00B    0.0%    0.00B
-  mortar flux                   480   37.8μs    0.0%  78.8ns     0.00B    0.0%    0.00B
-  prolong2mortars               480   31.5μs    0.0%  65.6ns     0.00B    0.0%    0.00B
-  boundary flux                 480   15.5μs    0.0%  32.4ns     0.00B    0.0%    0.00B
-  source terms                  480   13.9μs    0.0%  28.9ns     0.00B    0.0%    0.00B
-analyze solution                  3   3.18ms    0.3%  1.06ms   7.23MiB   99.6%  2.41MiB
-calculate dt                    121    109μs    0.0%   897ns   17.0KiB    0.2%     144B
-───────────────────────────────────────────────────────────────────────────────────────</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../trixi/">« Trixi</a><a class="docs-footer-nextpage" href="../trixi_imex_ars/">Trixi IMEX ARS »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.0 on <span class="colophon-date" title="Sunday 16 November 2025 18:34">Sunday 16 November 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+parabolic rhs!                5.59k    1.16s   95.7%   207μs   8.70KiB    0.1%    1.59B
+  calculate gradient          5.59k    523ms   43.2%  93.4μs   3.33KiB    0.0%    0.61B
+    volume integral           5.59k    334ms   27.6%  59.6μs     0.00B    0.0%    0.00B
+    Jacobian                  5.59k   58.4ms    4.8%  10.4μs     0.00B    0.0%    0.00B
+    surface integral          5.59k   40.9ms    3.4%  7.31μs     0.00B    0.0%    0.00B
+    interface flux            5.59k   36.9ms    3.0%  6.59μs     0.00B    0.0%    0.00B
+    prolong2interfaces        5.59k   34.3ms    2.8%  6.14μs     0.00B    0.0%    0.00B
+    reset gradients           5.59k   11.8ms    1.0%  2.11μs     0.00B    0.0%    0.00B
+    ~calculate gradient~      5.59k   5.35ms    0.4%   956ns   3.33KiB    0.0%    0.61B
+    prolong2mortars           5.59k    509μs    0.0%  91.0ns     0.00B    0.0%    0.00B
+    prolong2boundaries        5.59k    443μs    0.0%  79.2ns     0.00B    0.0%    0.00B
+    mortar flux               5.59k    321μs    0.0%  57.4ns     0.00B    0.0%    0.00B
+    boundary flux             5.59k    164μs    0.0%  29.3ns     0.00B    0.0%    0.00B
+  volume integral             5.59k    341ms   28.2%  61.0μs     0.00B    0.0%    0.00B
+  calculate viscous fluxes    5.59k    108ms    8.9%  19.2μs     0.00B    0.0%    0.00B
+  transform variables         5.59k   37.3ms    3.1%  6.66μs     0.00B    0.0%    0.00B
+  interface flux              5.59k   36.3ms    3.0%  6.49μs     0.00B    0.0%    0.00B
+  surface integral            5.59k   35.8ms    3.0%  6.40μs     0.00B    0.0%    0.00B
+  prolong2interfaces          5.59k   33.9ms    2.8%  6.06μs     0.00B    0.0%    0.00B
+  Jacobian                    5.59k   28.5ms    2.4%  5.09μs     0.00B    0.0%    0.00B
+  ~parabolic rhs!~            5.59k   7.21ms    0.6%  1.29μs   5.38KiB    0.1%    0.98B
+  reset ∂u/∂t                 5.59k   5.92ms    0.5%  1.06μs     0.00B    0.0%    0.00B
+  prolong2mortars             5.59k    484μs    0.0%  86.5ns     0.00B    0.0%    0.00B
+  prolong2boundaries          5.59k    318μs    0.0%  56.8ns     0.00B    0.0%    0.00B
+  mortar flux                 5.59k    306μs    0.0%  54.8ns     0.00B    0.0%    0.00B
+  boundary flux               5.59k    164μs    0.0%  29.3ns     0.00B    0.0%    0.00B
+rhs!                            480   48.4ms    4.0%   101μs   4.78KiB    0.1%    10.2B
+  volume integral               480   31.9ms    2.6%  66.5μs     0.00B    0.0%    0.00B
+  interface flux                480   5.11ms    0.4%  10.6μs     0.00B    0.0%    0.00B
+  surface integral              480   3.67ms    0.3%  7.64μs     0.00B    0.0%    0.00B
+  prolong2interfaces            480   3.33ms    0.3%  6.94μs     0.00B    0.0%    0.00B
+  Jacobian                      480   3.20ms    0.3%  6.67μs     0.00B    0.0%    0.00B
+  ~rhs!~                        480    653μs    0.1%  1.36μs   4.78KiB    0.1%    10.2B
+  reset ∂u/∂t                   480    317μs    0.0%   660ns     0.00B    0.0%    0.00B
+  prolong2boundaries            480   72.7μs    0.0%   151ns     0.00B    0.0%    0.00B
+  prolong2mortars               480   54.6μs    0.0%   114ns     0.00B    0.0%    0.00B
+  mortar flux                   480   38.6μs    0.0%  80.4ns     0.00B    0.0%    0.00B
+  boundary flux                 480   15.3μs    0.0%  31.9ns     0.00B    0.0%    0.00B
+  source terms                  480   14.1μs    0.0%  29.3ns     0.00B    0.0%    0.00B
+analyze solution                  3   3.25ms    0.3%  1.08ms   7.24MiB   99.6%  2.41MiB
+calculate dt                    121    123μs    0.0%  1.02μs   17.0KiB    0.2%     144B
+───────────────────────────────────────────────────────────────────────────────────────</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../trixi/">« Trixi</a><a class="docs-footer-nextpage" href="../trixi_imex_ars/">Trixi IMEX ARS »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Monday 1 December 2025 08:33">Monday 1 December 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
