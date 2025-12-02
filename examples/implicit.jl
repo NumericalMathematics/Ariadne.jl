@@ -34,6 +34,18 @@ function G_Trapezoid!(res, uₙ, Δt, f!, du, u, p, t)
     return nothing
 end
 
+# ## Implicit Euler -- multiderivative
+#
+
+function G_Euler_MD!(res, uₙ, Δt, f!, du, u, p, t)
+    f!(du, u, p, t)
+    autodiff(Forward, f!, Duplicated(du, res), Duplicated(u, copy(du)), Const(p), Const(t))
+
+
+    res .= uₙ .+ Δt .* du .+ Δt^2 / 2 .* res .- u
+    return nothing
+end
+
 # ## Jacobian of various G
 
 function jacobian(G!, f!, uₙ, p, Δt, t)
