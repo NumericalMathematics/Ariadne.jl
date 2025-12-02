@@ -394,20 +394,31 @@ function newton_krylov!(
             kwargs = (; M = M(J), kwargs...)
         end
         if forcing !== nothing
-            # ‖F′(u)d + F(u)‖ <= η * ‖F(u)‖ Inexact Newton termination
-            kwargs = (; rtol = η, kwargs...)
+            # The termination cirterion of the inner Krylov solver is
+            #   ‖F′(u) d + F(u)‖ <= η ‖F(u)‖
+            # i.e., we use an inexact Newton method. Since the initial
+            # guess of the Krylov solver is zero, we set an absolute
+            # tolerance of `atol = 0` and a relative tolerance of
+            # `rtol = η`.
+            # Since the user-provided `kwargs` are appended at the end,
+            # the user can override these settings.
+            kwargs = (; atol = zero(η), rtol = η, kwargs...)
         end
 
-        # Solve: Jx = -res
-        # res is modified by J, so we create a copy `-res`
-        # TODO: provide a temporary storage for `-res`
+        # Solve: J d = res = F(u)
+        # Typically, the Newton method is formulated as J d = -F(u)
+        # with update u = u + d.
+        # To simplify the implementation, we solve J d = F(u)
+        # and update u = u - d instead.
+        # `res` is modified by J, so we create a copy `res`
+        # TODO: provide a temporary storage for `res`
         krylov_solve!(workspace, J, copy(res); kwargs...)
 
-        d = workspace.x # Newton direction
-        s = 1        # Newton step TODO: LineSearch
+        d = workspace.x # (negative) Newton direction
+        s = 1           # Scaling of the Newton step TODO: LineSearch
 
         # Update u
-        u .-= s .* d
+        u .= muladd.(-s, d, u) # u = u - s * d
 
         # Update residual and norm
         n_res_prior = n_res
