@@ -1,9 +1,10 @@
 module Theseus
 
 using UnPack
+using MuladdMacro: @muladd
 using LinearAlgebra
 import Ariadne: JacobianOperator, newton_krylov!
-using Krylov
+using Krylov: KrylovConstructor, krylov_workspace
 
 abstract type RKTableau end
 

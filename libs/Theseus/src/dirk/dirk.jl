@@ -27,11 +27,10 @@ stages(::DIRK{N}) where {N} = N
 #   z^i - \sum_{j=1}^i a_{ij} f(y^j) = 0.
 #
 # In the implementation below, `u = z` is the unknown for the current `stage`.
-function (::DIRK{N})(res, uₙ, Δt, f!, du, du_tmp, u, p, t, stages, stage, RK) where {N}
-    @. res = u
-    for j in 1:(stage - 1)
-        @. res = res - RK.a[stage, j] * stages[j]
-    end
+# `tmp` is the contribution of the previous stages computed in the method
+# defined below.
+@muladd function (::DIRK{N})(res, tmp, uₙ, Δt, f!, du, du_tmp, u, p, t, stage, RK) where {N}
+    @. res = tmp + u
     @. du = u * Δt + uₙ
     f!(du_tmp, du, p, t + RK.c[stage] * Δt)
     @. res = res - RK.a[stage, stage] * du_tmp
@@ -39,10 +38,10 @@ function (::DIRK{N})(res, uₙ, Δt, f!, du, du_tmp, u, p, t, stages, stage, RK)
 end
 
 function nonlinear_problem(alg::SimpleDiagonallyImplicitAlgorithm, f::F) where {F}
-    return (res, u, (uₙ, Δt, du, du_tmp, p, t, stages, stage, RK)) -> alg(res, uₙ, Δt, f, du, du_tmp, u, p, t, stages, stage, RK)
+    return (res, u, (tmp, uₙ, Δt, du, du_tmp, p, t, stage, RK)) -> alg(res, tmp, uₙ, Δt, f, du, du_tmp, u, p, t, stage, RK)
 end
 
-mutable struct SimpleDiagonallyImplicitOptions{Callback}
+mutable struct SimpleDiagonallyImplicitOptions{Callback, KrylovWorkspace}
     callback::Callback # callbacks; used in Trixi.jl
     adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
@@ -51,16 +50,19 @@ mutable struct SimpleDiagonallyImplicitOptions{Callback}
     verbose::Int
     algo::Symbol
     krylov_tol_abs::Float64
+    workspace::KrylovWorkspace
     krylov_kwargs::Any
 end
 
-function SimpleDiagonallyImplicitOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_tol_abs = 1.0e-6, krylov_kwargs = (;), kwargs...)
-    return SimpleDiagonallyImplicitOptions{typeof(callback)}(
+function SimpleDiagonallyImplicitOptions(callback, tspan, kc; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_tol_abs = 1.0e-6, krylov_kwargs = (;), kwargs...)
+    workspace = krylov_workspace(krylov_algo, kc)
+    return SimpleDiagonallyImplicitOptions{typeof(callback), typeof(workspace)}(
         callback, false, Inf, maxiters,
         [last(tspan)],
         verbose,
         krylov_algo,
         krylov_tol_abs,
+        workspace,
         krylov_kwargs,
     )
 end
@@ -73,6 +75,7 @@ mutable struct SimpleDiagonallyImplicit{
     du::uType
     du_tmp::uType
     u_tmp::uType
+    tmp::uType
     stages::NTuple{M, uType}
     res::uType
     t::RealT
@@ -105,15 +108,18 @@ function init(
     du = zero(u)
     res = zero(u)
     u_tmp = similar(u)
+    tmp = similar(u)
     stages = ntuple(_ -> similar(u), Val(N))
     t = first(ode.tspan)
     iter = 0
+    # TODO: Refactor to provide method that re-uses the cache here.
+    kc = KrylovConstructor(res)
     integrator = SimpleDiagonallyImplicit(
-        u, du, copy(du), u_tmp, stages, res, t, dt, zero(dt), iter, ode.p,
+        u, du, copy(du), u_tmp, tmp, stages, res, t, dt, zero(dt), iter, ode.p,
         (prob = ode,), ode.f,
         alg,
         SimpleDiagonallyImplicitOptions(
-            callback, ode.tspan;
+            callback, ode.tspan, kc;
             kwargs...,
         ), false, RKTableau(alg, eltype(u))
     )
@@ -211,7 +217,7 @@ end
 
 # Compute all stages within one time step
 function stage!(integrator, alg::DIRK)
-    @. integrator.u_tmp = 0
+    fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
     for stage in 1:stages(alg)
         # This computes all stages of a diagonally implicit Runge-Kutta method
         #
@@ -239,19 +245,23 @@ function stage!(integrator, alg::DIRK)
         if iszero(integrator.RK.a[stage, stage])
             # In this case, the stage is explicit and can be computed directly
             # without solving any (nonlinear) system.
-            @. integrator.u_tmp = 0
+            fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
             for j in 1:(stage - 1)
                 @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a[stage, j] * integrator.stages[j]
             end
         else
             # In this case, we have an implicit stage that requires solving a
             # nonlinear system.
+            fill!(integrator.tmp, zero(eltype(integrator.tmp)))
+            for j in 1:(stage - 1)
+                @. integrator.tmp = integrator.tmp - integrator.RK.a[stage, j] * integrator.stages[j]
+            end
             F! = nonlinear_problem(alg, integrator.f)
             # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
             _, stats = newton_krylov!(
-                F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, stage, integrator.RK), integrator.res;
+                F!, integrator.u_tmp, (integrator.tmp, integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, stage, integrator.RK), integrator.res;
                 verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
-                algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs
+                algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs, workspace = integrator.opts.workspace
             )
             @assert stats.solved
         end
@@ -294,7 +304,7 @@ function stage!(integrator, alg::DIRK)
         @. integrator.u_tmp = integrator.u_tmp + b * integrator.stages[j]
     end
     @. integrator.u_tmp = integrator.u + integrator.dt * integrator.u_tmp
-    return
+    return nothing
 end
 
 # get a cache where the RHS can be stored

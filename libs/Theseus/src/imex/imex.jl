@@ -27,11 +27,10 @@ stages(::RKIMEX{N}) where {N} = N
 #   z^i - \sum_{j=1}^i a1_{ij} f1(y^j) - \sum_{j=1}^{i-1} a2_{ij} f2(y^j) = 0.
 #
 # In the implementation below, `u = z` is the unknown for the current `stage`.
-function (::RKIMEX{N})(res, uₙ, Δt, f1!, du, du_tmp, u, p, t, stages_ex, stages_im, stage, RK) where {N}
-    @. res = u
-    for j in 1:(stage - 1)
-        @. res = res - RK.a_ex[stage, j] * stages_ex[j] - RK.a_im[stage, j] * stages_im[j]
-    end
+# `tmp` is the contribution of the previous stages computed in the method
+# defined below.
+@muladd function (::RKIMEX{N})(res, tmp, uₙ, Δt, f1!, du, du_tmp, u, p, t, stage, RK) where {N}
+    @. res = tmp + u
     @. du = u * Δt + uₙ
     f1!(du_tmp, du, p, t + RK.c_im[stage] * Δt)
     @. res = res - RK.a_im[stage, stage] * du_tmp
@@ -39,10 +38,10 @@ function (::RKIMEX{N})(res, uₙ, Δt, f1!, du, du_tmp, u, p, t, stages_ex, stag
 end
 
 function nonlinear_problem(alg::SimpleImplicitExplicitAlgorithm, f1::F1) where {F1}
-    return (res, u, (uₙ, Δt, du, du_tmp, p, t, stages, stages_im, stage, RK)) -> alg(res, uₙ, Δt, f1, du, du_tmp, u, p, t, stages, stages_im, stage, RK)
+    return (res, u, (tmp, uₙ, Δt, du, du_tmp, p, t, stage, RK)) -> alg(res, tmp, uₙ, Δt, f1, du, du_tmp, u, p, t, stage, RK)
 end
 
-mutable struct SimpleImplicitExplicitOptions{Callback}
+mutable struct SimpleImplicitExplicitOptions{Callback, KrylovWorkspace}
     callback::Callback # callbacks; used in Trixi.jl
     adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
@@ -51,16 +50,19 @@ mutable struct SimpleImplicitExplicitOptions{Callback}
     verbose::Int
     algo::Symbol
     krylov_tol_abs::Float64
+    workspace::KrylovWorkspace
     krylov_kwargs::Any
 end
 
-function SimpleImplicitExplicitOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_tol_abs = 1.0e-6, krylov_kwargs = (;), kwargs...)
-    return SimpleImplicitExplicitOptions{typeof(callback)}(
+function SimpleImplicitExplicitOptions(callback, tspan, kc; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, krylov_tol_abs = 1.0e-6, krylov_kwargs = (;), kwargs...)
+    workspace = krylov_workspace(krylov_algo, kc)
+    return SimpleImplicitExplicitOptions{typeof(callback), typeof(workspace)}(
         callback, false, Inf, maxiters,
         [last(tspan)],
         verbose,
         krylov_algo,
         krylov_tol_abs,
+        workspace,
         krylov_kwargs,
     )
 end
@@ -73,6 +75,7 @@ mutable struct SimpleImplicitExplicit{
     du::uType
     du_tmp::uType
     u_tmp::uType
+    tmp::uType
     stages::NTuple{M, uType}
     stages_im::NTuple{M, uType}
     res::uType
@@ -108,16 +111,19 @@ function init(
     du = zero(u)
     res = zero(u)
     u_tmp = similar(u)
+    tmp = similar(u)
     stages = ntuple(_ -> similar(u), Val(N))
     stages_im = ntuple(_ -> similar(u), Val(N))
     t = first(ode.tspan)
     iter = 0
+    # TODO: Refactor to provide method that re-uses the cache here.
+    kc = KrylovConstructor(res)
     integrator = SimpleImplicitExplicit(
-        u, du, copy(du), u_tmp, stages, stages_im, res, t, dt, zero(dt), iter, ode.p,
+        u, du, copy(du), u_tmp, tmp, stages, stages_im, res, t, dt, zero(dt), iter, ode.p,
         (prob = ode,), ode.f,
         ode.f.f1, ode.f.f2, alg,
         SimpleImplicitExplicitOptions(
-            callback, ode.tspan;
+            callback, ode.tspan, kc;
             kwargs...,
         ), false, RKTableau(alg, eltype(u))
     )
@@ -215,7 +221,7 @@ end
 
 # Compute all stages within one time step
 function stage!(integrator, alg::RKIMEX)
-    @. integrator.u_tmp = 0
+    fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
     for stage in 1:stages(alg)
         # This computes all stages of an additive Runge-Kutta IMEX method
         #
@@ -243,19 +249,23 @@ function stage!(integrator, alg::RKIMEX)
         if iszero(integrator.RK.a_im[stage, stage])
             # In this case, the stage is explicit and can be computed directly
             # without solving any (nonlinear) system.
-            @. integrator.u_tmp = 0
+            @. integrator.u_tmp = zero(eltype(integrator.u_tmp))
             for j in 1:(stage - 1)
                 @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a_ex[stage, j] * integrator.stages[j] + integrator.RK.a_im[stage, j] * integrator.stages_im[j]
             end
         else
             # In this case, we have an implicit stage that requires solving a
             # nonlinear system.
+            @. integrator.tmp = zero(eltype(integrator.tmp))
+            for j in 1:(stage - 1)
+                @. integrator.tmp = integrator.tmp - integrator.RK.a_ex[stage, j] * integrator.stages[j] - integrator.RK.a_im[stage, j] * integrator.stages_im[j]
+            end
             F! = nonlinear_problem(alg, integrator.f1)
             # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
             _, stats = newton_krylov!(
-                F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, integrator.stages_im, stage, integrator.RK), integrator.res;
+                F!, integrator.u_tmp, (integrator.tmp, integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, stage, integrator.RK), integrator.res;
                 verbose = integrator.opts.verbose, krylov_kwargs = integrator.opts.krylov_kwargs,
-                algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs
+                algo = integrator.opts.algo, tol_abs = integrator.opts.krylov_tol_abs, workspace = integrator.opts.workspace
             )
             @assert stats.solved
         end
@@ -286,7 +296,7 @@ function stage!(integrator, alg::RKIMEX)
             # Note that `integrator.res .= integrator.u_tmp` is the solution `z` for the
             # current `stage`.
             for j in 1:(stage - 1)
-                @. integrator.res = integrator.res - integrator.RK.a_im[stage, j] * integrator.stages_im[j] - integrator.RK.a_ex[stage, j] * integrator.stages[j]
+                @. integrator.res = integrator.res - integrator.RK.a_ex[stage, j] * integrator.stages[j] - integrator.RK.a_im[stage, j] * integrator.stages_im[j]
             end
             @. integrator.stages_im[stage] = integrator.res / integrator.RK.a_im[stage, stage]
         end
@@ -297,14 +307,14 @@ function stage!(integrator, alg::RKIMEX)
     #
     # To reduce rounding errors, we first accumulate the RHS values and
     # multiply them by the time step size later.
-    fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
+    @. integrator.u_tmp = zero(eltype(integrator.u_tmp))
     for j in 1:stages(alg)
         b_ex = integrator.RK.b_ex[j]
         b_im = integrator.RK.b_im[j]
         @. integrator.u_tmp = integrator.u_tmp + b_ex * integrator.stages[j] + b_im * integrator.stages_im[j]
     end
     @. integrator.u_tmp = integrator.u + integrator.dt * integrator.u_tmp
-    return
+    return nothing
 end
 
 # get a cache where the RHS can be stored
