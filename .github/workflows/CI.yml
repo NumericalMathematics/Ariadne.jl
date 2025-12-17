@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   Ariadne:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    name: Test Ariadne - Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.version == 'nightly' }}
     strategy:
@@ -47,7 +47,7 @@ jobs:
           files: lcov.info
 
   Theseus:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    name: Test Theseus - Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.version == 'nightly' }}
     strategy:
@@ -73,6 +73,8 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v2
+      - if: ${{ matrix.version == '1.10' }}
+        run: julia --project="libs/Theseus" -e 'import Pkg; Pkg.dev(".")'
       - uses: julia-actions/julia-buildpkg@v1
         with:
           project: "libs/Theseus"
