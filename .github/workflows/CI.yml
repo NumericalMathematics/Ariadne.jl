@@ -12,8 +12,8 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+  Ariadne:
+    name: Test Ariadne - Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.version == 'nightly' }}
     strategy:
@@ -25,10 +25,13 @@ jobs:
           # - "nightly"
         os:
           - ubuntu-latest
-          - macOS-latest
           - windows-latest
         arch:
           - x64
+        include:
+          - version: "1.10"
+            os: macos-latest
+            arch: aarch64
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
@@ -41,4 +44,47 @@ jobs:
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v5
         with:
-          file: lcov.info
+          files: lcov.info
+
+  Theseus:
+    name: Test Theseus - Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.version == 'nightly' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - "1.10"
+          - "1.11"
+          # - "nightly"
+        os:
+          - ubuntu-latest
+          - windows-latest
+        arch:
+          - x64
+        include:
+          - version: "1.10"
+            os: macos-latest
+            arch: aarch64
+    steps:
+      - uses: actions/checkout@v5
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v2
+      - if: ${{ matrix.version == '1.10' }}
+        run: julia --project="libs/Theseus" -e 'using Pkg; Pkg.develop([PackageSpec(path=".")])'
+      - uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: "libs/Theseus"
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          project: "libs/Theseus"
+      - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: 'libs/Theseus/src'
+      - uses: codecov/codecov-action@v5
+        with:
+          files: lcov.info
+

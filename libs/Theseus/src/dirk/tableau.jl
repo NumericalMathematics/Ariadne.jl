@@ -9,13 +9,15 @@ end
     Crouzeix32()
 
 A third-order, two-stage, A- and L-stable diagonally implicit Runge-Kutta (DIRK) method
-developed by Nørsett (1974) and Crouzeix (1975).
+developed by Nørsett (1974) and Crouzeix (1975). The nodes and weights are the ones of
+the two-point Gauss–Legendre quadrature. Thus, this method has order four when applied
+to quadrature problems.
 
 ## References
-See Table 7.2 on p. 207 for the Butcher tableau.  
-- Ernst Hairer, Syvert P. Nørsett, and Gerhard Wanner (1993) 
-  *Solving Ordinary Differential Equations I: Nonstiff Problems.* 
-  *Springer Series in Computational Mathematics,* 2nd edition. 
+See Table 7.2 on p. 207 for the Butcher tableau.
+- Ernst Hairer, Syvert P. Nørsett, and Gerhard Wanner (1993)
+  *Solving Ordinary Differential Equations I: Nonstiff Problems.*
+  *Springer Series in Computational Mathematics,* 2nd edition.
   [DOI: 10.1007/978-3-540-78862-1](https://doi.org/10.1007/978-3-540-78862-1)
 """
 struct Crouzeix32 <: DIRK{2} end
@@ -44,10 +46,10 @@ A second-order, two-stage, A-stable DIRK method from the general
 class of Lobatto IIIA methods.
 
 ## References
-See Table (213) on p. 69 for the Butcher tableau.  
-- Christopher A. Kennedy and Mark H. Carpenter (2016) 
-  *Diagonally Implicit Runge–Kutta Methods for Ordinary Differential Equations: A Review.* 
-  *NASA Technical Memorandum NASA/TM-2016-219173, Langley Research Center, Hampton, VA, United States.* 
+See Table (213) on p. 69 for the Butcher tableau.
+- Christopher A. Kennedy and Mark H. Carpenter (2016)
+  *Diagonally Implicit Runge–Kutta Methods for Ordinary Differential Equations: A Review.*
+  *NASA Technical Memorandum NASA/TM-2016-219173, Langley Research Center, Hampton, VA, United States.*
 """
 struct LobattoIIIA2 <: DIRK{2} end
 function RKTableau(alg::LobattoIIIA2, RealT)
@@ -70,9 +72,9 @@ end
 A fourth-order, three-stage, A-stable DIRK method.
 
 ## References
-- D. Fränken and Karlheinz Ochs (2003) 
-  *Passive Runge–Kutta Methods—Properties, Parametric Representation, and Order Conditions.* 
-  *BIT Numerical Mathematics* 43(2):339–361. 
+- D. Fränken and Karlheinz Ochs (2003)
+  *Passive Runge–Kutta Methods—Properties, Parametric Representation, and Order Conditions.*
+  *BIT Numerical Mathematics* 43(2):339–361.
   [DOI: 10.1023/A:1026039820006](https://doi.org/10.1023/A:1026039820006)
 """
 struct DIRK43 <: DIRK{3} end
