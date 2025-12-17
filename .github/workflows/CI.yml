@@ -74,7 +74,7 @@ jobs:
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v2
       - if: ${{ matrix.version == '1.10' }}
-        run: julia --project="libs/Theseus" -e 'import Pkg; Pkg.develop(".")'
+        run: julia --project="libs/Theseus" -e 'import Pkg; Pkg.develop([PackageSpec(path=".")])'
       - uses: julia-actions/julia-buildpkg@v1
         with:
           project: "libs/Theseus"
