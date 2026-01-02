@@ -24,4 +24,19 @@ Ariadne = {path = ".."}
 Theseus = {path = "../libs/Theseus"}
 
 [compat]
+Ariadne = "0.1.0"
+CairoMakie = "0.15.8"
+DifferentiationInterface = "0.7.13"
+Documenter = "1.16.1"
+DocumenterCitations = "1.4.1"
+KernelAbstractions = "0.9.39"
+Krylov = "0.10.3"
+KrylovPreconditioners = "0.3.7"
+Literate = "2.21.0"
+OffsetArrays = "1.17.0"
+OrdinaryDiffEqLowStorageRK = "1.10.0"
+OrdinaryDiffEqSDIRK = "1.10.0"
+OrdinaryDiffEqSSPRK = "1.10.0"
+PlutoStaticHTML = "7.0.9"
+SummationByPartsOperators = "0.5.88"
 Trixi = "0.13.1"
