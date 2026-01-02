@@ -6,3 +6,6 @@ Ariadne = "0be81120-40bf-4f8b-adf0-26103efb66f1"
 
 [sources.Ariadne]
 path = ".."
+[compat]
+Ariadne = "0.1.0"
+Enzyme = "0.13.111"
