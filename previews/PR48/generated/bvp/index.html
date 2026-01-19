@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>BVP · Ariadne.jl</title><meta name="title" content="BVP · Ariadne.jl"/><meta property="og:title" content="BVP · Ariadne.jl"/><meta property="twitter:title" content="BVP · Ariadne.jl"/><meta name="description" content="Documentation for Ariadne.jl."/><meta property="og:description" content="Documentation for Ariadne.jl."/><meta property="twitter:description" content="Documentation for Ariadne.jl."/><meta property="og:url" content="https://vchuravy.dev/Ariadne.jl/generated/bvp/"/><meta property="twitter:url" content="https://vchuravy.dev/Ariadne.jl/generated/bvp/"/><link rel="canonical" href="https://vchuravy.dev/Ariadne.jl/generated/bvp/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><script src="https://plausible.io/js/plausible.js" data-domain="vchuravy.dev" defer></script><link href="../../assets/citations.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Ariadne.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../bratu/">Bratu – 1D</a></li><li><a class="tocitem" href="../bratu_ka/">Bratu – KernelAbstractions</a></li><li><a class="tocitem" href="../simple/">Simple</a></li><li class="is-active"><a class="tocitem" href>BVP</a></li><li><a class="tocitem" href="../implicit/">Implicit</a></li><li><a class="tocitem" href="../spring/">Implicit – Spring</a></li><li><a class="tocitem" href="../heat_1D/">Implicit – Heat 1D</a></li><li><a class="tocitem" href="../heat_1D_DG/">Implicit – Heat 1D DG</a></li><li><a class="tocitem" href="../heat_2D/">Implicit – Heat 2D</a></li><li><a class="tocitem" href="../trixi/">Trixi</a></li></ul></li><li><span class="tocitem">Notebooks</span><ul><li><a class="tocitem" href="../../notebooks/heat_2d/">Heat 2D</a></li><li><a class="tocitem" href="../../notebooks/heat_1D_DG/">Heat 1D DG</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>BVP</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>BVP</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/vchuravy/Ariadne.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/vchuravy/Ariadne.jl/blob/main/examples/bvp.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><p>BVP from (Kelley2022)[@cite]</p><pre><code class="language-julia hljs">using Ariadne, Krylov, LinearAlgebra
+
+function Phi(t, tdag, vp, v)
+    phi = 4.0 * tdag * vp + (t * v - 1.0) * v
+    return phi
+end
+
+function Fbvp!(res, U, (force, tv, tvdag, h, n))
+    @assert 2n == length(U)
+    res[1] = U[2]
+    res[2n] = U[2n - 1]
+    v = view(U, 1:2:(2n - 1))
+    vp = view(U, 2:2:2n)
+    force .= Phi.(tv, tvdag, vp, v)
+    h2 = 0.5 * h
+    @inbounds @simd for ip in 1:(n - 1)
+        res[2 * ip + 1] = v[ip + 1] - v[ip] - h2 * (vp[ip] + vp[ip + 1])
+        res[2 * ip] = vp[ip + 1] - vp[ip] + h2 * (force[ip] + force[ip + 1])
+    end
+    return nothing
+end
+
+function BVP_U0!(U0, n, tv)
+    view(U0, 1:2:(2n - 1)) .= exp.(-0.1 .* tv .* tv)
+    return view(U0, 2:2:2n) .= -0.2 .* view(U0, 1:2:(2n - 1)) .* tv
+end
+
+struct GmresPreconditioner{JOp}
+    J::JOp
+    itmax::Int
+end
+
+function LinearAlgebra.mul!(y, P::GmresPreconditioner, x)
+    sol, _ = gmres(P.J, x; P.itmax)
+    return copyto!(y, sol)
+end
+
+function BVP_solve(n = 801, T = Float64)
+    U0 = zeros(T, 2n)
+    res = zeros(T, 2n)
+
+    h = 20.0 / (n - 1)
+    tv = collect(0:h:20.0)
+
+    tvdag = collect(0:h:20.0)
+    @views tvdag[2:n] .= (1.0 ./ tv[2:n])
+
+    force = zeros(n)
+
+    BVP_U0!(U0, n, tv)
+
+    bvpout, stats = newton_krylov!(
+        Fbvp!, U0, (force, tv, tvdag, h, n), res,
+        algo = :fgmres,
+        N = (J) -&gt; GmresPreconditioner(J, 30),
+    )
+    return (; bvpout, tv, stats)
+end
+
+BVP_solve()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(bvpout = [2.1188362694280456, 1.9618886636148897e-10, 2.119051145468122, 0.017190116597667265, 2.119463399642583, 0.015790247029295795, 2.1200055698396922, 0.027583356868524984, 2.1207867672670417, 0.03491244219673889  …  2.5055650580040285e-9, 2.3841135893299073e-8, 6.989361845333584e-10, 2.3854334108813072e-8, -8.342034303426604e-10, 2.4764054857883552e-8, -1.3141952617646156e-10, 2.5871538888200787e-8, -3.4700836137741015e-11, 2.641160192558712e-8], tv = [0.0, 0.025, 0.05, 0.075, 0.1, 0.125, 0.15, 0.175, 0.2, 0.225  …  19.775, 19.8, 19.825, 19.85, 19.875, 19.9, 19.925, 19.95, 19.975, 20.0], stats = (solved = true, stats = Ariadne.Stats(40, 34420, 1.328500273393806e-7), t = 34.989907049))</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../simple/">« Simple</a><a class="docs-footer-nextpage" href="../implicit/">Implicit »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.15.0 on <span class="colophon-date" title="Thursday 30 October 2025 13:52">Thursday 30 October 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

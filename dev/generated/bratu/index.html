@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Bratu – 1D · Ariadne.jl</title><meta name="title" content="Bratu – 1D · Ariadne.jl"/><meta property="og:title" content="Bratu – 1D · Ariadne.jl"/><meta property="twitter:title" content="Bratu – 1D · Ariadne.jl"/><meta name="description" content="Documentation for Ariadne.jl."/><meta property="og:description" content="Documentation for Ariadne.jl."/><meta property="twitter:description" content="Documentation for Ariadne.jl."/><meta property="og:url" content="https://numericalmathematics.github.io/Ariadne.jl/generated/bratu/"/><meta property="twitter:url" content="https://numericalmathematics.github.io/Ariadne.jl/generated/bratu/"/><link rel="canonical" href="https://numericalmathematics.github.io/Ariadne.jl/generated/bratu/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/citations.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Ariadne.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Examples</span><ul><li class="is-active"><a class="tocitem" href>Bratu – 1D</a><ul class="internal"><li><a class="tocitem" href="#Necessary-packages"><span>Necessary packages</span></a></li><li><a class="tocitem" href="#1D-Bratu-equations"><span>1D Bratu equations</span></a></li><li><a class="tocitem" href="#Reference-solution"><span>Reference solution</span></a></li><li><a class="tocitem" href="#Choice-of-parameters"><span>Choice of parameters</span></a></li><li><a class="tocitem" href="#Reference-solution-evaluated-over-domain"><span>Reference solution evaluated over domain</span></a></li><li><a class="tocitem" href="#Solving-using-inplace-variant-and-CG"><span>Solving using inplace variant and CG</span></a></li><li><a class="tocitem" href="#Solving-using-the-out-of-place-variant"><span>Solving using the out of place variant</span></a></li><li><a class="tocitem" href="#Solving-with-a-fixed-forcing"><span>Solving with a fixed forcing</span></a></li><li><a class="tocitem" href="#Solving-with-no-forcing"><span>Solving with no forcing</span></a></li><li><a class="tocitem" href="#Solve-using-GMRES-–-doesn&#39;t-converge"><span>Solve using GMRES – doesn&#39;t converge</span></a></li><li><a class="tocitem" href="#Solve-using-GMRES-ILU-Preconditioner"><span>Solve using GMRES + ILU Preconditioner</span></a></li><li><a class="tocitem" href="#Solve-using-FGMRES-ILU-Preconditioner"><span>Solve using FGMRES + ILU Preconditioner</span></a></li><li><a class="tocitem" href="#Solve-using-FGMRES-GMRES-Preconditioner"><span>Solve using FGMRES + GMRES Preconditioner</span></a></li><li><a class="tocitem" href="#Explodes.."><span>Explodes..</span></a></li></ul></li><li><a class="tocitem" href="../bratu_ka/">Bratu – KernelAbstractions</a></li><li><a class="tocitem" href="../simple/">Simple</a></li><li><a class="tocitem" href="../bvp/">BVP</a></li><li><a class="tocitem" href="../implicit/">Implicit</a></li><li><a class="tocitem" href="../spring/">Implicit – Spring</a></li><li><a class="tocitem" href="../heat_1D/">Implicit – Heat 1D</a></li><li><a class="tocitem" href="../heat_1D_DG/">Implicit – Heat 1D DG</a></li><li><a class="tocitem" href="../heat_2D/">Implicit – Heat 2D</a></li><li><a class="tocitem" href="../trixi/">Trixi</a></li><li><a class="tocitem" href="../trixi_imex_ssp/">Trixi IMEX SSP</a></li><li><a class="tocitem" href="../trixi_imex_ars/">Trixi IMEX ARS</a></li><li><a class="tocitem" href="../trixi_imex_von_karman_street/">Trixi IMEX Von Karman street</a></li></ul></li><li><span class="tocitem">Notebooks</span><ul><li><a class="tocitem" href="../../notebooks/heat_2d/">Heat 2D</a></li><li><a class="tocitem" href="../../notebooks/heat_1D_DG/">Heat 1D DG</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Bratu – 1D</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Bratu – 1D</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/vchuravy/Ariadne.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/vchuravy/Ariadne.jl/blob/main/examples/bratu.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="1D-bratu-equation-from-(Kan2022-ko)[@cite]"><a class="docs-heading-anchor" href="#1D-bratu-equation-from-(Kan2022-ko)[@cite]">1D bratu equation from (Kan2022-ko)[@cite]</a><a id="1D-bratu-equation-from-(Kan2022-ko)[@cite]-1"></a><a class="docs-heading-anchor-permalink" href="#1D-bratu-equation-from-(Kan2022-ko)[@cite]" title="Permalink"></a></h1><h2 id="Necessary-packages"><a class="docs-heading-anchor" href="#Necessary-packages">Necessary packages</a><a id="Necessary-packages-1"></a><a class="docs-heading-anchor-permalink" href="#Necessary-packages" title="Permalink"></a></h2><pre><code class="language-julia hljs">using Ariadne, Krylov
+using KrylovPreconditioners
+using SparseArrays, LinearAlgebra
+using CairoMakie</code></pre><h2 id="1D-Bratu-equations"><a class="docs-heading-anchor" href="#1D-Bratu-equations">1D Bratu equations</a><a id="1D-Bratu-equations-1"></a><a class="docs-heading-anchor-permalink" href="#1D-Bratu-equations" title="Permalink"></a></h2><p class="math-container">\[y′′ + λ * exp(y) = 0\]</p><p>F(u) = 0</p><pre><code class="language-julia hljs">function bratu!(res, y, (Δx, λ))
+    N = length(y)
+    for i in 1:N
+        y_l = i == 1 ? zero(eltype(y)) : y[i - 1]
+        y_r = i == N ? zero(eltype(y)) : y[i + 1]
+        y′′ = (y_r - 2y[i] + y_l) / Δx^2
+
+        res[i] = y′′ + λ * exp(y[i]) # = 0
+    end
+    return nothing
+end
+
+function bratu(y, p)
+    res = similar(y)
+    bratu!(res, y, p)
+    return res
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">bratu (generic function with 1 method)</code></pre><h2 id="Reference-solution"><a class="docs-heading-anchor" href="#Reference-solution">Reference solution</a><a id="Reference-solution-1"></a><a class="docs-heading-anchor-permalink" href="#Reference-solution" title="Permalink"></a></h2><pre><code class="language-julia hljs">function true_sol_bratu(x)
+    # for λ = 3.51382, 2nd sol θ = 4.8057
+    θ = 4.79173
+    return -2 * log(cosh(θ * (x - 0.5) / 2) / (cosh(θ / 4)))
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">true_sol_bratu (generic function with 1 method)</code></pre><h2 id="Choice-of-parameters"><a class="docs-heading-anchor" href="#Choice-of-parameters">Choice of parameters</a><a id="Choice-of-parameters-1"></a><a class="docs-heading-anchor-permalink" href="#Choice-of-parameters" title="Permalink"></a></h2><pre><code class="language-julia hljs">const N = 10_000
+const λ = 3.51382
+const dx = 1 / (N + 1) # Grid-spacing</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">9.999000099990002e-5</code></pre><h3 id="Domain-and-Initial-condition"><a class="docs-heading-anchor" href="#Domain-and-Initial-condition">Domain and Initial condition</a><a id="Domain-and-Initial-condition-1"></a><a class="docs-heading-anchor-permalink" href="#Domain-and-Initial-condition" title="Permalink"></a></h3><pre><code class="language-julia hljs">x = LinRange(0.0 + dx, 1.0 - dx, N)
+u₀ = sin.(x .* π)
+
+lines(x, u₀, label = &quot;Initial guess&quot;)</code></pre><img src="e6bd679c.png" alt="Example block output"/><h2 id="Reference-solution-evaluated-over-domain"><a class="docs-heading-anchor" href="#Reference-solution-evaluated-over-domain">Reference solution evaluated over domain</a><a id="Reference-solution-evaluated-over-domain-1"></a><a class="docs-heading-anchor-permalink" href="#Reference-solution-evaluated-over-domain" title="Permalink"></a></h2><pre><code class="language-julia hljs">reference = true_sol_bratu.(x)
+
+fig, ax = lines(x, u₀, label = &quot;Initial guess&quot;)
+lines!(ax, x, reference, label = &quot;Reference solution&quot;)
+axislegend(ax, position = :cb)
+fig</code></pre><img src="4e008dc9.png" alt="Example block output"/><h2 id="Solving-using-inplace-variant-and-CG"><a class="docs-heading-anchor" href="#Solving-using-inplace-variant-and-CG">Solving using inplace variant and CG</a><a id="Solving-using-inplace-variant-and-CG-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-using-inplace-variant-and-CG" title="Permalink"></a></h2><pre><code class="language-julia hljs">uₖ, _ = newton_krylov!(
+    bratu!,
+    copy(u₀), (dx, λ), similar(u₀);
+    algo = :cg,
+)
+
+ϵ = abs2.(uₖ .- reference)
+
+let
+    fig = Figure(size = (800, 800))
+    ax = Axis(fig[1, 1], title = &quot;&quot;, ylabel = &quot;&quot;, xlabel = &quot;&quot;)
+
+    lines!(ax, x, reference, label = &quot;True solution&quot;)
+    lines!(ax, x, u₀, label = &quot;Initial guess&quot;)
+    lines!(ax, x, uₖ, label = &quot;Newton-Krylov solution&quot;)
+
+    axislegend(ax, position = :cb)
+
+    ax = Axis(fig[1, 2], title = &quot;Error&quot;, ylabel = &quot;abs2 err&quot;, xlabel = &quot;&quot;)
+    lines!(ax, abs2.(uₖ .- reference))
+
+    fig
+end</code></pre><img src="baeaeeab.png" alt="Example block output"/><h2 id="Solving-using-the-out-of-place-variant"><a class="docs-heading-anchor" href="#Solving-using-the-out-of-place-variant">Solving using the out of place variant</a><a id="Solving-using-the-out-of-place-variant-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-using-the-out-of-place-variant" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov(
+    bratu,
+    copy(u₀), (dx, λ);
+    algo = :cg
+)
+stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(11, 60160, 6.086180541247742e-5), t = 11.288804904)</code></pre><h2 id="Solving-with-a-fixed-forcing"><a class="docs-heading-anchor" href="#Solving-with-a-fixed-forcing">Solving with a fixed forcing</a><a id="Solving-with-a-fixed-forcing-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-with-a-fixed-forcing" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
+    bratu!,
+    copy(u₀), (dx, λ), similar(u₀);
+    algo = :cg,
+    forcing = Ariadne.Fixed(0.1)
+)
+stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(8, 56510, 2.773666992173675e-5), t = 5.511614899)</code></pre><h2 id="Solving-with-no-forcing"><a class="docs-heading-anchor" href="#Solving-with-no-forcing">Solving with no forcing</a><a id="Solving-with-no-forcing-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-with-no-forcing" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
+    bratu!,
+    copy(u₀), (dx, λ), similar(u₀);
+    algo = :cg,
+    forcing = nothing
+)
+stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(8, 71652, 3.217114944736544e-6), t = 7.101567668)</code></pre><h2 id="Solve-using-GMRES-–-doesn&#39;t-converge"><a class="docs-heading-anchor" href="#Solve-using-GMRES-–-doesn&#39;t-converge">Solve using GMRES – doesn&#39;t converge</a><a id="Solve-using-GMRES-–-doesn&#39;t-converge-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-GMRES-–-doesn&#39;t-converge" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
+    bratu!,
+    copy(u₀), (dx, λ), similar(u₀);
+    algo = :gmres,
+)
+stats</code></pre><h2 id="Solve-using-GMRES-ILU-Preconditioner"><a class="docs-heading-anchor" href="#Solve-using-GMRES-ILU-Preconditioner">Solve using GMRES + ILU Preconditioner</a><a id="Solve-using-GMRES-ILU-Preconditioner-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-GMRES-ILU-Preconditioner" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
+    bratu!,
+    copy(u₀), (dx, λ), similar(u₀);
+    algo = :gmres,
+    N = (J) -&gt; ilu(collect(J)), # Assembles the full Jacobian
+    krylov_kwargs = (; ldiv = true)
+)
+stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(8, 8, 3.216849217028634e-6), t = 8.656356754)</code></pre><h2 id="Solve-using-FGMRES-ILU-Preconditioner"><a class="docs-heading-anchor" href="#Solve-using-FGMRES-ILU-Preconditioner">Solve using FGMRES + ILU Preconditioner</a><a id="Solve-using-FGMRES-ILU-Preconditioner-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-FGMRES-ILU-Preconditioner" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
+    bratu!,
+    copy(u₀), (dx, λ), similar(u₀);
+    algo = :fgmres,
+    N = (J) -&gt; ilu(collect(J)), # Assembles the full Jacobian
+    krylov_kwargs = (; ldiv = true)
+)
+stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(8, 8, 3.2061685998371007e-6), t = 7.956842977)</code></pre><h2 id="Solve-using-FGMRES-GMRES-Preconditioner"><a class="docs-heading-anchor" href="#Solve-using-FGMRES-GMRES-Preconditioner">Solve using FGMRES + GMRES Preconditioner</a><a id="Solve-using-FGMRES-GMRES-Preconditioner-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-FGMRES-GMRES-Preconditioner" title="Permalink"></a></h2><pre><code class="language-julia hljs">struct GmresPreconditioner{JOp}
+    J::JOp
+    itmax::Int
+end
+
+function LinearAlgebra.mul!(y, P::GmresPreconditioner, x)
+    sol, _ = gmres(P.J, x; P.itmax)
+    return copyto!(y, sol)
+end
+
+_, stats = newton_krylov!(
+    bratu!,
+    copy(u₀), (dx, λ), similar(u₀);
+    algo = :fgmres,
+    N = (J) -&gt; GmresPreconditioner(J, 5),
+)
+stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(12, 11973, 9.343815298545975e-5), t = 59.925801501)</code></pre><h2 id="Explodes.."><a class="docs-heading-anchor" href="#Explodes..">Explodes..</a><a id="Explodes..-1"></a><a class="docs-heading-anchor-permalink" href="#Explodes.." title="Permalink"></a></h2><pre><code class="language-julia hljs">newton_krylov!(
+	bratu!,
+	copy(u₀), (dx, λ), similar(u₀);
+	algo = :cgls, # Cgne
+  krylov_kwargs = (; verbose=1)
+)</code></pre><pre><code class="language-julia hljs">newton_krylov!(
+	bratu!,
+	copy(u₀), (dx, λ), similar(u₀);
+	verbose = 1,
+	algo = :bicgstab, # L=2
+	η_max = nothing
+)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Home</a><a class="docs-footer-nextpage" href="../bratu_ka/">Bratu – KernelAbstractions »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Thursday 1 January 2026 15:28">Thursday 1 January 2026</span>. Using Julia version 1.11.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
