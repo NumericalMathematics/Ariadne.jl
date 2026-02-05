@@ -22,10 +22,11 @@ let x₀ = [3.0, 5.0]
     @test stats.solved
 end
 
-import Ariadne: JacobianOperator, BatchedJacobianOperator
+import Ariadne: JacobianOperator
 using Enzyme, LinearAlgebra
+using ADTypes
 
-@testset "Jacobian" begin
+@testset "Enzyme: JacobianOperator" begin
     J_Enz = jacobian(Forward, x -> F(x, nothing), [3.0, 5.0]) |> only
     J = JacobianOperator(F!, zeros(2), [3.0, 5.0], nothing)
 
@@ -52,19 +53,17 @@ using Enzyme, LinearAlgebra
     @test out ≈ J_Enz * v
 
     @test collect(transpose(J)) == transpose(collect(J))
+end
 
-    # Batched
-    if VERSION >= v"1.11.0"
-        J = BatchedJacobianOperator{2}(F!, zeros(2), [3.0, 5.0], nothing)
+@testset "DifferentiationInterface: JacobianOperator" begin
+    backend = ADTypes.AutoEnzyme()
+    J = Ariadne.DIJacobianOperator(backend, F!, zeros(2), [3.0, 5.0], nothing)
 
-        V = [1.0 0.0; 0.0 1.0]
-        Out = similar(V)
-        mul!(Out, J, V)
+    @test size(J) == (2, 2)
+    @test length(J) == 4
+    @test eltype(J) == Float64
 
-        @test Out == J_Enz
-
-        mul!(Out, transpose(J), V)
-        @test Out == J_Enz'
-        # @test Out == collect(transpose(J))
-    end
+    out = [NaN, NaN]
+    mul!(out, J, [1.0, 0.0])
+    @test out == [6.0, 7.38905609893065]
 end
