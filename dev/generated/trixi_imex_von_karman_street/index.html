@@ -113,11 +113,11 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       7.92641352e-01 s
+ #timesteps:                  0                run time:       1.25042756e+00 s
  Δt:             1.00000000e-03                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         36128                alloc&#39;d memory:        894.829 MiB
+ #DOFs per field:         36128                alloc&#39;d memory:        666.004 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -156,7 +156,7 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
 │  [13] preprocess
 │     @ ./broadcast.jl:952
 │  [14] override_bc_copyto!
-│     @ ~/.julia/packages/Enzyme/2lHFw/src/compiler/interpreter.jl:818
+│     @ ~/.julia/packages/Enzyme/S3nC6/src/compiler/interpreter.jl:818
 │  [15] copyto!
 │     @ ./broadcast.jl:925
 │  [16] materialize!
@@ -165,7 +165,7 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
 │     @ ./broadcast.jl:880
 │  [18] RKIMEX
 │     @ ~/work/Ariadne.jl/Ariadne.jl/libs/Theseus/src/imex/imex.jl:33
-└ @ Enzyme.Compiler ~/.julia/packages/Enzyme/2lHFw/src/rules/llvmrules.jl:814
+└ @ Enzyme.Compiler ~/.julia/packages/Enzyme/S3nC6/src/rules/llvmrules.jl:814
 ┌ Warning: TODO forward zero-set of memorycopy used memset rather than runtime type
 │ Caused by:
 │ Stacktrace:
@@ -192,7 +192,7 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
 │  [11] preprocess
 │     @ ./broadcast.jl:952
 │  [12] override_bc_copyto!
-│     @ ~/.julia/packages/Enzyme/2lHFw/src/compiler/interpreter.jl:818
+│     @ ~/.julia/packages/Enzyme/S3nC6/src/compiler/interpreter.jl:818
 │  [13] copyto!
 │     @ ./broadcast.jl:925
 │  [14] materialize!
@@ -201,25 +201,25 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
 │     @ ./broadcast.jl:880
 │  [16] RKIMEX
 │     @ ~/work/Ariadne.jl/Ariadne.jl/libs/Theseus/src/imex/imex.jl:33
-└ @ Enzyme.Compiler ~/.julia/packages/Enzyme/2lHFw/src/rules/llvmrules.jl:814
-#timesteps:      1 │ Δt: 4.6182e-03 │ sim. time: 4.6182e-03 (0.924%)   │ run time: 7.9570e+01 s
-#timesteps:      2 │ Δt: 4.4948e-03 │ sim. time: 9.1130e-03 (1.823%)   │ run time: 9.1630e+01 s
-#timesteps:      3 │ Δt: 4.4714e-03 │ sim. time: 1.3584e-02 (2.717%)   │ run time: 1.0375e+02 s
-#timesteps:      4 │ Δt: 4.4766e-03 │ sim. time: 1.8061e-02 (3.612%)   │ run time: 1.1640e+02 s
-#timesteps:      5 │ Δt: 4.4931e-03 │ sim. time: 2.2554e-02 (4.511%)   │ run time: 1.3021e+02 s
-#timesteps:      6 │ Δt: 4.5254e-03 │ sim. time: 2.7079e-02 (5.416%)   │ run time: 1.4143e+02 s
-#timesteps:      7 │ Δt: 4.5643e-03 │ sim. time: 3.1644e-02 (6.329%)   │ run time: 1.5420e+02 s
-#timesteps:      8 │ Δt: 4.5740e-03 │ sim. time: 3.6218e-02 (7.244%)   │ run time: 1.6621e+02 s
-#timesteps:      9 │ Δt: 4.5552e-03 │ sim. time: 4.0773e-02 (8.155%)   │ run time: 1.7824e+02 s
+└ @ Enzyme.Compiler ~/.julia/packages/Enzyme/S3nC6/src/rules/llvmrules.jl:814
+#timesteps:      1 │ Δt: 4.6182e-03 │ sim. time: 4.6182e-03 (0.924%)   │ run time: 8.1864e+01 s
+#timesteps:      2 │ Δt: 4.4948e-03 │ sim. time: 9.1130e-03 (1.823%)   │ run time: 9.3285e+01 s
+#timesteps:      3 │ Δt: 4.4714e-03 │ sim. time: 1.3584e-02 (2.717%)   │ run time: 1.0472e+02 s
+#timesteps:      4 │ Δt: 4.4766e-03 │ sim. time: 1.8061e-02 (3.612%)   │ run time: 1.1662e+02 s
+#timesteps:      5 │ Δt: 4.4931e-03 │ sim. time: 2.2554e-02 (4.511%)   │ run time: 1.2878e+02 s
+#timesteps:      6 │ Δt: 4.5254e-03 │ sim. time: 2.7079e-02 (5.416%)   │ run time: 1.4023e+02 s
+#timesteps:      7 │ Δt: 4.5643e-03 │ sim. time: 3.1644e-02 (6.329%)   │ run time: 1.5213e+02 s
+#timesteps:      8 │ Δt: 4.5740e-03 │ sim. time: 3.6218e-02 (7.244%)   │ run time: 1.6362e+02 s
+#timesteps:      9 │ Δt: 4.5552e-03 │ sim. time: 4.0773e-02 (8.155%)   │ run time: 1.7515e+02 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 10                run time:       1.91448642e+02 s
- Δt:             4.55501201e-03                └── GC time:    1.31596324e+01 s (6.874%)
- sim. time:      4.53278729e-02 (9.066%)       time/DOF/rhs!:  6.22870478e-06 s
-                                               PID:            1.05446457e-04 s
- #DOFs per field:         36128                alloc&#39;d memory:        825.789 MiB
+ #timesteps:                 10                run time:       1.88011713e+02 s
+ Δt:             4.55501201e-03                └── GC time:    1.09841689e+01 s (5.842%)
+ sim. time:      4.53278729e-02 (9.066%)       time/DOF/rhs!:  5.86445770e-06 s
+                                               PID:            1.03288804e-04 s
+ #DOFs per field:         36128                alloc&#39;d memory:        958.496 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -228,24 +228,24 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
  ∑∂S/∂U ⋅ Uₜ :  -1.98606192e-04
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     11 │ Δt: 4.5783e-03 │ sim. time: 4.9906e-02 (9.981%)   │ run time: 2.0226e+02 s
-#timesteps:     12 │ Δt: 4.6280e-03 │ sim. time: 5.4534e-02 (10.907%)  │ run time: 2.1349e+02 s
-#timesteps:     13 │ Δt: 4.6537e-03 │ sim. time: 5.9188e-02 (11.838%)  │ run time: 2.2372e+02 s
-#timesteps:     14 │ Δt: 4.6430e-03 │ sim. time: 6.3831e-02 (12.766%)  │ run time: 2.3312e+02 s
-#timesteps:     15 │ Δt: 4.6370e-03 │ sim. time: 6.8468e-02 (13.694%)  │ run time: 2.4343e+02 s
-#timesteps:     16 │ Δt: 4.5785e-03 │ sim. time: 7.3046e-02 (14.609%)  │ run time: 2.5374e+02 s
-#timesteps:     17 │ Δt: 4.5293e-03 │ sim. time: 7.7576e-02 (15.515%)  │ run time: 2.6320e+02 s
-#timesteps:     18 │ Δt: 4.4909e-03 │ sim. time: 8.2067e-02 (16.413%)  │ run time: 2.7347e+02 s
-#timesteps:     19 │ Δt: 4.4629e-03 │ sim. time: 8.6529e-02 (17.306%)  │ run time: 2.8373e+02 s
+#timesteps:     11 │ Δt: 4.5783e-03 │ sim. time: 4.9906e-02 (9.981%)   │ run time: 1.9700e+02 s
+#timesteps:     12 │ Δt: 4.6280e-03 │ sim. time: 5.4534e-02 (10.907%)  │ run time: 2.0755e+02 s
+#timesteps:     13 │ Δt: 4.6537e-03 │ sim. time: 5.9188e-02 (11.838%)  │ run time: 2.1732e+02 s
+#timesteps:     14 │ Δt: 4.6430e-03 │ sim. time: 6.3831e-02 (12.766%)  │ run time: 2.2710e+02 s
+#timesteps:     15 │ Δt: 4.6370e-03 │ sim. time: 6.8468e-02 (13.694%)  │ run time: 2.3607e+02 s
+#timesteps:     16 │ Δt: 4.5785e-03 │ sim. time: 7.3046e-02 (14.609%)  │ run time: 2.4591e+02 s
+#timesteps:     17 │ Δt: 4.5293e-03 │ sim. time: 7.7576e-02 (15.515%)  │ run time: 2.5578e+02 s
+#timesteps:     18 │ Δt: 4.4909e-03 │ sim. time: 8.2067e-02 (16.413%)  │ run time: 2.6545e+02 s
+#timesteps:     19 │ Δt: 4.4629e-03 │ sim. time: 8.6529e-02 (17.306%)  │ run time: 2.7448e+02 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 20                run time:       2.94119791e+02 s
- Δt:             4.44400238e-03                └── GC time:    2.11485628e+01 s (7.190%)
- sim. time:      9.09734380e-02 (18.195%)      time/DOF/rhs!:  6.03404385e-06 s
-                                               PID:            5.67523168e-05 s
- #DOFs per field:         36128                alloc&#39;d memory:        876.074 MiB
+ #timesteps:                 20                run time:       2.85736473e+02 s
+ Δt:             4.44400238e-03                └── GC time:    1.80512385e+01 s (6.317%)
+ sim. time:      9.09734380e-02 (18.195%)      time/DOF/rhs!:  5.78522263e-06 s
+                                               PID:            5.40054040e-05 s
+ #DOFs per field:         36128                alloc&#39;d memory:        983.507 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -254,24 +254,24 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
  ∑∂S/∂U ⋅ Uₜ :  -1.20583267e-04
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     21 │ Δt: 4.4324e-03 │ sim. time: 9.5406e-02 (19.081%)  │ run time: 3.0365e+02 s
-#timesteps:     22 │ Δt: 4.4259e-03 │ sim. time: 9.9832e-02 (19.966%)  │ run time: 3.1400e+02 s
-#timesteps:     23 │ Δt: 4.4223e-03 │ sim. time: 1.0425e-01 (20.851%)  │ run time: 3.2412e+02 s
-#timesteps:     24 │ Δt: 4.4198e-03 │ sim. time: 1.0867e-01 (21.735%)  │ run time: 3.3364e+02 s
-#timesteps:     25 │ Δt: 4.4168e-03 │ sim. time: 1.1309e-01 (22.618%)  │ run time: 3.4394e+02 s
-#timesteps:     26 │ Δt: 4.4126e-03 │ sim. time: 1.1750e-01 (23.501%)  │ run time: 3.5335e+02 s
-#timesteps:     27 │ Δt: 4.4068e-03 │ sim. time: 1.2191e-01 (24.382%)  │ run time: 3.6365e+02 s
-#timesteps:     28 │ Δt: 4.3996e-03 │ sim. time: 1.2631e-01 (25.262%)  │ run time: 3.7384e+02 s
-#timesteps:     29 │ Δt: 4.3915e-03 │ sim. time: 1.3070e-01 (26.140%)  │ run time: 3.8337e+02 s
+#timesteps:     21 │ Δt: 4.4324e-03 │ sim. time: 9.5406e-02 (19.081%)  │ run time: 2.9420e+02 s
+#timesteps:     22 │ Δt: 4.4259e-03 │ sim. time: 9.9832e-02 (19.966%)  │ run time: 3.0317e+02 s
+#timesteps:     23 │ Δt: 4.4223e-03 │ sim. time: 1.0425e-01 (20.851%)  │ run time: 3.1300e+02 s
+#timesteps:     24 │ Δt: 4.4198e-03 │ sim. time: 1.0867e-01 (21.735%)  │ run time: 3.2279e+02 s
+#timesteps:     25 │ Δt: 4.4168e-03 │ sim. time: 1.1309e-01 (22.618%)  │ run time: 3.3252e+02 s
+#timesteps:     26 │ Δt: 4.4126e-03 │ sim. time: 1.1750e-01 (23.501%)  │ run time: 3.4222e+02 s
+#timesteps:     27 │ Δt: 4.4068e-03 │ sim. time: 1.2191e-01 (24.382%)  │ run time: 3.5130e+02 s
+#timesteps:     28 │ Δt: 4.3996e-03 │ sim. time: 1.2631e-01 (25.262%)  │ run time: 3.6105e+02 s
+#timesteps:     29 │ Δt: 4.3915e-03 │ sim. time: 1.3070e-01 (26.140%)  │ run time: 3.6998e+02 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 30                run time:       3.94661593e+02 s
- Δt:             4.38295054e-03                └── GC time:    2.91745322e+01 s (7.392%)
- sim. time:      1.35083929e-01 (27.017%)      time/DOF/rhs!:  6.09143976e-06 s
-                                               PID:            5.55736018e-05 s
- #DOFs per field:         36128                alloc&#39;d memory:        830.630 MiB
+ #timesteps:                 30                run time:       3.81234024e+02 s
+ Δt:             4.38295054e-03                └── GC time:    2.49965007e+01 s (6.557%)
+ sim. time:      1.35083929e-01 (27.017%)      time/DOF/rhs!:  5.79917024e-06 s
+                                               PID:            5.27769647e-05 s
+ #DOFs per field:         36128                alloc&#39;d memory:        869.028 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -280,24 +280,24 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
  ∑∂S/∂U ⋅ Uₜ :  -1.30655214e-04
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     31 │ Δt: 4.3747e-03 │ sim. time: 1.3946e-01 (27.892%)  │ run time: 4.0404e+02 s
-#timesteps:     32 │ Δt: 4.3672e-03 │ sim. time: 1.4383e-01 (28.765%)  │ run time: 4.1357e+02 s
-#timesteps:     33 │ Δt: 4.3608e-03 │ sim. time: 1.4819e-01 (29.637%)  │ run time: 4.2394e+02 s
-#timesteps:     34 │ Δt: 4.3558e-03 │ sim. time: 1.5254e-01 (30.508%)  │ run time: 4.3423e+02 s
-#timesteps:     35 │ Δt: 4.3521e-03 │ sim. time: 1.5689e-01 (31.379%)  │ run time: 4.4439e+02 s
-#timesteps:     36 │ Δt: 4.3499e-03 │ sim. time: 1.6124e-01 (32.249%)  │ run time: 4.5394e+02 s
-#timesteps:     37 │ Δt: 4.3487e-03 │ sim. time: 1.6559e-01 (33.119%)  │ run time: 4.6428e+02 s
-#timesteps:     38 │ Δt: 4.3484e-03 │ sim. time: 1.6994e-01 (33.988%)  │ run time: 4.7456e+02 s
-#timesteps:     39 │ Δt: 4.3485e-03 │ sim. time: 1.7429e-01 (34.858%)  │ run time: 4.8475e+02 s
+#timesteps:     31 │ Δt: 4.3747e-03 │ sim. time: 1.3946e-01 (27.892%)  │ run time: 3.8981e+02 s
+#timesteps:     32 │ Δt: 4.3672e-03 │ sim. time: 1.4383e-01 (28.765%)  │ run time: 3.9950e+02 s
+#timesteps:     33 │ Δt: 4.3608e-03 │ sim. time: 1.4819e-01 (29.637%)  │ run time: 4.0859e+02 s
+#timesteps:     34 │ Δt: 4.3558e-03 │ sim. time: 1.5254e-01 (30.508%)  │ run time: 4.1841e+02 s
+#timesteps:     35 │ Δt: 4.3521e-03 │ sim. time: 1.5689e-01 (31.379%)  │ run time: 4.2817e+02 s
+#timesteps:     36 │ Δt: 4.3499e-03 │ sim. time: 1.6124e-01 (32.249%)  │ run time: 4.3780e+02 s
+#timesteps:     37 │ Δt: 4.3487e-03 │ sim. time: 1.6559e-01 (33.119%)  │ run time: 4.4690e+02 s
+#timesteps:     38 │ Δt: 4.3484e-03 │ sim. time: 1.6994e-01 (33.988%)  │ run time: 4.5666e+02 s
+#timesteps:     39 │ Δt: 4.3485e-03 │ sim. time: 1.7429e-01 (34.858%)  │ run time: 4.6651e+02 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 40                run time:       4.94799634e+02 s
- Δt:             4.34863116e-03                └── GC time:    3.71426460e+01 s (7.507%)
- sim. time:      1.78638705e-01 (35.728%)      time/DOF/rhs!:  6.13361436e-06 s
-                                               PID:            5.53499539e-05 s
- #DOFs per field:         36128                alloc&#39;d memory:        982.493 MiB
+ #timesteps:                 40                run time:       4.76484603e+02 s
+ Δt:             4.34863116e-03                └── GC time:    3.20461252e+01 s (6.726%)
+ sim. time:      1.78638705e-01 (35.728%)      time/DOF/rhs!:  5.77236270e-06 s
+                                               PID:            5.26432486e-05 s
+ #DOFs per field:         36128                alloc&#39;d memory:        885.241 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -306,24 +306,24 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
  ∑∂S/∂U ⋅ Uₜ :  -1.19358050e-04
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     41 │ Δt: 4.3484e-03 │ sim. time: 1.8299e-01 (36.597%)  │ run time: 5.0435e+02 s
-#timesteps:     42 │ Δt: 4.3474e-03 │ sim. time: 1.8733e-01 (37.467%)  │ run time: 5.1460e+02 s
-#timesteps:     43 │ Δt: 4.3456e-03 │ sim. time: 1.9168e-01 (38.336%)  │ run time: 5.2406e+02 s
-#timesteps:     44 │ Δt: 4.3428e-03 │ sim. time: 1.9602e-01 (39.205%)  │ run time: 5.3438e+02 s
-#timesteps:     45 │ Δt: 4.3392e-03 │ sim. time: 2.0036e-01 (40.072%)  │ run time: 5.4452e+02 s
-#timesteps:     46 │ Δt: 4.3349e-03 │ sim. time: 2.0470e-01 (40.939%)  │ run time: 5.5407e+02 s
-#timesteps:     47 │ Δt: 4.3302e-03 │ sim. time: 2.0903e-01 (41.805%)  │ run time: 5.6439e+02 s
-#timesteps:     48 │ Δt: 4.3252e-03 │ sim. time: 2.1335e-01 (42.670%)  │ run time: 5.7458e+02 s
-#timesteps:     49 │ Δt: 4.3203e-03 │ sim. time: 2.1767e-01 (43.535%)  │ run time: 5.8408e+02 s
+#timesteps:     41 │ Δt: 4.3484e-03 │ sim. time: 1.8299e-01 (36.597%)  │ run time: 4.8508e+02 s
+#timesteps:     42 │ Δt: 4.3474e-03 │ sim. time: 1.8733e-01 (37.467%)  │ run time: 4.9482e+02 s
+#timesteps:     43 │ Δt: 4.3456e-03 │ sim. time: 1.9168e-01 (38.336%)  │ run time: 5.0448e+02 s
+#timesteps:     44 │ Δt: 4.3428e-03 │ sim. time: 1.9602e-01 (39.205%)  │ run time: 5.1357e+02 s
+#timesteps:     45 │ Δt: 4.3392e-03 │ sim. time: 2.0036e-01 (40.072%)  │ run time: 5.2333e+02 s
+#timesteps:     46 │ Δt: 4.3349e-03 │ sim. time: 2.0470e-01 (40.939%)  │ run time: 5.3225e+02 s
+#timesteps:     47 │ Δt: 4.3302e-03 │ sim. time: 2.0903e-01 (41.805%)  │ run time: 5.4208e+02 s
+#timesteps:     48 │ Δt: 4.3252e-03 │ sim. time: 2.1335e-01 (42.670%)  │ run time: 5.5186e+02 s
+#timesteps:     49 │ Δt: 4.3203e-03 │ sim. time: 2.1767e-01 (43.535%)  │ run time: 5.6149e+02 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 50                run time:       5.95340651e+02 s
- Δt:             4.31568887e-03                └── GC time:    4.51034873e+01 s (7.576%)
- sim. time:      2.21988498e-01 (44.398%)      time/DOF/rhs!:  6.08940852e-06 s
-                                               PID:            5.55535053e-05 s
- #DOFs per field:         36128                alloc&#39;d memory:        934.648 MiB
+ #timesteps:                 50                run time:       5.72008874e+02 s
+ Δt:             4.31568887e-03                └── GC time:    3.90132777e+01 s (6.820%)
+ sim. time:      2.21988498e-01 (44.398%)      time/DOF/rhs!:  5.76880719e-06 s
+                                               PID:            5.27953995e-05 s
+ #DOFs per field:         36128                alloc&#39;d memory:       1048.566 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -332,24 +332,24 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
  ∑∂S/∂U ⋅ Uₜ :  -1.22996211e-04
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     51 │ Δt: 4.3115e-03 │ sim. time: 2.2630e-01 (45.260%)  │ run time: 6.0390e+02 s
-#timesteps:     52 │ Δt: 4.3079e-03 │ sim. time: 2.3061e-01 (46.122%)  │ run time: 6.1427e+02 s
-#timesteps:     53 │ Δt: 4.3049e-03 │ sim. time: 2.3491e-01 (46.983%)  │ run time: 6.2454e+02 s
-#timesteps:     54 │ Δt: 4.3027e-03 │ sim. time: 2.3922e-01 (47.843%)  │ run time: 6.3397e+02 s
-#timesteps:     55 │ Δt: 4.3010e-03 │ sim. time: 2.4352e-01 (48.703%)  │ run time: 6.4379e+02 s
-#timesteps:     56 │ Δt: 4.3000e-03 │ sim. time: 2.4782e-01 (49.563%)  │ run time: 6.5229e+02 s
-#timesteps:     57 │ Δt: 4.2994e-03 │ sim. time: 2.5212e-01 (50.423%)  │ run time: 6.6135e+02 s
-#timesteps:     58 │ Δt: 4.2992e-03 │ sim. time: 2.5642e-01 (51.283%)  │ run time: 6.6984e+02 s
-#timesteps:     59 │ Δt: 4.2992e-03 │ sim. time: 2.6071e-01 (52.143%)  │ run time: 6.7755e+02 s
+#timesteps:     51 │ Δt: 4.3115e-03 │ sim. time: 2.2630e-01 (45.260%)  │ run time: 5.8052e+02 s
+#timesteps:     52 │ Δt: 4.3079e-03 │ sim. time: 2.3061e-01 (46.122%)  │ run time: 5.9017e+02 s
+#timesteps:     53 │ Δt: 4.3049e-03 │ sim. time: 2.3491e-01 (46.983%)  │ run time: 5.9924e+02 s
+#timesteps:     54 │ Δt: 4.3027e-03 │ sim. time: 2.3922e-01 (47.843%)  │ run time: 6.0900e+02 s
+#timesteps:     55 │ Δt: 4.3010e-03 │ sim. time: 2.4352e-01 (48.703%)  │ run time: 6.1820e+02 s
+#timesteps:     56 │ Δt: 4.3000e-03 │ sim. time: 2.4782e-01 (49.563%)  │ run time: 6.2647e+02 s
+#timesteps:     57 │ Δt: 4.2994e-03 │ sim. time: 2.5212e-01 (50.423%)  │ run time: 6.3497e+02 s
+#timesteps:     58 │ Δt: 4.2992e-03 │ sim. time: 2.5642e-01 (51.283%)  │ run time: 6.4236e+02 s
+#timesteps:     59 │ Δt: 4.2992e-03 │ sim. time: 2.6071e-01 (52.143%)  │ run time: 6.5034e+02 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 60                run time:       6.87047069e+02 s
- Δt:             4.29925400e-03                └── GC time:    5.21088875e+01 s (7.584%)
- sim. time:      2.65013456e-01 (53.003%)      time/DOF/rhs!:  6.07930194e-06 s
-                                               PID:            5.06730185e-05 s
- #DOFs per field:         36128                alloc&#39;d memory:        846.057 MiB
+ #timesteps:                 60                run time:       6.59210238e+02 s
+ Δt:             4.29925400e-03                └── GC time:    4.50801405e+01 s (6.839%)
+ sim. time:      2.65013456e-01 (53.003%)      time/DOF/rhs!:  5.71671494e-06 s
+                                               PID:            4.81846959e-05 s
+ #DOFs per field:         36128                alloc&#39;d memory:        938.678 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -358,24 +358,24 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
  ∑∂S/∂U ⋅ Uₜ :  -1.11519114e-04
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     61 │ Δt: 4.2993e-03 │ sim. time: 2.6931e-01 (53.863%)  │ run time: 6.9441e+02 s
-#timesteps:     62 │ Δt: 4.2993e-03 │ sim. time: 2.7361e-01 (54.722%)  │ run time: 7.0337e+02 s
-#timesteps:     63 │ Δt: 4.2990e-03 │ sim. time: 2.7791e-01 (55.582%)  │ run time: 7.1144e+02 s
-#timesteps:     64 │ Δt: 4.2985e-03 │ sim. time: 2.8221e-01 (56.442%)  │ run time: 7.2041e+02 s
-#timesteps:     65 │ Δt: 4.2979e-03 │ sim. time: 2.8651e-01 (57.301%)  │ run time: 7.2808e+02 s
-#timesteps:     66 │ Δt: 4.2970e-03 │ sim. time: 2.9080e-01 (58.161%)  │ run time: 7.3660e+02 s
-#timesteps:     67 │ Δt: 4.2959e-03 │ sim. time: 2.9510e-01 (59.020%)  │ run time: 7.4432e+02 s
-#timesteps:     68 │ Δt: 4.2948e-03 │ sim. time: 2.9940e-01 (59.879%)  │ run time: 7.5285e+02 s
-#timesteps:     69 │ Δt: 4.2936e-03 │ sim. time: 3.0369e-01 (60.738%)  │ run time: 7.6050e+02 s
+#timesteps:     61 │ Δt: 4.2993e-03 │ sim. time: 2.6931e-01 (53.863%)  │ run time: 6.6571e+02 s
+#timesteps:     62 │ Δt: 4.2993e-03 │ sim. time: 2.7361e-01 (54.722%)  │ run time: 6.7416e+02 s
+#timesteps:     63 │ Δt: 4.2990e-03 │ sim. time: 2.7791e-01 (55.582%)  │ run time: 6.8258e+02 s
+#timesteps:     64 │ Δt: 4.2985e-03 │ sim. time: 2.8221e-01 (56.442%)  │ run time: 6.9043e+02 s
+#timesteps:     65 │ Δt: 4.2979e-03 │ sim. time: 2.8651e-01 (57.301%)  │ run time: 6.9850e+02 s
+#timesteps:     66 │ Δt: 4.2970e-03 │ sim. time: 2.9080e-01 (58.161%)  │ run time: 7.0589e+02 s
+#timesteps:     67 │ Δt: 4.2959e-03 │ sim. time: 2.9510e-01 (59.020%)  │ run time: 7.1397e+02 s
+#timesteps:     68 │ Δt: 4.2948e-03 │ sim. time: 2.9940e-01 (59.879%)  │ run time: 7.2135e+02 s
+#timesteps:     69 │ Δt: 4.2936e-03 │ sim. time: 3.0369e-01 (60.738%)  │ run time: 7.2953e+02 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 70                run time:       7.69957627e+02 s
- Δt:             4.29240354e-03                └── GC time:    5.80790623e+01 s (7.543%)
- sim. time:      3.07981065e-01 (61.596%)      time/DOF/rhs!:  6.02199903e-06 s
-                                               PID:            4.58130199e-05 s
- #DOFs per field:         36128                alloc&#39;d memory:        851.321 MiB
+ #timesteps:                 70                run time:       7.38934185e+02 s
+ Δt:             4.29240354e-03                └── GC time:    5.09138190e+01 s (6.890%)
+ sim. time:      3.07981065e-01 (61.596%)      time/DOF/rhs!:  5.76033409e-06 s
+                                               PID:            4.40344393e-05 s
+ #DOFs per field:         36128                alloc&#39;d memory:        953.337 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -384,24 +384,24 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
  ∑∂S/∂U ⋅ Uₜ :  -1.17807394e-04
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     71 │ Δt: 4.2913e-03 │ sim. time: 3.1227e-01 (62.454%)  │ run time: 7.7726e+02 s
-#timesteps:     72 │ Δt: 4.2902e-03 │ sim. time: 3.1656e-01 (63.313%)  │ run time: 7.8623e+02 s
-#timesteps:     73 │ Δt: 4.2892e-03 │ sim. time: 3.2085e-01 (64.170%)  │ run time: 7.9430e+02 s
-#timesteps:     74 │ Δt: 4.2882e-03 │ sim. time: 3.2514e-01 (65.028%)  │ run time: 8.0332e+02 s
-#timesteps:     75 │ Δt: 4.2873e-03 │ sim. time: 3.2943e-01 (65.885%)  │ run time: 8.1097e+02 s
-#timesteps:     76 │ Δt: 4.2864e-03 │ sim. time: 3.3371e-01 (66.743%)  │ run time: 8.1954e+02 s
-#timesteps:     77 │ Δt: 4.2854e-03 │ sim. time: 3.3800e-01 (67.600%)  │ run time: 8.2719e+02 s
-#timesteps:     78 │ Δt: 4.2844e-03 │ sim. time: 3.4228e-01 (68.457%)  │ run time: 8.3581e+02 s
-#timesteps:     79 │ Δt: 4.2833e-03 │ sim. time: 3.4657e-01 (69.313%)  │ run time: 8.4426e+02 s
+#timesteps:     71 │ Δt: 4.2913e-03 │ sim. time: 3.1227e-01 (62.454%)  │ run time: 7.4556e+02 s
+#timesteps:     72 │ Δt: 4.2902e-03 │ sim. time: 3.1656e-01 (63.313%)  │ run time: 7.5418e+02 s
+#timesteps:     73 │ Δt: 4.2892e-03 │ sim. time: 3.2085e-01 (64.170%)  │ run time: 7.6191e+02 s
+#timesteps:     74 │ Δt: 4.2882e-03 │ sim. time: 3.2514e-01 (65.028%)  │ run time: 7.7046e+02 s
+#timesteps:     75 │ Δt: 4.2873e-03 │ sim. time: 3.2943e-01 (65.885%)  │ run time: 7.7774e+02 s
+#timesteps:     76 │ Δt: 4.2864e-03 │ sim. time: 3.3371e-01 (66.743%)  │ run time: 7.8589e+02 s
+#timesteps:     77 │ Δt: 4.2854e-03 │ sim. time: 3.3800e-01 (67.600%)  │ run time: 7.9321e+02 s
+#timesteps:     78 │ Δt: 4.2844e-03 │ sim. time: 3.4228e-01 (68.457%)  │ run time: 8.0133e+02 s
+#timesteps:     79 │ Δt: 4.2833e-03 │ sim. time: 3.4657e-01 (69.313%)  │ run time: 8.0861e+02 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 80                run time:       8.53071803e+02 s
- Δt:             4.28121331e-03                └── GC time:    6.41129488e+01 s (7.516%)
- sim. time:      3.50847983e-01 (70.170%)      time/DOF/rhs!:  5.99721721e-06 s
-                                               PID:            4.59260502e-05 s
- #DOFs per field:         36128                alloc&#39;d memory:        768.049 MiB
+ #timesteps:                 80                run time:       8.18127306e+02 s
+ Δt:             4.28121331e-03                └── GC time:    5.61641963e+01 s (6.865%)
+ sim. time:      3.50847983e-01 (70.170%)      time/DOF/rhs!:  5.72517092e-06 s
+                                               PID:            4.37462776e-05 s
+ #DOFs per field:         36128                alloc&#39;d memory:        952.770 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -410,24 +410,24 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
  ∑∂S/∂U ⋅ Uₜ :  -1.14063852e-04
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     81 │ Δt: 4.2790e-03 │ sim. time: 3.5513e-01 (71.025%)  │ run time: 8.6063e+02 s
-#timesteps:     82 │ Δt: 4.2769e-03 │ sim. time: 3.5940e-01 (71.881%)  │ run time: 8.6845e+02 s
-#timesteps:     83 │ Δt: 4.2748e-03 │ sim. time: 3.6368e-01 (72.736%)  │ run time: 8.7692e+02 s
-#timesteps:     84 │ Δt: 4.2729e-03 │ sim. time: 3.6795e-01 (73.590%)  │ run time: 8.8464e+02 s
-#timesteps:     85 │ Δt: 4.2709e-03 │ sim. time: 3.7222e-01 (74.445%)  │ run time: 8.9317e+02 s
-#timesteps:     86 │ Δt: 4.2691e-03 │ sim. time: 3.7649e-01 (75.298%)  │ run time: 9.0089e+02 s
-#timesteps:     87 │ Δt: 4.2674e-03 │ sim. time: 3.8076e-01 (76.152%)  │ run time: 9.0953e+02 s
-#timesteps:     88 │ Δt: 4.2657e-03 │ sim. time: 3.8502e-01 (77.005%)  │ run time: 9.1721e+02 s
-#timesteps:     89 │ Δt: 4.2641e-03 │ sim. time: 3.8929e-01 (77.858%)  │ run time: 9.2569e+02 s
+#timesteps:     81 │ Δt: 4.2790e-03 │ sim. time: 3.5513e-01 (71.025%)  │ run time: 8.2418e+02 s
+#timesteps:     82 │ Δt: 4.2769e-03 │ sim. time: 3.5940e-01 (71.881%)  │ run time: 8.3232e+02 s
+#timesteps:     83 │ Δt: 4.2748e-03 │ sim. time: 3.6368e-01 (72.736%)  │ run time: 8.3965e+02 s
+#timesteps:     84 │ Δt: 4.2729e-03 │ sim. time: 3.6795e-01 (73.590%)  │ run time: 8.4779e+02 s
+#timesteps:     85 │ Δt: 4.2709e-03 │ sim. time: 3.7222e-01 (74.445%)  │ run time: 8.5507e+02 s
+#timesteps:     86 │ Δt: 4.2691e-03 │ sim. time: 3.7649e-01 (75.298%)  │ run time: 8.6317e+02 s
+#timesteps:     87 │ Δt: 4.2674e-03 │ sim. time: 3.8076e-01 (76.152%)  │ run time: 8.7046e+02 s
+#timesteps:     88 │ Δt: 4.2657e-03 │ sim. time: 3.8502e-01 (77.005%)  │ run time: 8.7856e+02 s
+#timesteps:     89 │ Δt: 4.2641e-03 │ sim. time: 3.8929e-01 (77.858%)  │ run time: 8.8590e+02 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 90                run time:       9.34346276e+02 s
- Δt:             4.26264722e-03                └── GC time:    7.01045607e+01 s (7.503%)
- sim. time:      3.93551528e-01 (78.710%)      time/DOF/rhs!:  6.03308867e-06 s
-                                               PID:            4.49076775e-05 s
- #DOFs per field:         36128                alloc&#39;d memory:        993.959 MiB
+ #timesteps:                 90                run time:       8.95526767e+02 s
+ Δt:             4.26264722e-03                └── GC time:    6.13246285e+01 s (6.848%)
+ sim. time:      3.93551528e-01 (78.710%)      time/DOF/rhs!:  5.71640709e-06 s
+                                               PID:            4.27580475e-05 s
+ #DOFs per field:         36128                alloc&#39;d memory:        879.846 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -436,24 +436,24 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
  ∑∂S/∂U ⋅ Uₜ :  -1.14330464e-04
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     91 │ Δt: 4.2612e-03 │ sim. time: 3.9781e-01 (79.563%)  │ run time: 9.4209e+02 s
-#timesteps:     92 │ Δt: 4.2599e-03 │ sim. time: 4.0207e-01 (80.415%)  │ run time: 9.4976e+02 s
-#timesteps:     93 │ Δt: 4.2587e-03 │ sim. time: 4.0633e-01 (81.266%)  │ run time: 9.5842e+02 s
-#timesteps:     94 │ Δt: 4.2575e-03 │ sim. time: 4.1059e-01 (82.118%)  │ run time: 9.6600e+02 s
-#timesteps:     95 │ Δt: 4.2564e-03 │ sim. time: 4.1485e-01 (82.969%)  │ run time: 9.7456e+02 s
-#timesteps:     96 │ Δt: 4.2554e-03 │ sim. time: 4.1910e-01 (83.820%)  │ run time: 9.8217e+02 s
-#timesteps:     97 │ Δt: 4.2544e-03 │ sim. time: 4.2336e-01 (84.671%)  │ run time: 9.9072e+02 s
-#timesteps:     98 │ Δt: 4.2535e-03 │ sim. time: 4.2761e-01 (85.522%)  │ run time: 9.9836e+02 s
-#timesteps:     99 │ Δt: 4.2526e-03 │ sim. time: 4.3186e-01 (86.372%)  │ run time: 1.0070e+03 s
+#timesteps:     91 │ Δt: 4.2612e-03 │ sim. time: 3.9781e-01 (79.563%)  │ run time: 9.0157e+02 s
+#timesteps:     92 │ Δt: 4.2599e-03 │ sim. time: 4.0207e-01 (80.415%)  │ run time: 9.0968e+02 s
+#timesteps:     93 │ Δt: 4.2587e-03 │ sim. time: 4.0633e-01 (81.266%)  │ run time: 9.1699e+02 s
+#timesteps:     94 │ Δt: 4.2575e-03 │ sim. time: 4.1059e-01 (82.118%)  │ run time: 9.2510e+02 s
+#timesteps:     95 │ Δt: 4.2564e-03 │ sim. time: 4.1485e-01 (82.969%)  │ run time: 9.3242e+02 s
+#timesteps:     96 │ Δt: 4.2554e-03 │ sim. time: 4.1910e-01 (83.820%)  │ run time: 9.4057e+02 s
+#timesteps:     97 │ Δt: 4.2544e-03 │ sim. time: 4.2336e-01 (84.671%)  │ run time: 9.4788e+02 s
+#timesteps:     98 │ Δt: 4.2535e-03 │ sim. time: 4.2761e-01 (85.522%)  │ run time: 9.5600e+02 s
+#timesteps:     99 │ Δt: 4.2526e-03 │ sim. time: 4.3186e-01 (86.372%)  │ run time: 9.6330e+02 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                100                run time:       1.01638051e+03 s
- Δt:             4.25181873e-03                └── GC time:    7.68687883e+01 s (7.563%)
- sim. time:      4.36113158e-01 (87.223%)      time/DOF/rhs!:  6.09221506e-06 s
-                                               PID:            4.53281081e-05 s
- #DOFs per field:         36128                alloc&#39;d memory:        779.963 MiB
+ #timesteps:                100                run time:       9.72857662e+02 s
+ Δt:             4.25181873e-03                └── GC time:    6.64680366e+01 s (6.832%)
+ sim. time:      4.36113158e-01 (87.223%)      time/DOF/rhs!:  5.70818180e-06 s
+                                               PID:            4.27237841e-05 s
+ #DOFs per field:         36128                alloc&#39;d memory:        999.726 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -462,24 +462,24 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
  ∑∂S/∂U ⋅ Uₜ :  -1.13540624e-04
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:    101 │ Δt: 4.2510e-03 │ sim. time: 4.4036e-01 (88.073%)  │ run time: 1.0234e+03 s
-#timesteps:    102 │ Δt: 4.2503e-03 │ sim. time: 4.4461e-01 (88.923%)  │ run time: 1.0319e+03 s
-#timesteps:    103 │ Δt: 4.2496e-03 │ sim. time: 4.4886e-01 (89.773%)  │ run time: 1.0396e+03 s
-#timesteps:    104 │ Δt: 4.2490e-03 │ sim. time: 4.5311e-01 (90.623%)  │ run time: 1.0480e+03 s
-#timesteps:    105 │ Δt: 4.2484e-03 │ sim. time: 4.5736e-01 (91.472%)  │ run time: 1.0558e+03 s
-#timesteps:    106 │ Δt: 4.2478e-03 │ sim. time: 4.6161e-01 (92.322%)  │ run time: 1.0643e+03 s
-#timesteps:    107 │ Δt: 4.2473e-03 │ sim. time: 4.6586e-01 (93.171%)  │ run time: 1.0719e+03 s
-#timesteps:    108 │ Δt: 4.2468e-03 │ sim. time: 4.7010e-01 (94.021%)  │ run time: 1.0804e+03 s
-#timesteps:    109 │ Δt: 4.2463e-03 │ sim. time: 4.7435e-01 (94.870%)  │ run time: 1.0882e+03 s
+#timesteps:    101 │ Δt: 4.2510e-03 │ sim. time: 4.4036e-01 (88.073%)  │ run time: 9.7891e+02 s
+#timesteps:    102 │ Δt: 4.2503e-03 │ sim. time: 4.4461e-01 (88.923%)  │ run time: 9.8699e+02 s
+#timesteps:    103 │ Δt: 4.2496e-03 │ sim. time: 4.4886e-01 (89.773%)  │ run time: 9.9437e+02 s
+#timesteps:    104 │ Δt: 4.2490e-03 │ sim. time: 4.5311e-01 (90.623%)  │ run time: 1.0025e+03 s
+#timesteps:    105 │ Δt: 4.2484e-03 │ sim. time: 4.5736e-01 (91.472%)  │ run time: 1.0099e+03 s
+#timesteps:    106 │ Δt: 4.2478e-03 │ sim. time: 4.6161e-01 (92.322%)  │ run time: 1.0180e+03 s
+#timesteps:    107 │ Δt: 4.2473e-03 │ sim. time: 4.6586e-01 (93.171%)  │ run time: 1.0260e+03 s
+#timesteps:    108 │ Δt: 4.2468e-03 │ sim. time: 4.7010e-01 (94.021%)  │ run time: 1.0335e+03 s
+#timesteps:    109 │ Δt: 4.2463e-03 │ sim. time: 4.7435e-01 (94.870%)  │ run time: 1.0415e+03 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                110                run time:       1.09770510e+03 s
- Δt:             4.24591874e-03                └── GC time:    8.28393437e+01 s (7.547%)
- sim. time:      4.78595613e-01 (95.719%)      time/DOF/rhs!:  6.04076383e-06 s
-                                               PID:            4.49349414e-05 s
- #DOFs per field:         36128                alloc&#39;d memory:        712.462 MiB
+ #timesteps:                110                run time:       1.05033358e+03 s
+ Δt:             4.24591874e-03                └── GC time:    7.16781971e+01 s (6.824%)
+ sim. time:      4.78595613e-01 (95.719%)      time/DOF/rhs!:  5.72397193e-06 s
+                                               PID:            4.27956162e-05 s
+ #DOFs per field:         36128                alloc&#39;d memory:        878.015 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -488,20 +488,20 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;p4est_2d_dgsem&quot;, 
  ∑∂S/∂U ⋅ Uₜ :  -1.15721767e-04
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:    111 │ Δt: 4.2456e-03 │ sim. time: 4.8284e-01 (96.568%)  │ run time: 1.1054e+03 s
-#timesteps:    112 │ Δt: 4.2453e-03 │ sim. time: 4.8709e-01 (97.417%)  │ run time: 1.1132e+03 s
-#timesteps:    113 │ Δt: 4.2450e-03 │ sim. time: 4.9133e-01 (98.266%)  │ run time: 1.1217e+03 s
-#timesteps:    114 │ Δt: 4.2448e-03 │ sim. time: 4.9558e-01 (99.115%)  │ run time: 1.1294e+03 s
-#timesteps:    115 │ Δt: 4.2447e-03 │ sim. time: 4.9982e-01 (99.964%)  │ run time: 1.1380e+03 s
+#timesteps:    111 │ Δt: 4.2456e-03 │ sim. time: 4.8284e-01 (96.568%)  │ run time: 1.0571e+03 s
+#timesteps:    112 │ Δt: 4.2453e-03 │ sim. time: 4.8709e-01 (97.417%)  │ run time: 1.0645e+03 s
+#timesteps:    113 │ Δt: 4.2450e-03 │ sim. time: 4.9133e-01 (98.266%)  │ run time: 1.0717e+03 s
+#timesteps:    114 │ Δt: 4.2448e-03 │ sim. time: 4.9558e-01 (99.115%)  │ run time: 1.0799e+03 s
+#timesteps:    115 │ Δt: 4.2447e-03 │ sim. time: 4.9982e-01 (99.964%)  │ run time: 1.0879e+03 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                116                run time:       1.14312130e+03 s
- Δt:             1.79026594e-04                └── GC time:    8.63390634e+01 s (7.553%)
- sim. time:      5.00000000e-01 (100.000%)     time/DOF/rhs!:  6.02986260e-06 s
-                                               PID:            4.17611648e-05 s
- #DOFs per field:         36128                alloc&#39;d memory:        886.547 MiB
+ #timesteps:                116                run time:       1.09350109e+03 s
+ Δt:             1.79026594e-04                └── GC time:    7.46987410e+01 s (6.831%)
+ sim. time:      5.00000000e-01 (100.000%)     time/DOF/rhs!:  5.72462969e-06 s
+                                               PID:            3.96854038e-05 s
+ #DOFs per field:         36128                alloc&#39;d memory:        788.981 MiB
  #elements:                2258
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -517,49 +517,49 @@ Trixi.jl simulation finished.  Final time: 0.5  Time steps: 116 (accepted), 116 
 ───────────────────────────────────────────────────────────────────────────────────────
               Trixi.jl                        Time                    Allocations
                                      ───────────────────────   ────────────────────────
-          Tot / % measured:               1143s /  91.8%            231GiB /  83.7%
+          Tot / % measured:               1094s /  90.8%            230GiB /  84.2%
 
 Section                      ncalls     time    %tot     avg     alloc    %tot      avg
 ───────────────────────────────────────────────────────────────────────────────────────
-parabolic rhs!                4.83k    1045s   99.6%   216ms    193GiB   99.8%  40.9MiB
-  prolong2interfaces          4.83k     988s   94.2%   205ms    190GiB   98.3%  40.3MiB
-  calculate gradient          4.83k    20.6s    2.0%  4.27ms   3.33KiB    0.0%    0.71B
-    volume integral           4.83k    10.3s    1.0%  2.12ms     0.00B    0.0%    0.00B
-    surface integral          4.83k    5.18s    0.5%  1.07ms     0.00B    0.0%    0.00B
-    Jacobian                  4.83k    1.74s    0.2%   360μs     0.00B    0.0%    0.00B
-    interface flux            4.83k    1.45s    0.1%   300μs     0.00B    0.0%    0.00B
-    prolong2interfaces        4.83k    1.43s    0.1%   296μs     0.00B    0.0%    0.00B
-    reset gradients           4.83k    476ms    0.0%  98.5μs     0.00B    0.0%    0.00B
-    boundary flux             4.83k   38.5ms    0.0%  7.98μs     0.00B    0.0%    0.00B
-    prolong2boundaries        4.83k   29.8ms    0.0%  6.16μs     0.00B    0.0%    0.00B
-    ~calculate gradient~      4.83k   23.1ms    0.0%  4.78μs   3.33KiB    0.0%    0.71B
-    prolong2mortars           4.83k   2.84ms    0.0%   587ns     0.00B    0.0%    0.00B
-    mortar flux               4.83k   2.26ms    0.0%   468ns     0.00B    0.0%    0.00B
-  prolong2boundaries          4.83k    15.5s    1.5%  3.20ms   2.84GiB    1.5%   616KiB
-  volume integral             4.83k    8.27s    0.8%  1.71ms     0.00B    0.0%    0.00B
-  calculate viscous fluxes    4.83k    7.23s    0.7%  1.50ms     0.00B    0.0%    0.00B
-  transform variables         4.83k    1.56s    0.1%   323μs     0.00B    0.0%    0.00B
-  interface flux              4.83k    1.47s    0.1%   305μs     0.00B    0.0%    0.00B
-  surface integral            4.83k    1.40s    0.1%   290μs     0.00B    0.0%    0.00B
-  Jacobian                    4.83k    863ms    0.1%   179μs     0.00B    0.0%    0.00B
-  reset ∂u/∂t                 4.83k    217ms    0.0%  44.9μs     0.00B    0.0%    0.00B
-  ~parabolic rhs!~            4.83k   55.3ms    0.0%  11.4μs   5.38KiB    0.0%    1.14B
-  boundary flux               4.83k   46.1ms    0.0%  9.54μs     0.00B    0.0%    0.00B
-  prolong2mortars             4.83k   13.7ms    0.0%  2.83μs    894KiB    0.0%     190B
-  mortar flux                 4.83k   2.17ms    0.0%   450ns     0.00B    0.0%    0.00B
-analyze solution                 13    2.07s    0.2%   160ms    420MiB    0.2%  32.3MiB
-rhs!                            580    1.99s    0.2%  3.42ms   4.78KiB    0.0%    8.44B
-  volume integral               580    984ms    0.1%  1.70ms     0.00B    0.0%    0.00B
-  interface flux                580    444ms    0.0%   766μs     0.00B    0.0%    0.00B
-  surface integral              580    194ms    0.0%   335μs     0.00B    0.0%    0.00B
-  prolong2interfaces            580    182ms    0.0%   314μs     0.00B    0.0%    0.00B
-  Jacobian                      580    141ms    0.0%   243μs     0.00B    0.0%    0.00B
-  reset ∂u/∂t                   580   19.4ms    0.0%  33.4μs     0.00B    0.0%    0.00B
-  boundary flux                 580   12.9ms    0.0%  22.2μs     0.00B    0.0%    0.00B
-  prolong2boundaries            580   3.30ms    0.0%  5.68μs     0.00B    0.0%    0.00B
-  ~rhs!~                        580   2.99ms    0.0%  5.15μs   4.78KiB    0.0%    8.44B
-  prolong2mortars               580    244μs    0.0%   420ns     0.00B    0.0%    0.00B
-  mortar flux                   580    203μs    0.0%   350ns     0.00B    0.0%    0.00B
-  source terms                  580   64.3μs    0.0%   111ns     0.00B    0.0%    0.00B
-calculate dt                    117   36.5ms    0.0%   312μs   16.5KiB    0.0%     144B
-───────────────────────────────────────────────────────────────────────────────────────</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../trixi_imex_ars/">« Trixi IMEX ARS</a><a class="docs-footer-nextpage" href="../../notebooks/heat_2d/">Heat 2D »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Monday 19 January 2026 14:52">Monday 19 January 2026</span>. Using Julia version 1.11.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+parabolic rhs!                4.83k     989s   99.6%   205ms    193GiB   99.8%  40.9MiB
+  prolong2interfaces          4.83k     936s   94.2%   194ms    190GiB   98.3%  40.3MiB
+  calculate gradient          4.83k    19.9s    2.0%  4.11ms   3.33KiB    0.0%    0.71B
+    volume integral           4.83k    9.86s    1.0%  2.04ms     0.00B    0.0%    0.00B
+    surface integral          4.83k    4.73s    0.5%   980μs     0.00B    0.0%    0.00B
+    Jacobian                  4.83k    1.63s    0.2%   337μs     0.00B    0.0%    0.00B
+    interface flux            4.83k    1.54s    0.2%   318μs     0.00B    0.0%    0.00B
+    prolong2interfaces        4.83k    1.40s    0.1%   290μs     0.00B    0.0%    0.00B
+    reset gradients           4.83k    626ms    0.1%   130μs     0.00B    0.0%    0.00B
+    boundary flux             4.83k   39.3ms    0.0%  8.14μs     0.00B    0.0%    0.00B
+    prolong2boundaries        4.83k   28.0ms    0.0%  5.79μs     0.00B    0.0%    0.00B
+    ~calculate gradient~      4.83k   18.4ms    0.0%  3.82μs   3.33KiB    0.0%    0.71B
+    prolong2mortars           4.83k   3.40ms    0.0%   704ns     0.00B    0.0%    0.00B
+    mortar flux               4.83k   2.09ms    0.0%   433ns     0.00B    0.0%    0.00B
+  prolong2boundaries          4.83k    13.1s    1.3%  2.71ms   2.84GiB    1.5%   616KiB
+  volume integral             4.83k    7.89s    0.8%  1.63ms     0.00B    0.0%    0.00B
+  calculate viscous fluxes    4.83k    7.16s    0.7%  1.48ms     0.00B    0.0%    0.00B
+  interface flux              4.83k    1.53s    0.2%   317μs     0.00B    0.0%    0.00B
+  transform variables         4.83k    1.40s    0.1%   290μs     0.00B    0.0%    0.00B
+  surface integral            4.83k    1.05s    0.1%   218μs     0.00B    0.0%    0.00B
+  Jacobian                    4.83k    825ms    0.1%   171μs     0.00B    0.0%    0.00B
+  reset ∂u/∂t                 4.83k    293ms    0.0%  60.6μs     0.00B    0.0%    0.00B
+  boundary flux               4.83k   47.3ms    0.0%  9.79μs     0.00B    0.0%    0.00B
+  ~parabolic rhs!~            4.83k   45.0ms    0.0%  9.32μs   5.38KiB    0.0%    1.14B
+  prolong2mortars             4.83k   12.9ms    0.0%  2.67μs    894KiB    0.0%     190B
+  mortar flux                 4.83k   1.69ms    0.0%   349ns     0.00B    0.0%    0.00B
+analyze solution                 13    2.13s    0.2%   164ms    420MiB    0.2%  32.3MiB
+rhs!                            580    2.02s    0.2%  3.49ms   4.78KiB    0.0%    8.44B
+  volume integral               580    1.06s    0.1%  1.82ms     0.00B    0.0%    0.00B
+  interface flux                580    475ms    0.0%   820μs     0.00B    0.0%    0.00B
+  prolong2interfaces            580    179ms    0.0%   308μs     0.00B    0.0%    0.00B
+  Jacobian                      580    133ms    0.0%   230μs     0.00B    0.0%    0.00B
+  surface integral              580    132ms    0.0%   228μs     0.00B    0.0%    0.00B
+  reset ∂u/∂t                   580   29.4ms    0.0%  50.7μs     0.00B    0.0%    0.00B
+  boundary flux                 580   13.2ms    0.0%  22.7μs     0.00B    0.0%    0.00B
+  prolong2boundaries            580   3.05ms    0.0%  5.26μs     0.00B    0.0%    0.00B
+  ~rhs!~                        580   2.50ms    0.0%  4.31μs   4.78KiB    0.0%    8.44B
+  prolong2mortars               580    290μs    0.0%   499ns     0.00B    0.0%    0.00B
+  mortar flux                   580    172μs    0.0%   297ns     0.00B    0.0%    0.00B
+  source terms                  580   34.8μs    0.0%  59.9ns     0.00B    0.0%    0.00B
+calculate dt                    117   53.1ms    0.0%   454μs   16.5KiB    0.0%     144B
+───────────────────────────────────────────────────────────────────────────────────────</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../trixi_imex_ars/">« Trixi IMEX ARS</a><a class="docs-footer-nextpage" href="../../notebooks/heat_2d/">Heat 2D »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Thursday 5 February 2026 05:26">Thursday 5 February 2026</span>. Using Julia version 1.11.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
