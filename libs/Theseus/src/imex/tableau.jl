@@ -11,17 +11,17 @@ end
 """
     SSP2222()
 
-A second-order type I IMEX method developed by Pareschi and Russo (2005).
-The explicit part is strong stability preserving (SSP), the implicit part 
+A second-order, two-stage type I IMEX method developed by Pareschi and Russo (2005).
+The explicit part is strong stability preserving (SSP), the implicit part
 is L-stable.
 
 ## References
-- Lorenzo Pareschi and Giovanni Russo (2005)  
-  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*  
-  *Journal of Computational Physics* 203(2):469–491.  
+- Lorenzo Pareschi and Giovanni Russo (2005)
+  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*
+  *Journal of Computational Physics* 203(2):469–491.
   [DOI: 10.1007/s10915-004-4636-4](https://doi.org/10.1007/s10915-004-4636-4)
-- Sebastiano Boscarino and Giovanni Russo (2024)  
-  *Asymptotic preserving methods for quasilinear hyperbolic systems with stiff relaxation: a review.*  
+- Sebastiano Boscarino and Giovanni Russo (2024)
+  *Asymptotic preserving methods for quasilinear hyperbolic systems with stiff relaxation: a review.*
   [DOI: 10.1007/s40324-024-00351-x](https://doi.org/10.1007/s40324-024-00351-x)
 """
 struct SSP2222 <: RKIMEX{2} end
@@ -52,14 +52,14 @@ end
 """
     SSP2322()
 
-A second-order type I IMEX method developed by Pareschi and Russo (2005).
-The explicit part is strong stability preserving (SSP), the implicit part 
+A second-order, three-stage type I IMEX method developed by Pareschi and Russo (2005).
+The explicit part is strong stability preserving (SSP), the implicit part
 is stiffly accurate (SA) and thus L-stable.
 
 ## References
-- Lorenzo Pareschi and Giovanni Russo (2005)  
-  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*  
-  *Journal of Computational Physics* 203(2):469–491.  
+- Lorenzo Pareschi and Giovanni Russo (2005)
+  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*
+  *Journal of Computational Physics* 203(2):469–491.
   [DOI: 10.1007/s10915-004-4636-4](https://doi.org/10.1007/s10915-004-4636-4)
 """
 struct SSP2322 <: RKIMEX{3} end
@@ -91,17 +91,17 @@ end
 """
     SSP2332()
 
-A second-order type I IMEX method developed by Pareschi and Russo (2005).
-The explicit part is strong stability preserving (SSP), the implicit part 
+A second-order, three-stage type I IMEX method developed by Pareschi and Russo (2005).
+The explicit part is strong stability preserving (SSP), the implicit part
 is stiffly accurate (SA) and thus L-stable.
 
 ## References
-- Lorenzo Pareschi and Giovanni Russo (2005)  
-  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*  
-  *Journal of Computational Physics* 203(2):469–491.  
+- Lorenzo Pareschi and Giovanni Russo (2005)
+  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*
+  *Journal of Computational Physics* 203(2):469–491.
   [DOI: 10.1007/s10915-004-4636-4](https://doi.org/10.1007/s10915-004-4636-4)
-- Sebastiano Boscarino and Giovanni Russo (2024)  
-  *Asymptotic preserving methods for quasilinear hyperbolic systems with stiff relaxation: a review.*  
+- Sebastiano Boscarino and Giovanni Russo (2024)
+  *Asymptotic preserving methods for quasilinear hyperbolic systems with stiff relaxation: a review.*
   [DOI: 10.1007/s40324-024-00351-x](https://doi.org/10.1007/s40324-024-00351-x)
 """
 struct SSP2332 <: RKIMEX{3} end
@@ -139,14 +139,14 @@ end
 """
     SSP3332()
 
-A third-order type I IMEX method developed by Pareschi and Russo (2005).
-The explicit part is strong stability preserving (SSP), the implicit part 
-is L-stable.
+A second-order, three-stage type I IMEX method developed by Pareschi and Russo (2005).
+The explicit part is strong stability preserving (SSP) and third-order accurate,
+the implicit part is L-stable.
 
 ## References
-- Lorenzo Pareschi and Giovanni Russo (2005)  
-  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*  
-  *Journal of Computational Physics* 203(2):469–491.  
+- Lorenzo Pareschi and Giovanni Russo (2005)
+  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*
+  *Journal of Computational Physics* 203(2):469–491.
   [DOI: 10.1007/s10915-004-4636-4](https://doi.org/10.1007/s10915-004-4636-4)
 """
 struct SSP3332 <: RKIMEX{3} end
@@ -185,17 +185,17 @@ end
 """
     SSP3433()
 
-A third-order type I IMEX method developed by Pareschi and Russo (2005).
-The explicit part is strong stability preserving (SSP), the implicit part 
-is L-stable.
+A third-order, four-stage type I IMEX method developed by Pareschi and Russo (2005).
+The explicit part is strong stability preserving (SSP) and third-order accurate,
+the implicit part is L-stable.
 
 ## References
-- Lorenzo Pareschi and Giovanni Russo (2005)  
-  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*  
-  *Journal of Computational Physics* 203(2):469–491.  
+- Lorenzo Pareschi and Giovanni Russo (2005)
+  *Implicit–Explicit Runge–Kutta schemes and applications to hyperbolic systems with relaxation.*
+  *Journal of Computational Physics* 203(2):469–491.
   [DOI: 10.1007/s10915-004-4636-4](https://doi.org/10.1007/s10915-004-4636-4)
-- Sebastiano Boscarino and Giovanni Russo (2024)  
-  *Asymptotic preserving methods for quasilinear hyperbolic systems with stiff relaxation: a review.*  
+- Sebastiano Boscarino and Giovanni Russo (2024)
+  *Asymptotic preserving methods for quasilinear hyperbolic systems with stiff relaxation: a review.*
   [DOI: 10.1007/s40324-024-00351-x](https://doi.org/10.1007/s40324-024-00351-x)
 """
 struct SSP3433 <: RKIMEX{4} end
@@ -240,8 +240,8 @@ end
 """
     ARS111()
 
-A first-order, globally stiffly accurate (GSA) type II IMEX method developed by
-Ascher, Ruuth, and Spiteri (1997).
+A first-order, effectively one-stage, globally stiffly accurate (GSA) type II IMEX method
+developed by Ascher, Ruuth, and Spiteri (1997).
 
 ## References
 
@@ -279,8 +279,8 @@ end
 """
     ARS222()
 
-A second-order, globally stiffly accurate (GSA) type II IMEX method developed by
-Ascher, Ruuth, and Spiteri (1997).
+A second-order, effectively two-stage, globally stiffly accurate (GSA) type II IMEX method
+developed by Ascher, Ruuth, and Spiteri (1997).
 
 ## References
 
@@ -328,8 +328,8 @@ end
 """
     ARS443()
 
-A third-order, globally stiffly accurate (GSA) type II IMEX method developed by
-Ascher, Ruuth, and Spiteri (1997).
+A third-order, effectively four-stage, globally stiffly accurate (GSA) type II IMEX method
+developed by Ascher, Ruuth, and Spiteri (1997).
 
 ## References
 
