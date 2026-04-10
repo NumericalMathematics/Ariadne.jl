@@ -8,6 +8,33 @@ struct IMEXButcher{T1 <: AbstractArray, T2 <: AbstractArray} <: RKTableau
 end
 
 """
+    SP111()
+
+The symplectic Euler method, a first-order, one-stage type I IMEX method
+combining an explicit and an implicit Euler method.
+
+## References
+- Sebastiano Boscarino and Giovanni Russo (2024)
+  *Asymptotic preserving methods for quasilinear hyperbolic systems with stiff relaxation: a review.*
+  [DOI: 10.1007/s40324-024-00351-x](https://doi.org/10.1007/s40324-024-00351-x)
+"""
+struct SP111 <: RKIMEX{1} end
+function RKTableau(alg::SP111, RealT)
+    nstage = 1
+    a = zeros(RealT, nstage, nstage)
+    b = zeros(RealT, nstage)
+    b[1] = 1
+    c = zeros(RealT, nstage)
+    a_im = zeros(RealT, nstage, nstage)
+    a_im[1, 1] = 1
+    b_im = zeros(RealT, nstage)
+    b_im[1] = 1
+    c_im = zeros(RealT, nstage)
+    c_im[1] = 1
+    return IMEXButcher(a, b, c, a_im, b_im, c_im)
+end
+
+"""
     H222()
 
 A second-order, two-stage type I IMEX method.
