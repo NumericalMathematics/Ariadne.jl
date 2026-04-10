@@ -7,6 +7,39 @@ struct IMEXButcher{T1 <: AbstractArray, T2 <: AbstractArray} <: RKTableau
     c_im::T2
 end
 
+"""
+    H222()
+
+A second-order, two-stage type I IMEX method.
+The explicit part is strong stability preserving (SSP), the implicit part
+is A-stable but not L-stable.
+
+## References
+- Sebastiano  Boscarino, Lorenzo Pareschi, and Giovanni Russo (2025)
+  Implicit-explicit methods for evolutionary partial differential equations.
+  [DOI: 10.1137/1.9781611978209](https://doi.org/10.1137/1.9781611978209)
+"""
+struct H222 <: RKIMEX{2} end
+function RKTableau(alg::H222, RealT)
+    nstage = 2
+    a = zeros(RealT, nstage, nstage)
+    a[2, 1] = 1
+    b = zeros(RealT, nstage)
+    b[1] = 1 // 2
+    b[2] = 1 // 2
+    c = zeros(RealT, nstage)
+    c[2] = 1
+    a_im = zeros(RealT, nstage, nstage)
+    a_im[1, 1] = 1 // 2
+    a_im[2, 2] = 1 // 2
+    b_im = zeros(RealT, nstage)
+    b_im[1] = 1 // 2
+    b_im[2] = 1 // 2
+    c_im = zeros(RealT, nstage)
+    c_im[1] = 1 // 2
+    c_im[2] = 1 // 2
+    return IMEXButcher(a, b, c, a_im, b_im, c_im)
+end
 
 """
     SSP2222()
