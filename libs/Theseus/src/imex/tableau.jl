@@ -392,6 +392,50 @@ function RKTableau(alg::ARS222, RealT)
 end
 
 """
+    ARS233()
+
+A third-order, effectively three-stage type II IMEX method
+developed by Ascher, Ruuth, and Spiteri (1997).
+The implicit part is A-stable but not L-stable.
+
+## References
+
+- Uri M. Ascher, Steven J. Ruuth, and Raymond J Spiteri (1997)
+  Implicit-explicit Runge-Kutta methods for time-dependent
+  partial differential equations.
+  [DOI: 10.1016/S0168-9274(97)00056-1](https://doi.org/10.1016/S0168-9274(97)00056-1)
+- Sebastiano  Boscarino, Lorenzo Pareschi, and Giovanni Russo (2025)
+  Implicit-explicit methods for evolutionary partial differential equations.
+  [DOI: 10.1137/1.9781611978209](https://doi.org/10.1137/1.9781611978209)
+"""
+struct ARS233 <: RKIMEX{3} end
+function RKTableau(alg::ARS233, RealT)
+    nstage = 3
+    gamma = (3 + sqrt(3)) / 6
+    a = zeros(RealT, nstage, nstage)
+    a[2, 1] = gamma
+    a[3, 1] = gamma - 1
+    a[3, 2] = 2 * (1 - gamma)
+    b = zeros(RealT, nstage)
+    b[2] = 1 // 2
+    b[3] = 1 // 2
+    c = zeros(RealT, nstage)
+    c[2] = gamma
+    c[3] = 1 - gamma
+    a_im = zeros(RealT, nstage, nstage)
+    a_im[2, 2] = gamma
+    a_im[3, 2] = 1 - 2 * gamma
+    a_im[3, 3] = gamma
+    b_im = zeros(RealT, nstage)
+    b_im[2] = 1 // 2
+    b_im[3] = 1 // 2
+    c_im = zeros(RealT, nstage)
+    c_im[2] = gamma
+    c_im[3] = 1 - gamma
+    return IMEXButcher(a, b, c, a_im, b_im, c_im)
+end
+
+"""
     ARS443()
 
 A third-order, effectively four-stage, globally stiffly accurate (GSA) type II IMEX method
