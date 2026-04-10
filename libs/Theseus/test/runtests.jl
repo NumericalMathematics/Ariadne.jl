@@ -95,6 +95,15 @@ end
         end # Rosenbrock methods
 
         @testset "IMEX methods" begin
+            @testset "SP111" begin
+                alg = Theseus.SP111()
+                order = 1 + 1 # trapezoidal quadrature for this symmetric split
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(ode_split, u_ana, alg, dts)
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
             @testset "H222" begin
                 alg = Theseus.H222()
                 order = 2
@@ -283,6 +292,18 @@ end
         end # Rosenbrock methods
 
         @testset "IMEX methods" begin
+            @testset "SP111" begin
+                alg = Theseus.SP111()
+                order = 1 + 1 # Crank-Nicolson for this symmetric split
+                dts = 2.0 .^ (-2:-1:-6)
+                errors = compute_errors(
+                    ode_split, u_ana, alg, dts;
+                    newton_tol_abs = 1.0e-8
+                )
+                eoc = compute_eoc(dts, errors)
+                @test isapprox(eoc, order; atol = 0.1)
+            end
+
             @testset "H222" begin
                 alg = Theseus.H222()
                 order = 2
