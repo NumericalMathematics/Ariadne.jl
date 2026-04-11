@@ -54,24 +54,24 @@ let
     lines!(ax, abs2.(uₖ .- reference))
 
     fig
-end</code></pre><img src="0c123bfb.png" alt="Example block output"/><h2 id="Solving-using-the-out-of-place-variant"><a class="docs-heading-anchor" href="#Solving-using-the-out-of-place-variant">Solving using the out of place variant</a><a id="Solving-using-the-out-of-place-variant-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-using-the-out-of-place-variant" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov(
+end</code></pre><img src="baeaeeab.png" alt="Example block output"/><h2 id="Solving-using-the-out-of-place-variant"><a class="docs-heading-anchor" href="#Solving-using-the-out-of-place-variant">Solving using the out of place variant</a><a id="Solving-using-the-out-of-place-variant-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-using-the-out-of-place-variant" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov(
     bratu,
     copy(u₀), (dx, λ);
     algo = :cg
 )
-stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(11, 60246, 6.12868064937495e-5), t = 12.884212744)</code></pre><h2 id="Solving-with-a-fixed-forcing"><a class="docs-heading-anchor" href="#Solving-with-a-fixed-forcing">Solving with a fixed forcing</a><a id="Solving-with-a-fixed-forcing-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-with-a-fixed-forcing" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
+stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(11, 60160, 6.086180541247742e-5), t = 15.356647592)</code></pre><h2 id="Solving-with-a-fixed-forcing"><a class="docs-heading-anchor" href="#Solving-with-a-fixed-forcing">Solving with a fixed forcing</a><a id="Solving-with-a-fixed-forcing-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-with-a-fixed-forcing" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
     bratu!,
     copy(u₀), (dx, λ), similar(u₀);
     algo = :cg,
     forcing = Ariadne.Fixed(0.1)
 )
-stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(8, 58096, 2.760495406410636e-5), t = 6.575614084)</code></pre><h2 id="Solving-with-no-forcing"><a class="docs-heading-anchor" href="#Solving-with-no-forcing">Solving with no forcing</a><a id="Solving-with-no-forcing-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-with-no-forcing" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
+stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(8, 56510, 2.773666992173675e-5), t = 5.569650944)</code></pre><h2 id="Solving-with-no-forcing"><a class="docs-heading-anchor" href="#Solving-with-no-forcing">Solving with no forcing</a><a id="Solving-with-no-forcing-1"></a><a class="docs-heading-anchor-permalink" href="#Solving-with-no-forcing" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
     bratu!,
     copy(u₀), (dx, λ), similar(u₀);
     algo = :cg,
     forcing = nothing
 )
-stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(8, 72675, 3.206343291402246e-6), t = 8.375543587)</code></pre><h2 id="Solve-using-GMRES-–-doesn&#39;t-converge"><a class="docs-heading-anchor" href="#Solve-using-GMRES-–-doesn&#39;t-converge">Solve using GMRES – doesn&#39;t converge</a><a id="Solve-using-GMRES-–-doesn&#39;t-converge-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-GMRES-–-doesn&#39;t-converge" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
+stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(8, 71652, 3.217114944736544e-6), t = 7.250478998)</code></pre><h2 id="Solve-using-GMRES-–-doesn&#39;t-converge"><a class="docs-heading-anchor" href="#Solve-using-GMRES-–-doesn&#39;t-converge">Solve using GMRES – doesn&#39;t converge</a><a id="Solve-using-GMRES-–-doesn&#39;t-converge-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-GMRES-–-doesn&#39;t-converge" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
     bratu!,
     copy(u₀), (dx, λ), similar(u₀);
     algo = :gmres,
@@ -83,14 +83,14 @@ stats</code></pre><h2 id="Solve-using-GMRES-ILU-Preconditioner"><a class="docs-h
     N = (J) -&gt; ilu(collect(J)), # Assembles the full Jacobian
     krylov_kwargs = (; ldiv = true)
 )
-stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(8, 8, 3.2115161020769316e-6), t = 8.436216741)</code></pre><h2 id="Solve-using-FGMRES-ILU-Preconditioner"><a class="docs-heading-anchor" href="#Solve-using-FGMRES-ILU-Preconditioner">Solve using FGMRES + ILU Preconditioner</a><a id="Solve-using-FGMRES-ILU-Preconditioner-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-FGMRES-ILU-Preconditioner" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
+stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(8, 8, 3.216849217028634e-6), t = 8.773782965)</code></pre><h2 id="Solve-using-FGMRES-ILU-Preconditioner"><a class="docs-heading-anchor" href="#Solve-using-FGMRES-ILU-Preconditioner">Solve using FGMRES + ILU Preconditioner</a><a id="Solve-using-FGMRES-ILU-Preconditioner-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-FGMRES-ILU-Preconditioner" title="Permalink"></a></h2><pre><code class="language-julia hljs">_, stats = newton_krylov!(
     bratu!,
     copy(u₀), (dx, λ), similar(u₀);
     algo = :fgmres,
     N = (J) -&gt; ilu(collect(J)), # Assembles the full Jacobian
     krylov_kwargs = (; ldiv = true)
 )
-stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(8, 8, 3.2047787269305465e-6), t = 7.724159109)</code></pre><h2 id="Solve-using-FGMRES-GMRES-Preconditioner"><a class="docs-heading-anchor" href="#Solve-using-FGMRES-GMRES-Preconditioner">Solve using FGMRES + GMRES Preconditioner</a><a id="Solve-using-FGMRES-GMRES-Preconditioner-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-FGMRES-GMRES-Preconditioner" title="Permalink"></a></h2><pre><code class="language-julia hljs">struct GmresPreconditioner{JOp}
+stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(8, 8, 3.2061685998371007e-6), t = 8.028082024)</code></pre><h2 id="Solve-using-FGMRES-GMRES-Preconditioner"><a class="docs-heading-anchor" href="#Solve-using-FGMRES-GMRES-Preconditioner">Solve using FGMRES + GMRES Preconditioner</a><a id="Solve-using-FGMRES-GMRES-Preconditioner-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-FGMRES-GMRES-Preconditioner" title="Permalink"></a></h2><pre><code class="language-julia hljs">struct GmresPreconditioner{JOp}
     J::JOp
     itmax::Int
 end
@@ -106,7 +106,7 @@ _, stats = newton_krylov!(
     algo = :fgmres,
     N = (J) -&gt; GmresPreconditioner(J, 5),
 )
-stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(12, 11657, 9.598728387203691e-5), t = 84.490783544)</code></pre><h2 id="Explodes.."><a class="docs-heading-anchor" href="#Explodes..">Explodes..</a><a id="Explodes..-1"></a><a class="docs-heading-anchor-permalink" href="#Explodes.." title="Permalink"></a></h2><pre><code class="language-julia hljs">newton_krylov!(
+stats</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(solved = true, stats = Ariadne.Stats(12, 11973, 9.343815298545975e-5), t = 65.597801763)</code></pre><h2 id="Explodes.."><a class="docs-heading-anchor" href="#Explodes..">Explodes..</a><a id="Explodes..-1"></a><a class="docs-heading-anchor-permalink" href="#Explodes.." title="Permalink"></a></h2><pre><code class="language-julia hljs">newton_krylov!(
 	bratu!,
 	copy(u₀), (dx, λ), similar(u₀);
 	algo = :cgls, # Cgne
@@ -117,4 +117,4 @@ stats</code></pre><pre class="documenter-example-output"><code class="nohighligh
 	verbose = 1,
 	algo = :bicgstab, # L=2
 	η_max = nothing
-)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Home</a><a class="docs-footer-nextpage" href="../bratu_ka/">Bratu – KernelAbstractions »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Sunday 1 March 2026 20:12">Sunday 1 March 2026</span>. Using Julia version 1.11.9.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Home</a><a class="docs-footer-nextpage" href="../bratu_ka/">Bratu – KernelAbstractions »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Saturday 11 April 2026 07:40">Saturday 11 April 2026</span>. Using Julia version 1.11.9.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
