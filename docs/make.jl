@@ -1,6 +1,5 @@
-pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add Ariadne to environment stack
-
 using Ariadne
+using Theseus
 using Documenter
 import Documenter.Remotes: GitHub
 using Literate
@@ -30,6 +29,7 @@ end
 
 
 DocMeta.setdocmeta!(Ariadne, :DocTestSetup, :(using Ariadne); recursive = true)
+DocMeta.setdocmeta!(Theseus, :DocTestSetup, :(using Theseus); recursive = true)
 
 
 ##
@@ -65,7 +65,7 @@ examples = [title => joinpath("generated", string(name, ".md")) for (title, name
 bib = CitationBibliography(joinpath(@__DIR__, "src", "refs.bib"))
 
 makedocs(;
-    modules = [Ariadne],
+    modules = [Ariadne, Theseus],
     authors = "Valentin Churavy",
     repo = GitHub("vchuravy", "Ariadne.jl"),
     sitename = "Ariadne.jl",
@@ -79,7 +79,8 @@ makedocs(;
         size_threshold = 10_000_000,
     ),
     pages = [
-        "Home" => "index.md",
+        "Ariadne.jl" => "index.md",
+        "Theseus.jl" => "theseus.md",
         "Examples" => examples,
         "Notebooks" => [
             "Heat 2D" => "notebooks/heat_2d.md",

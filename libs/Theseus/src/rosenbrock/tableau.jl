@@ -5,6 +5,18 @@ struct RosenbrockButcher{T1 <: AbstractArray, T2 <: AbstractArray} <: RKTableau
     gamma::T2
 end
 
+"""
+    SSPKnoth
+
+A three-stage, second-order strong-stability preserving (SSP) Rosenbrock-W method
+by Knoth and Wolke.
+
+## References
+- O. Knoth and R. Wolke (1998)
+  *Implicit-explicit coupled multirate methods for reactive flow with stiff chemistry.*
+  Atmospheric Environment, 32(3):507–519.
+  [DOI: 10.1016/S1352-2310(97)00135-3](https://doi.org/10.1016/S1352-2310(97)00135-3)
+"""
 struct SSPKnoth <: RosenbrockAlgorithm{3} end
 
 function RKTableau(alg::SSPKnoth, RealT)
@@ -38,6 +50,18 @@ function RKTableau(alg::SSPKnoth, RealT)
     return RosenbrockButcher(a, c, vec(m), diag_gamma)
 end
 
+"""
+    ROS2
+
+A two-stage, second-order Rosenbrock-W method with diagonal parameter
+``\\gamma = (1 + 1/\\sqrt{3})/2``.
+
+## References
+- Ernst Hairer and Gerhard Wanner (1996)
+  *Solving Ordinary Differential Equations II: Stiff and Differential-Algebraic Problems.*
+  Springer Series in Computational Mathematics, 2nd edition.
+  [DOI: 10.1007/978-3-642-05221-7](https://doi.org/10.1007/978-3-642-05221-7)
+"""
 struct ROS2 <: RosenbrockAlgorithm{2} end
 
 function RKTableau(alg::ROS2, RealT)

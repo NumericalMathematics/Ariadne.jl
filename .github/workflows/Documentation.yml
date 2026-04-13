@@ -32,8 +32,11 @@ jobs:
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
             using Ariadne
+            using Theseus
             DocMeta.setdocmeta!(Ariadne, :DocTestSetup, :(using Ariadne); recursive=true)
+            DocMeta.setdocmeta!(Theseus, :DocTestSetup, :(using Theseus); recursive=true)
             doctest(Ariadne)
+            doctest(Theseus)
           '
       - name: generate docs
         run: julia --project=docs docs/make.jl
