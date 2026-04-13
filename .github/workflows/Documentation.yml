@@ -20,7 +20,7 @@ jobs:
       - uses: julia-actions/setup-julia@v2
         with:
           version: "1.11"
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
       - name: instantiate docs
         run: |
           julia --project=docs -e '
