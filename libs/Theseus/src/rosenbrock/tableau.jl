@@ -15,7 +15,6 @@ by Knoth and Wolke.
 - O. Knoth and R. Wolke (1998)
   *Implicit-explicit coupled multirate methods for reactive flow with stiff chemistry.*
   Atmospheric Environment, 32(3):507–519.
-  [DOI: 10.1016/S1352-2310(97)00135-3](https://doi.org/10.1016/S1352-2310(97)00135-3)
 """
 struct SSPKnoth <: RosenbrockAlgorithm{3} end
 
