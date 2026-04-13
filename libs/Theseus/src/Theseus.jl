@@ -58,6 +58,19 @@ abstract type SimpleImplicitAlgorithm{N} end
 abstract type NonLinearImplicitAlgorithm{N} <: SimpleImplicitAlgorithm{N} end
 stages(::NonLinearImplicitAlgorithm{N}) where {N} = N
 
+"""
+    ImplicitEuler()
+
+The backward (implicit) Euler method: a first-order, single-stage, A-stable,
+and L-stable nonlinear implicit Runge-Kutta method.
+
+The stage equation is
+```math
+u^{n+1} = u^n + \\Delta t \\, f(u^{n+1},\\, t^{n+1}).
+```
+
+Each time step requires solving one nonlinear system via Newton-Krylov.
+"""
 struct ImplicitEuler <: NonLinearImplicitAlgorithm{1} end
 function (::ImplicitEuler)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
     f!(du, u, p, t + Δt) # t = t0 + c_1 * Δt
@@ -66,6 +79,19 @@ function (::ImplicitEuler)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
     return nothing
 end
 
+"""
+    ImplicitMidpoint()
+
+The implicit midpoint method: a second-order, single-stage, A-stable
+nonlinear implicit Runge-Kutta method.
+
+The stage equation evaluates ``f`` at the midpoint ``(u^n + u^{n+1})/2``:
+```math
+u^{n+1} = u^n + \\Delta t \\, f\\!\\left(\\frac{u^n + u^{n+1}}{2},\\; t + \\frac{\\Delta t}{2}\\right).
+```
+
+Each time step requires solving one nonlinear system via Newton-Krylov.
+"""
 struct ImplicitMidpoint <: NonLinearImplicitAlgorithm{1} end
 function (::ImplicitMidpoint)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
     # Evaluate f at midpoint: f((uₙ + u)/2, t + Δt/2)
@@ -78,6 +104,19 @@ function (::ImplicitMidpoint)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
     return nothing
 end
 
+"""
+    ImplicitTrapezoid()
+
+The implicit trapezoidal rule (Crank–Nicolson): a second-order, single-stage,
+A-stable (but not L-stable) nonlinear implicit method.
+
+The update averages the RHS at both endpoints:
+```math
+u^{n+1} = u^n + \\frac{\\Delta t}{2}\\left[f(u^n, t) + f(u^{n+1}, t + \\Delta t)\\right].
+```
+
+Each time step requires solving one nonlinear system via Newton-Krylov.
+"""
 struct ImplicitTrapezoid <: NonLinearImplicitAlgorithm{1} end
 function (::ImplicitTrapezoid)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
     # Need to evaluate f at both endpoints
