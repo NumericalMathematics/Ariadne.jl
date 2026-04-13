@@ -6,7 +6,7 @@ struct RosenbrockButcher{T1 <: AbstractArray, T2 <: AbstractArray} <: RKTableau
 end
 
 """
-    SSPKnoth
+    SSPKnoth()
 
 A three-stage, second-order strong-stability preserving (SSP) Rosenbrock-W method
 by Knoth and Wolke.
@@ -50,7 +50,7 @@ function RKTableau(alg::SSPKnoth, RealT)
 end
 
 """
-    ROS2
+    ROS2()
 
 A two-stage, second-order Rosenbrock-W method with diagonal parameter
 ``\\gamma = (1 + 1/\\sqrt{3})/2``.

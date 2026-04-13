@@ -59,7 +59,7 @@ abstract type NonLinearImplicitAlgorithm{N} <: SimpleImplicitAlgorithm{N} end
 stages(::NonLinearImplicitAlgorithm{N}) where {N} = N
 
 """
-    ImplicitEuler
+    ImplicitEuler()
 
 The backward (implicit) Euler method: a first-order, single-stage, A-stable,
 and L-stable nonlinear implicit Runge-Kutta method.
@@ -80,7 +80,7 @@ function (::ImplicitEuler)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
 end
 
 """
-    ImplicitMidpoint
+    ImplicitMidpoint()
 
 The implicit midpoint method: a second-order, single-stage, A-stable
 nonlinear implicit Runge-Kutta method.
@@ -105,7 +105,7 @@ function (::ImplicitMidpoint)(res, uₙ, Δt, f!, du, u, p, t, stages, stage)
 end
 
 """
-    ImplicitTrapezoid
+    ImplicitTrapezoid()
 
 The implicit trapezoidal rule (Crank–Nicolson): a second-order, single-stage,
 A-stable (but not L-stable) nonlinear implicit method.
