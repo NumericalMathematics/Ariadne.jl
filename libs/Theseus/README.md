@@ -6,5 +6,7 @@
 
 This package is designed to solve ordinary differential equations of the form `u'(t) = f(t, u(t))` using fully/semi/linearly implicit time integration methods.
 It relies on the Jacobian-free (Newton-) Krylov solvers from Ariadne.jl to solve the systems that arise at each time step.
+Theseus.jl is designed for big problems like time-dependent PDEs (e.g., with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl)) where forming an explicit Jacobian is impractical, and where stiffness demands implicit treatment.
+
 Theseus.jl is designed to be largely compatible with the OrdinaryDiffEq.jl ecosystem; in particular, it uses the same `ODEProblem` specification and supports the same (discrete) callback interface.
 The primary goal of Theseus.jl is to provide a flexible framework for experimenting with new methods, for teaching, and for exploring new approaches before incorporating them into larger application-focused packages.
