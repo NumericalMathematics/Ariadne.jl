@@ -393,7 +393,7 @@ struct ARS222 <: RKIMEX{3} end
 function RKTableau(alg::ARS222, RealT)
     # ARS(2,2,2) IMEX Runge-Kutta - Second order
     nstage = 3
-    gamma = 1 - sqrt(2) / 2
+    gamma = 1 - sqrt(convert(RealT, 2)) / 2
     delta = 1 - 1 / (2 * gamma)
     a = zeros(RealT, nstage, nstage)
     a[2, 1] = gamma
@@ -438,7 +438,7 @@ The implicit part is A-stable but not L-stable.
 struct ARS233 <: RKIMEX{3} end
 function RKTableau(alg::ARS233, RealT)
     nstage = 3
-    gamma = (3 + sqrt(3)) / 6
+    gamma = (3 + sqrt(convert(RealT, 3))) / 6
     a = zeros(RealT, nstage, nstage)
     a[2, 1] = gamma
     a[3, 1] = gamma - 1
