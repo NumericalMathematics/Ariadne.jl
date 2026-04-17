@@ -228,6 +228,14 @@ function Base.collect(JOp::Union{Adjoint{<:Any, <:AbstractJacobianOperator}, Tra
 end
 
 ##
+# LineSearches
+##
+
+include("linesearches.jl")
+import .LineSearches: AbstractLineSearch, NoLineSearch
+export NoLineSearch
+
+##
 # Newton-Krylov
 ##
 import Base: @kwdef
@@ -357,6 +365,7 @@ function newton_krylov!(
         tol_abs = 1.0e-12, # Scipy uses 6e-6
         max_niter = 50,
         forcing::Union{Forcing, Nothing} = EisenstatWalker(),
+        linesearch!::AbstractLineSearch = NoLineSearch(),
         verbose = 0,
         algo = :gmres,
         M = nothing,
@@ -405,26 +414,21 @@ function newton_krylov!(
             kwargs = (; atol = zero(η), rtol = η, kwargs...)
         end
 
-        # Solve: J d = res = F(u)
-        # Typically, the Newton method is formulated as J d = -F(u)
-        # with update u = u + d.
-        # To simplify the implementation, we solve J d = F(u)
-        # and update u = u - d instead.
-        # `res` is modified by J, so we create a copy `res`
-        # TODO: provide a temporary storage for `res`
-        krylov_solve!(workspace, J, copy(res); kwargs...)
+        # Solve: J d = -res = -F(u)
+        # The Newton method is formulated as J d = -F(u)
+        # `res` is modified by J, so we create a `neg_res` copy here.
+        # TODO: provide cache for `neg_res` to avoid this allocation.
+        neg_res = map(-, res)
+        krylov_solve!(workspace, J, neg_res; kwargs...)
 
-        d = workspace.x # (negative) Newton direction
-        s = 1           # Scaling of the Newton step TODO: LineSearch
+        d₀ = workspace.x # (negative) Newton direction
 
-        # Update u
-        u .= muladd.(-s, d, u) # u = u - s * d
-
-        # Update residual and norm
+        # Perform line search
+        # Must update `res` and `u` in-place
+        # by calling: F!(res, u, p) # res = F(u)
         n_res_prior = n_res
+        n_res = linesearch!(F!, res, n_res_prior, u, p, d₀)
 
-        F!(res, u, p) # res = F(u)
-        n_res = norm(res)
         callback(u, res, n_res)
 
         if isinf(n_res) || isnan(n_res)
