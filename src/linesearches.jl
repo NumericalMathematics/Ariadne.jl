@@ -52,7 +52,6 @@ function (ls::BacktrackingLineSearch)(F!, res, n_res_prior, u, p, d)
         F!(res, u_trial, p)
         n_res = norm(res)
 
-        # @info "Line search iteration" lambda n_res n_res_prior armijo=((1 - alpha * lambda) * n_res_prior)
         # Armijo condition
         if n_res <= (1 - alpha * lambda) * n_res_prior
             u .= u_trial
