@@ -19,7 +19,7 @@ A line search that does not perform any line search: it simply takes the full Ne
 """
 struct NoLineSearch <: AbstractLineSearch end
 
-function (::NoLineSearch)(F!, res, n_res_prior, u, p, d)
+function (::NoLineSearch)(F!, res, _, u, p, d)
     # No line search: take the full Newton step
     u .+= d
     F!(res, u, p)
@@ -27,7 +27,7 @@ function (::NoLineSearch)(F!, res, n_res_prior, u, p, d)
 end
 
 """
-    BacktrackingLineSearch(; n_iter_max = 10, parabolic = false)
+    BacktrackingLineSearch(; n_iter_max = 10)
 
 ## References
 
@@ -39,7 +39,6 @@ end
 """
 Base.@kwdef struct BacktrackingLineSearch <: AbstractLineSearch
     n_iter_max::Int = 10
-    parabolic::Bool = false
 end
 
 function (ls::BacktrackingLineSearch)(F!, res, n_res_prior, u, p, d)
@@ -69,8 +68,5 @@ function (ls::BacktrackingLineSearch)(F!, res, n_res_prior, u, p, d)
     u .= u_trial
     return n_res
 end
-
-# SIAMFANL is using a parabolic line search
-# https://github.com/ctkelley/SIAMFANLEquations.jl/blob/e5603e177dd007b065265641fb232d54020c4282/src/Tools/armijo.jl#L57
 
 end # module LineSearches
