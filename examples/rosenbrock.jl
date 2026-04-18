@@ -47,3 +47,12 @@ _, stats = newton_krylov(
     linesearch! = Ariadne.LineSearches.BacktrackingLineSearch(),
     max_niter = 100_000
 )
+
+_, stats = newton_krylov(
+    generalized_rosenbrock,
+    copy(x_start);
+    algo = :gmres,
+    linesearch! = Ariadne.LineSearches.BacktrackingLineSearch(; parabolic = true),
+    max_niter = 100_000
+)
+
