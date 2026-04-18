@@ -8,6 +8,7 @@
 # ## Packages
 
 using Ariadne
+using LineSearches
 
 # ## Problem definition
 
@@ -58,3 +59,30 @@ _, stats = newton_krylov(
     max_niter = 100_000
 )
 stats
+
+# ## With LineSearches.jl
+
+_, stats = newton_krylov(
+    generalized_rosenbrock,
+    copy(x_start);
+    algo = :gmres,
+    linesearch! = Ariadne.LineSearches.LineSearches_JL(BackTracking()),
+    max_niter = 100_000
+)
+
+# Surfaces GC error yay...
+# _, stats = newton_krylov(
+#     generalized_rosenbrock,
+#     copy(x_start);
+#     algo = :gmres,
+#     linesearch! = Ariadne.LineSearches.LineSearches_JL(HagerZhang()),
+#     max_niter = 100_000
+# )
+
+# _, stats = newton_krylov(
+#     generalized_rosenbrock,
+#     copy(x_start);
+#     algo = :gmres,
+#     linesearch! = Ariadne.LineSearches.LineSearches_JL(MoreThuente()),
+#     max_niter = 100_000
+# )

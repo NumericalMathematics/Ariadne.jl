@@ -85,4 +85,8 @@ function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d)
     return norm_res
 end
 
+struct LineSearches_JL{T<:Any} <: AbstractLineSearch
+    linesearch::T
+end
+
 end # module LineSearches
