@@ -3,30 +3,7 @@ using Theseus
 using Documenter
 import Documenter.Remotes: GitHub
 using Literate
-using PlutoStaticHTML
 using DocumenterCitations
-
-const NOTEBOOK_DIR = joinpath(@__DIR__, "src", "notebooks")
-
-"""
-    build()
-
-Run all Pluto notebooks (".jl" files) in `NOTEBOOK_DIR`.
-"""
-function build()
-    println("Building notebooks in $NOTEBOOK_DIR")
-    oopts = OutputOptions(; append_build_context = false)
-    output_format = documenter_output
-    bopts = BuildOptions(NOTEBOOK_DIR; output_format)
-    build_notebooks(bopts, oopts)
-    return nothing
-end
-
-# Build the notebooks; defaults to true.
-if get(ENV, "BUILD_DOCS_NOTEBOOKS", "true") == "true"
-    build()
-end
-
 
 DocMeta.setdocmeta!(Ariadne, :DocTestSetup, :(using Ariadne); recursive = true)
 DocMeta.setdocmeta!(Theseus, :DocTestSetup, :(using Theseus); recursive = true)
@@ -82,10 +59,6 @@ makedocs(;
         "Ariadne.jl" => "index.md",
         "Theseus.jl" => "theseus.md",
         "Examples" => examples,
-        "Notebooks" => [
-            "Heat 2D" => "notebooks/heat_2d.md",
-            "Heat 1D DG" => "notebooks/heat_1D_DG.md",
-        ],
     ],
     doctest = true,
     linkcheck = true,
