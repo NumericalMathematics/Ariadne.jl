@@ -1,6 +1,6 @@
 module Ariadne
 
-export newton_krylov, newton_krylov!
+export newton_krylov, newton_krylov!, NewtonKrylovWorkspace
 
 using Krylov
 using LinearAlgebra, SparseArrays
@@ -330,10 +330,9 @@ end
 
 $(KWARGS_DOCS)
 """
-function newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); kwargs...)
-    res = similar(u₀, M)
-    Enzyme.make_zero!(res) # u₀ .= 0 might ignore ghost cells
-    return newton_krylov!(F!, u₀, p, res; kwargs...)
+function newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); algo = :gmres, assume_p_const::Bool = false, kwargs...)
+    ws = NewtonKrylovWorkspace(F!, u₀, p; M, algo, assume_p_const)
+    return newton_krylov!(ws, u₀, p; kwargs...)
 end
 
 struct Stats
@@ -350,6 +349,48 @@ function update(stats::Stats, inner_iterations, norm_res::Float64)
 end
 
 """
+    NewtonKrylovWorkspace
+
+Pre-allocated workspace for [`newton_krylov!`](@ref).
+Holds the residual buffer, negated-residual buffer, Jacobian operator (with its
+Enzyme caches), and the Krylov solver workspace so that no intermediate arrays
+are allocated during the Newton iteration.
+
+## Constructor
+
+    NewtonKrylovWorkspace(F!, u, p = nothing; M = length(u), algo = :gmres, assume_p_const = false)
+
+- `F!`: in-place residual function `F!(res, u, p)`
+- `u`: initial-guess array (used as template; the workspace holds a reference to it)
+- `p`: parameters
+- `M`: output dimension of `F!` (defaults to `length(u)`)
+- `algo`: Krylov algorithm symbol (e.g. `:gmres`, `:fgmres`)
+- `assume_p_const`: passed through to [`JacobianOperator`](@ref)
+"""
+struct NewtonKrylovWorkspace{A, JOp <: AbstractJacobianOperator, KW}
+    u::A
+    res::A
+    neg_res::A
+    J::JOp
+    krylov::KW
+end
+
+function NewtonKrylovWorkspace(
+        F!, u::AbstractArray, p = nothing;
+        M::Int = length(u),
+        algo = :gmres,
+        assume_p_const::Bool = false,
+    )
+    res = similar(u, M)
+    Enzyme.make_zero!(res)
+    neg_res = similar(res)
+    J = JacobianOperator(F!, res, u, p; assume_p_const)
+    kc = KrylovConstructor(res)
+    krylov = krylov_workspace(algo, kc)
+    return NewtonKrylovWorkspace(u, res, neg_res, J, krylov)
+end
+
+"""
 
 ## Arguments
   - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
@@ -361,18 +402,48 @@ $(KWARGS_DOCS)
 """
 function newton_krylov!(
         F!, u::AbstractArray, p, res::AbstractArray;
+        algo = :gmres,
+        assume_p_const::Bool = false,
+        kwargs...,
+    )
+    ws = NewtonKrylovWorkspace(F!, u, p; M = length(res), algo, assume_p_const)
+    ws.res .= res
+    return newton_krylov!(ws, u, p; kwargs...)
+end
+
+"""
+
+## Arguments
+  - `ws`: Pre-allocated [`NewtonKrylovWorkspace`](@ref)
+  - `u`: Solution array (modified in-place)
+  - `p`: Parameters
+
+$(KWARGS_DOCS)
+"""
+function newton_krylov!(
+        ws::NewtonKrylovWorkspace, u::AbstractArray, p;
         tol_rel = 1.0e-6,
         tol_abs = 1.0e-12, # Scipy uses 6e-6
         max_niter = 50,
         forcing::Union{Forcing, Nothing} = EisenstatWalker(),
         linesearch!::AbstractLineSearch = NoLineSearch(),
         verbose = 0,
-        algo = :gmres,
         M = nothing,
         N = nothing,
         krylov_kwargs = (;),
         callback = (args...) -> nothing,
     )
+    (; res, neg_res, J) = ws
+    krylov_ws = ws.krylov
+    F! = J.f
+
+    # If a different initial-guess array is provided, copy it into ws.u so that
+    # J.u (which aliases ws.u) always reflects the current iterate.
+    if ws.u !== u
+        ws.u .= u
+        u = ws.u
+    end
+
     t₀ = time_ns()
     F!(res, u, p) # res = F(u)
     norm_res = norm(res)
@@ -384,13 +455,7 @@ function newton_krylov!(
         η = initial(forcing)
     end
 
-    verbose > 0 && @info "Jacobian-Free Newton-Krylov" algo res₀ = norm_res tol tol_rel tol_abs η
-
-    J = JacobianOperator(F!, res, u, p)
-
-    # TODO: Refactor to provide method that re-uses the cache here.
-    kc = KrylovConstructor(res)
-    workspace = krylov_workspace(algo, kc)
+    verbose > 0 && @info "Jacobian-Free Newton-Krylov" res₀ = norm_res tol tol_rel tol_abs η
 
     stats = Stats(0, 0, norm_res)
     while norm_res > tol && stats.outer_iterations <= max_niter
@@ -403,7 +468,7 @@ function newton_krylov!(
             kwargs = (; M = M(J), kwargs...)
         end
         if forcing !== nothing
-            # The termination cirterion of the inner Krylov solver is
+            # The termination criterion of the inner Krylov solver is
             #   ‖F′(u) d + F(u)‖ <= η ‖F(u)‖
             # i.e., we use an inexact Newton method. Since the initial
             # guess of the Krylov solver is zero, we set an absolute
@@ -415,18 +480,17 @@ function newton_krylov!(
         end
 
         # Solve: J d = -res = -F(u)
-        # The Newton method is formulated as J d = -F(u)
-        # `res` is modified by J, so we create a `neg_res` copy here.
-        # TODO: provide cache for `neg_res` to avoid this allocation.
-        neg_res = similar(res)
-        @. neg_res = -res
-        krylov_solve!(workspace, J, neg_res; kwargs...)
+        # The Newton method is formulated as J d = -F(u).
+        # `res` is modified by J (Enzyme forward pass writes into it),
+        # so we negate into a pre-allocated buffer instead of allocating.
+        neg_res .= -res
+        krylov_solve!(krylov_ws, J, neg_res; kwargs...)
 
-        d₀ = workspace.x # (negative) Newton direction
+        d = krylov_ws.x # Newton direction
 
         # Perform line search to find an appropriate step size and update `u` and `res` in-place
         norm_res_prior = norm_res
-        norm_res = linesearch!(J, F!, res, norm_res_prior, u, p, d₀)
+        norm_res = linesearch!(J, F!, res, norm_res_prior, u, p, d)
 
         callback(u, res, norm_res)
 
@@ -440,11 +504,11 @@ function newton_krylov!(
         end
 
         # This is almost to be expected for implicit time-stepping
-        if verbose > 0 && workspace.stats.niter == 0 && forcing !== nothing
+        if verbose > 0 && krylov_ws.stats.niter == 0 && forcing !== nothing
             @info "Inexact Newton thinks our step is good enough " η stats
         end
 
-        stats = update(stats, workspace.stats.niter, norm_res)
+        stats = update(stats, krylov_ws.stats.niter, norm_res)
         verbose > 0 && @info "Newton" iter = norm_res η stats
     end
     t = (time_ns() - t₀) / 1.0e9
