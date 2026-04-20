@@ -41,7 +41,7 @@ _, stats = newton_krylov(
 #       They use abstol = 1e-8 we use 1e-12
 # for N=11 we require 1568 iterations in 0.01126607 seconds
 # for N=12 we require 2346 iterations in 0.024341541 seconds
-@time _, stats = newton_krylov(
+_, stats = newton_krylov(
     generalized_rosenbrock,
     copy(x_start);
     algo = :gmres,
