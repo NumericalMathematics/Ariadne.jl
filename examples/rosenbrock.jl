@@ -4,7 +4,7 @@
 # Fig 1
 
 function generalized_rosenbrock(x, _)
-    vcat(
+    return vcat(
         1 - x[1],
         10 .* (x[2:end] .- x[1:(end - 1)] .* x[1:(end - 1)])
     )
@@ -13,8 +13,8 @@ end
 
 using Ariadne
 
-N = 12 
-x_start = vcat(-1.2, ones(N-1))
+N = 12
+x_start = vcat(-1.2, ones(N - 1))
 # for N=6 we require 21 iterations in 7.1211e-5 seconds
 # for N=7 we require 66 iterations in 0.000129203 seconds
 # for N=8 we require 56 iterations in 0.000106193 seconds
@@ -26,6 +26,7 @@ _, stats = newton_krylov(
     generalized_rosenbrock,
     copy(x_start);
     algo = :gmres,
+    linesearch! = NoLineSearch(),
     max_niter = 100_000
 )
 
@@ -40,10 +41,10 @@ _, stats = newton_krylov(
 #       They use abstol = 1e-8 we use 1e-12
 # for N=11 we require 1568 iterations in 0.01126607 seconds
 # for N=12 we require 2346 iterations in 0.024341541 seconds
-_, stats = newton_krylov(
+@time _, stats = newton_krylov(
     generalized_rosenbrock,
     copy(x_start);
     algo = :gmres,
-    linesearch! = Ariadne.LineSearches.BacktrackingLineSearch(),
+    linesearch! = BacktrackingLineSearch(),
     max_niter = 100_000
 )
