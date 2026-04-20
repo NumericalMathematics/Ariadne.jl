@@ -9,6 +9,14 @@ newton_krylov!
 newton_krylov
 ```
 
+### Line Searches
+
+```@docs
+Ariadne.LineSearches.AbstractLineSearch
+NoLineSearch
+BacktrackingLineSearch
+```
+
 ### Parameters
 
 ```@docs

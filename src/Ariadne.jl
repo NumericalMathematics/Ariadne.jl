@@ -228,6 +228,14 @@ function Base.collect(JOp::Union{Adjoint{<:Any, <:AbstractJacobianOperator}, Tra
 end
 
 ##
+# LineSearches
+##
+
+include("linesearches.jl")
+import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch
+export NoLineSearch, BacktrackingLineSearch
+
+##
 # Newton-Krylov
 ##
 import Base: @kwdef
@@ -270,15 +278,15 @@ end
 """
 Compute the Eisenstat-Walker forcing term for n > 0
 """
-function (F::EisenstatWalker)(η, tol, n_res, n_res_prior)
-    η_res = F.γ * n_res^2 / n_res_prior^2
+function (F::EisenstatWalker)(η, tol, norm_res, norm_res_prior)
+    η_res = F.γ * norm_res^2 / norm_res_prior^2
     # Eq 3.6
     if F.γ * η^2 <= 1 // 10
         η_safe = min(F.η_max, η_res)
     else
         η_safe = min(F.η_max, max(η_res, F.γ * η^2))
     end
-    return min(F.η_max, max(η_safe, 1 // 2 * tol / n_res)) # Eq 3.5
+    return min(F.η_max, max(η_safe, 1 // 2 * tol / norm_res)) # Eq 3.5
 end
 initial(F::EisenstatWalker) = F.η_max
 
@@ -331,13 +339,13 @@ end
 struct Stats
     outer_iterations::Int
     inner_iterations::Int
-    n_res::Float64
+    norm_res::Float64
 end
-function update(stats::Stats, inner_iterations, n_res::Float64)
+function update(stats::Stats, inner_iterations, norm_res::Float64)
     return Stats(
         stats.outer_iterations + 1,
         stats.inner_iterations + inner_iterations,
-        n_res
+        norm_res
     )
 end
 
@@ -357,6 +365,7 @@ function newton_krylov!(
         tol_abs = 1.0e-12, # Scipy uses 6e-6
         max_niter = 50,
         forcing::Union{Forcing, Nothing} = EisenstatWalker(),
+        linesearch!::AbstractLineSearch = NoLineSearch(),
         verbose = 0,
         algo = :gmres,
         M = nothing,
@@ -366,16 +375,16 @@ function newton_krylov!(
     )
     t₀ = time_ns()
     F!(res, u, p) # res = F(u)
-    n_res = norm(res)
-    callback(u, res, n_res)
+    norm_res = norm(res)
+    callback(u, res, norm_res)
 
-    tol = tol_rel * n_res + tol_abs
+    tol = tol_rel * norm_res + tol_abs
 
     if forcing !== nothing
         η = initial(forcing)
     end
 
-    verbose > 0 && @info "Jacobian-Free Newton-Krylov" algo res₀ = n_res tol tol_rel tol_abs η
+    verbose > 0 && @info "Jacobian-Free Newton-Krylov" algo res₀ = norm_res tol tol_rel tol_abs η
 
     J = JacobianOperator(F!, res, u, p)
 
@@ -383,8 +392,8 @@ function newton_krylov!(
     kc = KrylovConstructor(res)
     workspace = krylov_workspace(algo, kc)
 
-    stats = Stats(0, 0, n_res)
-    while n_res > tol && stats.outer_iterations <= max_niter
+    stats = Stats(0, 0, norm_res)
+    while norm_res > tol && stats.outer_iterations <= max_niter
         # Handle kwargs for Preconditioners
         kwargs = krylov_kwargs
         if N !== nothing
@@ -405,35 +414,29 @@ function newton_krylov!(
             kwargs = (; atol = zero(η), rtol = η, kwargs...)
         end
 
-        # Solve: J d = res = F(u)
-        # Typically, the Newton method is formulated as J d = -F(u)
-        # with update u = u + d.
-        # To simplify the implementation, we solve J d = F(u)
-        # and update u = u - d instead.
-        # `res` is modified by J, so we create a copy `res`
-        # TODO: provide a temporary storage for `res`
-        krylov_solve!(workspace, J, copy(res); kwargs...)
+        # Solve: J d = -res = -F(u)
+        # The Newton method is formulated as J d = -F(u)
+        # `res` is modified by J, so we create a `neg_res` copy here.
+        # TODO: provide cache for `neg_res` to avoid this allocation.
+        neg_res = similar(res)
+        @. neg_res = -res
+        krylov_solve!(workspace, J, neg_res; kwargs...)
 
-        d = workspace.x # (negative) Newton direction
-        s = 1           # Scaling of the Newton step TODO: LineSearch
+        d₀ = workspace.x # (negative) Newton direction
 
-        # Update u
-        u .= muladd.(-s, d, u) # u = u - s * d
+        # Perform line search to find an appropriate step size and update `u` and `res` in-place
+        norm_res_prior = norm_res
+        norm_res = linesearch!(J, F!, res, norm_res_prior, u, p, d₀)
 
-        # Update residual and norm
-        n_res_prior = n_res
+        callback(u, res, norm_res)
 
-        F!(res, u, p) # res = F(u)
-        n_res = norm(res)
-        callback(u, res, n_res)
-
-        if isinf(n_res) || isnan(n_res)
+        if isinf(norm_res) || isnan(norm_res)
             @error "Inner solver blew up" stats
             break
         end
 
         if forcing !== nothing
-            η = forcing(η, tol, n_res, n_res_prior)
+            η = forcing(η, tol, norm_res, norm_res_prior)
         end
 
         # This is almost to be expected for implicit time-stepping
@@ -441,11 +444,11 @@ function newton_krylov!(
             @info "Inexact Newton thinks our step is good enough " η stats
         end
 
-        stats = update(stats, workspace.stats.niter, n_res)
-        verbose > 0 && @info "Newton" iter = n_res η stats
+        stats = update(stats, workspace.stats.niter, norm_res)
+        verbose > 0 && @info "Newton" iter = norm_res η stats
     end
     t = (time_ns() - t₀) / 1.0e9
-    return u, (; solved = n_res <= tol, stats, t)
+    return u, (; solved = norm_res <= tol, stats, t)
 end
 
 end # module Ariadne

@@ -24,7 +24,7 @@ fig, ax = contour(xs, ys, (x, y) -> norm(F([x, y], nothing)); levels)
 
 trace_1 = let x₀ = [2.0, 0.5]
     xs = Vector{Tuple{Float64, Float64}}(undef, 0)
-    hist(x, res, n_res) = (push!(xs, (x[1], x[2])); nothing)
+    hist(x, res, norm_res) = (push!(xs, (x[1], x[2])); nothing)
     x, stats = newton_krylov!(F!, x₀, nothing, callback = hist)
     xs
 end
@@ -32,7 +32,7 @@ lines!(ax, trace_1)
 
 trace_2 = let x₀ = [2.5, 3.0]
     xs = Vector{Tuple{Float64, Float64}}(undef, 0)
-    hist(x, res, n_res) = (push!(xs, (x[1], x[2])); nothing)
+    hist(x, res, norm_res) = (push!(xs, (x[1], x[2])); nothing)
     x, stats = newton_krylov!(F!, x₀, nothing, callback = hist)
     xs
 end
@@ -40,7 +40,7 @@ lines!(ax, trace_2)
 
 trace_3 = let x₀ = [3.0, 4.0]
     xs = Vector{Tuple{Float64, Float64}}(undef, 0)
-    hist(x, res, n_res) = (push!(xs, (x[1], x[2])); nothing)
+    hist(x, res, norm_res) = (push!(xs, (x[1], x[2])); nothing)
     x, stats = newton_krylov!(F!, x₀, nothing, callback = hist, forcing = Ariadne.EisenstatWalker(η_max = 0.68949), verbose = 1)
     @show stats.solved
     xs
