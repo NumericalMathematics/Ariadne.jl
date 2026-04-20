@@ -53,13 +53,14 @@ end
 """
 Base.@kwdef struct BacktrackingLineSearch <: AbstractLineSearch
     n_iter_max::Int = 10
+    alpha::Float64 = 1.0e-4
 end
 
 function (ls::BacktrackingLineSearch)(J, F!, res, norm_res_prior, u, p, d)
-    alpha = 1.0e-4
+    alpha = ls.alpha
     lambda = 1.0
 
-    @assert ls.n_iter_max > 0 "n_iter_max must be positive"
+    @assert ls.n_iter_max > 0 "n_iter_max must be positive and larger than 0"
     @assert alpha > 0 "alpha must be positive"
 
     # Take a step of size s in the direction d
