@@ -418,7 +418,8 @@ function newton_krylov!(
         # The Newton method is formulated as J d = -F(u)
         # `res` is modified by J, so we create a `neg_res` copy here.
         # TODO: provide cache for `neg_res` to avoid this allocation.
-        neg_res = map(-, res)
+        neg_res = similar(res)
+        @. neg_res = -res
         krylov_solve!(workspace, J, neg_res; kwargs...)
 
         d₀ = workspace.x # (negative) Newton direction
