@@ -63,26 +63,26 @@ function (ls::BacktrackingLineSearch)(J, F!, res, norm_res_prior, u, p, d)
     @assert ls.n_iter_max > 0 "n_iter_max must be positive and larger than 0"
     @assert alpha > 0 "alpha must be positive"
 
-    # Take a step of size s in the direction d
+    # Take the full Newton step (lambda = 1.0)
     u .= muladd.(lambda, d, u) # u = u + lambda * d
     F!(res, u, p)
     norm_res = norm(res)
 
-    previous_lambda = lambda
     for _ in 2:ls.n_iter_max
         # Armijo condition
         if norm_res <= (1 - alpha * lambda) * norm_res_prior
             return norm_res
         end
 
-        s = previous_lambda - lambda
-        # Take a step of size s in the direction d
-        u .= muladd.(s, d, u) # u = u + s * d
+        # Halve lambda and retract the excess step incrementally:
+        # u goes from u + old_lambda*d to u + new_lambda*d,
+        # so the adjustment is (new_lambda - old_lambda)*d (negative).
+        new_lambda = lambda * 0.5
+        s = new_lambda - lambda
+        u .= muladd.(s, d, u) # u = u + (new_lambda - old_lambda) * d
+        lambda = new_lambda
         F!(res, u, p)
         norm_res = norm(res)
-
-        previous_lambda = lambda
-        lambda *= 0.5
     end
     return norm_res
 end

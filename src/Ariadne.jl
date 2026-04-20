@@ -232,8 +232,8 @@ end
 ##
 
 include("linesearches.jl")
-import .LineSearches: AbstractLineSearch, NoLineSearch
-export NoLineSearch
+import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch
+export NoLineSearch, BacktrackingLineSearch
 
 ##
 # Newton-Krylov
