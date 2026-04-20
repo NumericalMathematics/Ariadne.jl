@@ -1,6 +1,6 @@
 module Ariadne
 
-export newton_krylov, newton_krylov!, NewtonKrylovWorkspace
+export newton_krylov, newton_krylov!, NewtonKrylovWorkspace, evaluate!
 
 using Krylov
 using LinearAlgebra, SparseArrays
@@ -231,6 +231,14 @@ end
 # LineSearches
 ##
 
+"""
+    evaluate!(ws) -> norm_res
+
+Evaluate the residual function `F!` stored in `ws` at the current state `ws.u`
+and return `norm(ws.res)`. Defined for [`NewtonKrylovWorkspace`](@ref).
+"""
+function evaluate! end
+
 include("linesearches.jl")
 import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch
 export NoLineSearch, BacktrackingLineSearch
@@ -306,7 +314,9 @@ const KWARGS_DOCS = """
 """
 
 """
-    newton_krylov(F, u₀::AbstractArray, M::Int = length(u₀); kwargs...)
+    newton_krylov(F, u₀::AbstractArray, p = nothing, M::Int = length(u₀); kwargs...)
+
+Takes a out-of-place residual function `F(u, p)`.
 
 ## Arguments
   - `F`: `res = F(u₀, p)` solves `res = F(u₀) = 0`
@@ -322,6 +332,10 @@ function newton_krylov(F, u₀::AbstractArray, p = nothing, M::Int = length(u₀
 end
 
 """
+    newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); kwargs...)
+
+Takes an in-place residual function `F!(res, u, p)`.
+
 ## Arguments
   - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
   - `u₀`: Initial guess
@@ -332,7 +346,7 @@ $(KWARGS_DOCS)
 """
 function newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); algo = :gmres, assume_p_const::Bool = false, kwargs...)
     ws = NewtonKrylovWorkspace(F!, u₀, p; M, algo, assume_p_const)
-    return newton_krylov!(ws, u₀, p; kwargs...)
+    return newton_krylov!(ws, u₀; kwargs...)
 end
 
 struct Stats
@@ -367,10 +381,12 @@ are allocated during the Newton iteration.
 - `algo`: Krylov algorithm symbol (e.g. `:gmres`, `:fgmres`)
 - `assume_p_const`: passed through to [`JacobianOperator`](@ref)
 """
-struct NewtonKrylovWorkspace{A, JOp <: AbstractJacobianOperator, KW}
+struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW}
+    f::F
     u::A
     res::A
     neg_res::A
+    p::P
     J::JOp
     krylov::KW
 end
@@ -387,14 +403,27 @@ function NewtonKrylovWorkspace(
     J = JacobianOperator(F!, res, u, p; assume_p_const)
     kc = KrylovConstructor(res)
     krylov = krylov_workspace(algo, kc)
-    return NewtonKrylovWorkspace(u, res, neg_res, J, krylov)
+    return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov)
 end
 
 """
+    evaluate!(ws::NewtonKrylovWorkspace) -> norm_res
+
+Evaluate `F!(ws.res, ws.u, ws.p)` in-place and return `norm(ws.res)`.
+"""
+function evaluate!(ws::NewtonKrylovWorkspace)
+    ws.f(ws.res, ws.u, ws.p)
+    return norm(ws.res)
+end
+
+"""
+    newton_krylov!(F!, u, p, res; kwargs...)
+
+Takes an in-place residual function `F!(res, u, p)`.
 
 ## Arguments
   - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
-  - `u`: Initial guess
+  - `u`: Initial guess (modified in-place)
   - `p`:
   - `res`: Temporary for residual
 
@@ -408,20 +437,40 @@ function newton_krylov!(
     )
     ws = NewtonKrylovWorkspace(F!, u, p; M = length(res), algo, assume_p_const)
     ws.res .= res
-    return newton_krylov!(ws, u, p; kwargs...)
+    return newton_krylov!(ws; kwargs...)
+end
+
+"""
+    newton_krylov!(ws::NewtonKrylovWorkspace, u; kwargs...)
+
+Updates ws.u with the initial guess `u` and then calls `newton_krylov!(ws; kwargs...)`.
+
+## Arguments
+  - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
+  - `u`: Initial guess (modified in-place)
+  - `p`:
+  - `res`: Temporary for residual
+
+$(KWARGS_DOCS)
+"""
+function newton_krylov!(ws::NewtonKrylovWorkspace, u::AbstractArray; kwargs...)
+    # If a different initial-guess array is provided, copy it into ws.u so that
+    # J.u (which aliases ws.u) always reflects the current iterate.
+    if ws.u !== u
+        ws.u .= u
+    end
+    return newton_krylov!(ws; kwargs...)
 end
 
 """
 
 ## Arguments
   - `ws`: Pre-allocated [`NewtonKrylovWorkspace`](@ref)
-  - `u`: Solution array (modified in-place)
-  - `p`: Parameters
 
 $(KWARGS_DOCS)
 """
 function newton_krylov!(
-        ws::NewtonKrylovWorkspace, u::AbstractArray, p;
+        ws::NewtonKrylovWorkspace;
         tol_rel = 1.0e-6,
         tol_abs = 1.0e-12, # Scipy uses 6e-6
         max_niter = 50,
@@ -433,21 +482,11 @@ function newton_krylov!(
         krylov_kwargs = (;),
         callback = (args...) -> nothing,
     )
-    (; res, neg_res, J) = ws
     krylov_ws = ws.krylov
-    F! = J.f
-
-    # If a different initial-guess array is provided, copy it into ws.u so that
-    # J.u (which aliases ws.u) always reflects the current iterate.
-    if ws.u !== u
-        ws.u .= u
-        u = ws.u
-    end
 
     t₀ = time_ns()
-    F!(res, u, p) # res = F(u)
-    norm_res = norm(res)
-    callback(u, res, norm_res)
+    norm_res = evaluate!(ws)
+    callback(ws.u, ws.res, norm_res)
 
     tol = tol_rel * norm_res + tol_abs
 
@@ -483,16 +522,17 @@ function newton_krylov!(
         # The Newton method is formulated as J d = -F(u).
         # `res` is modified by J (Enzyme forward pass writes into it),
         # so we negate into a pre-allocated buffer instead of allocating.
-        neg_res .= -res
-        krylov_solve!(krylov_ws, J, neg_res; kwargs...)
+        (; neg_res, res) = ws
+        @. neg_res = -res
+        krylov_solve!(ws.krylov, ws.J, neg_res; kwargs...)
 
-        d = krylov_ws.x # Newton direction
+        d = ws.krylov.x # Newton direction
 
         # Perform line search to find an appropriate step size and update `u` and `res` in-place
         norm_res_prior = norm_res
-        norm_res = linesearch!(J, F!, res, norm_res_prior, u, p, d)
+        norm_res = linesearch!(ws, norm_res_prior, d)
 
-        callback(u, res, norm_res)
+        callback(ws.u, ws.res, norm_res)
 
         if isinf(norm_res) || isnan(norm_res)
             @error "Inner solver blew up" stats
