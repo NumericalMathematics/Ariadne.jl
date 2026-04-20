@@ -501,10 +501,10 @@ function newton_krylov!(
         # Handle kwargs for Preconditioners
         kwargs = krylov_kwargs
         if N !== nothing
-            kwargs = (; N = N(J), kwargs...)
+            kwargs = (; N = N(ws.J), kwargs...)
         end
         if M !== nothing
-            kwargs = (; M = M(J), kwargs...)
+            kwargs = (; M = M(ws.J), kwargs...)
         end
         if forcing !== nothing
             # The termination criterion of the inner Krylov solver is
@@ -552,7 +552,7 @@ function newton_krylov!(
         verbose > 0 && @info "Newton" iter = norm_res η stats
     end
     t = (time_ns() - t₀) / 1.0e9
-    return u, (; solved = norm_res <= tol, stats, t)
+    return ws.u, (; solved = norm_res <= tol, stats, t)
 end
 
 end # module Ariadne
