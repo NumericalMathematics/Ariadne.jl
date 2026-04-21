@@ -301,19 +301,30 @@ Holds the residual buffer, negated-residual buffer, Jacobian operator (with its
 Enzyme caches), and the Krylov solver workspace so that no intermediate arrays
 are allocated during the Newton iteration.
 
+!!! note
+    To change the parameters `p` you have to create a new workspace.
+    To change the initial guess `u`, you can pass it to [`newton_krylov!(ws, u)`](@ref).
+
 ## Constructor
 
-    NewtonKrylovWorkspace(F!, u, p = nothing; M = length(u), res = similar(u, M), algo = :gmres, assume_p_const = false)
+    NewtonKrylovWorkspace(F!, u, p, res, alg=Val(:gmres); assume_p_const = false)
 
 - `F!`: in-place residual function `F!(res, u, p)`
 - `u`: initial-guess array (used as template; the workspace holds a reference to it)
 - `p`: parameters
-- `M`: output dimension of `F!` (defaults to `length(u)`)
-- `res`: pre-allocated residual buffer (defaults to `similar(u, M)`)
-- `algo`: Krylov algorithm symbol (e.g. `:gmres`, `:fgmres`)
+- `res`: pre-allocated residual buffer
+- `algo`: Krylov algorithm symbol (e.g. `:gmres`, `:fgmres`) passed as a `Val`.
 - `assume_p_const`: passed through to [`JacobianOperator`](@ref)
 
 ## Example
+
+```julia
+    ws = NewtonKrylovWorkspace(F!, u, p, res, Val(:gmres))
+    newton_krylov!(ws)
+
+    # To change the initial guess, pass it to newton_krylov!:
+    newton_krylov!(ws, u_new)    
+```
 
 """
 struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW}
@@ -327,20 +338,11 @@ struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW}
 end
 
 function NewtonKrylovWorkspace(
-        F!, u::AbstractArray, p = nothing;
-        M::Int = length(u), algo=Val(:gmres), kwargs...
-    )
-    if algo isa Symbol
-        algo = Val(algo)
-    end
-    res = similar(u, M)
-    return NewtonKrylovWorkspace(F!, u, p, res, algo; kwargs...)
-end
-
-function NewtonKrylovWorkspace(
         F!, u::AbstractArray, p, res::AbstractArray, ::Val{Algo}=Val(:gmres);
-        assume_p_const::Bool = false, kwargs...
+        assume_p_const::Bool = false
     ) where {Algo}
+    # res .= 0 might ignore ghost cells
+    # memory allocated with similar might contain NaN/Inf
     Enzyme.make_zero!(res)
     neg_res = similar(res)
     Enzyme.make_zero!(neg_res)
@@ -415,8 +417,9 @@ Takes an in-place residual function `F!(res, u, p)`.
 
 $(KWARGS_DOCS)
 """
-function newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); algo = :gmres, assume_p_const::Bool = false, kwargs...)
-    ws = NewtonKrylovWorkspace(F!, u₀, p; M, algo, assume_p_const)
+function newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); algo::Symbol = :gmres, assume_p_const::Bool = false, kwargs...)
+    res = similar(u₀, M)
+    ws = NewtonKrylovWorkspace(F!, u₀, p, res, Val(algo); assume_p_const)
     return newton_krylov!(ws; kwargs...)
 end
 
@@ -428,21 +431,18 @@ Takes an in-place residual function `F!(res, u, p)`.
 ## Arguments
   - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
   - `u`: Initial guess (modified in-place)
-  - `p`:
+  - `p`: Parameters
   - `res`: Temporary for residual
 
 $(KWARGS_DOCS)
 """
 function newton_krylov!(
         F!, u::AbstractArray, p, res::AbstractArray;
-        algo = :gmres,
+        algo::Symbol = :gmres,
         assume_p_const::Bool = false,
         kwargs...,
     )
-    if algo isa Symbol
-        algo = Val(algo)
-    end
-    ws = NewtonKrylovWorkspace(F!, u, p, res, algo; assume_p_const, kwargs...)
+    ws = NewtonKrylovWorkspace(F!, u, p, res, Val(algo); assume_p_const, kwargs...)
     return newton_krylov!(ws; kwargs...)
 end
 
@@ -454,8 +454,6 @@ Updates `ws.u` with the initial guess `u` and then calls `newton_krylov!(ws; kwa
 ## Arguments
   - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
   - `u`: Initial guess (must have the same shape as `ws.u`)
-  - `p`:
-  - `res`: Temporary for residual
 
 $(KWARGS_DOCS)
 """

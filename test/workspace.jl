@@ -13,7 +13,7 @@ end
 
     @testset "evaluate!" begin
         x₀ = [1.0, 1.0]  # exact solution: F(x₀) = 0
-        ws = @inferred NewtonKrylovWorkspace(F!, x₀)
+        ws = @inferred NewtonKrylovWorkspace(F!, x₀, nothing, similar(x₀))
         norm_res = @inferred evaluate!(ws)
         @test norm_res ≈ 0.0 atol = 1.0e-14
         @test ws.res == [0.0, 0.0]
@@ -33,7 +33,7 @@ end
         # When the same array used to construct the workspace is passed in,
         # the returned solution aliases it directly (no hidden copies).
         x₀ = [2.0, 0.5]
-        ws = NewtonKrylovWorkspace(F!, x₀)
+        ws = NewtonKrylovWorkspace(F!, x₀, nothing, similar(x₀))
         x_sol, stats_ws = newton_krylov!(ws, x₀)
         @test stats_ws.solved
         @test x_sol ≈ x_ref
@@ -43,7 +43,7 @@ end
     @testset "reuse" begin
         # Workspace can be reused across multiple solves.
         # A different initial-guess array is copied into ws.u automatically.
-        ws = NewtonKrylovWorkspace(F!, [2.0, 0.5])
+        ws = NewtonKrylovWorkspace(F!, [2.0, 0.5], nothing, zeros(2))
 
         for x₀ in ([2.0, 0.5], [0.5, 2.0], [1.5, 0.8])
             _, stats = newton_krylov!(ws, x₀)
@@ -64,7 +64,7 @@ end
 
         # Workspace API: all buffers pre-allocated; only Krylov.jl's internal
         # SimpleStats.status String update allocates (~80 bytes × outer iters).
-        ws = NewtonKrylovWorkspace(F!, [2.0, 0.5])
+        ws = NewtonKrylovWorkspace(F!, [2.0, 0.5], nothing, zeros(2))
         x_init = [2.0, 0.5]
         newton_krylov!(ws, x_init; krylov_kwargs = kw, callback = cb)  # warmup
         allocs_workspace = @allocated newton_krylov!(ws, x_init; krylov_kwargs = kw, callback = cb)
