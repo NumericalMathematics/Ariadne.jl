@@ -538,11 +538,11 @@ function newton_krylov!(
         end
 
         # This is almost to be expected for implicit time-stepping
-        if verbose > 0 && krylov_ws.stats.niter == 0 && forcing !== nothing
+        if verbose > 0 && ws.krylov.stats.niter == 0 && forcing !== nothing
             @info "Inexact Newton thinks our step is good enough " η stats
         end
 
-        stats = update(stats, krylov_ws.stats.niter, norm_res)
+        stats = update(stats, ws.krylov.stats.niter, norm_res)
         verbose > 0 && @info "Newton" iter = norm_res η stats
     end
     t = (time_ns() - t₀) / 1.0e9
