@@ -13,7 +13,7 @@ function (ls::LineSearches_JL)(ws, norm_res_prior, d)
 
     # LineSearches.jl operates on a scalar objective ϕ(α) and its derivative dϕ(α).
     # We use ϕ(α) = ‖F(u₀ + α·d)‖²/2 so that dϕ = dot(F, J·d) without having to calculate
-    # norm(ws.res).
+    # norm(ws.res). Inspired by the implementation in LineSearch.jl
     function ϕ(α)
         ws.u .= muladd.(α, d, u₀) # u = u₀ + α * d
         fx = evaluate!(ws)
