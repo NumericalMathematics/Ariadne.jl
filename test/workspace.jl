@@ -76,3 +76,25 @@ end
     end
 
 end
+
+struct WrappedVector{T} <: AbstractVector{T}
+    data::Vector{T}
+end
+Base.size(v::WrappedVector) = size(v.data)
+Base.getindex(v::WrappedVector, i::Int) = v.data[i]
+Base.setindex!(v::WrappedVector, val, i::Int) = (v.data[i] = val; v)
+Base.similar(v::WrappedVector) = WrappedVector(similar(v.data))
+Base.similar(v::WrappedVector, ::Type{T}) where {T} = WrappedVector(similar(v.data, T))
+Base.copy(v::WrappedVector) = WrappedVector(copy(v.data))
+Base.zero(v::WrappedVector) = WrappedVector(zero(v.data))
+
+@testset "custom array type with explicit res" begin
+    # Regression test: newton_krylov!(F!, u, p, res) must use the caller-supplied
+    # `res` — not a freshly allocated similar(u, M) — so that res and u share the
+    # same array type and JacobianOperator's res::A / u::A constraint is satisfied.
+    x₀ = WrappedVector([2.0, 0.5])
+    res = zero(x₀)
+    x, stats = newton_krylov!(F!, x₀, nothing, res)
+    @test stats.solved
+    @test x ≈ [1.0, 1.0] atol = 1e-5
+end

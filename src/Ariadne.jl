@@ -439,7 +439,10 @@ function newton_krylov!(
         assume_p_const::Bool = false,
         kwargs...,
     )
-    ws = NewtonKrylovWorkspace(F!, u, p; res, algo, assume_p_const)
+    if algo isa Symbol
+        algo = Val(algo)
+    end
+    ws = NewtonKrylovWorkspace(F!, u, p, res, algo; assume_p_const, kwargs...)
     return newton_krylov!(ws; kwargs...)
 end
 
