@@ -1,5 +1,6 @@
 using Test
 using Ariadne
+import Ariadne: evaluate!
 using LinearAlgebra: norm
 
 function F!(res, x, _)
