@@ -62,6 +62,7 @@ stats
 
 # ## With LineSearches.jl
 
+# ### Backtracking
 _, stats = newton_krylov(
     generalized_rosenbrock,
     copy(x_start);
@@ -69,20 +70,25 @@ _, stats = newton_krylov(
     linesearch! = Ariadne.LineSearches.LineSearches_JL(BackTracking()),
     max_niter = 100_000
 )
+stats
 
-# Surfaces GC error yay...
-# _, stats = newton_krylov(
-#     generalized_rosenbrock,
-#     copy(x_start);
-#     algo = :gmres,
-#     linesearch! = Ariadne.LineSearches.LineSearches_JL(HagerZhang()),
-#     max_niter = 100_000
-# )
+# ### Hager-Zhang
 
-# _, stats = newton_krylov(
-#     generalized_rosenbrock,
-#     copy(x_start);
-#     algo = :gmres,
-#     linesearch! = Ariadne.LineSearches.LineSearches_JL(MoreThuente()),
-#     max_niter = 100_000
-# )
+_, stats = newton_krylov(
+    generalized_rosenbrock,
+    copy(x_start);
+    algo = :gmres,
+    linesearch! = Ariadne.LineSearches.LineSearches_JL(HagerZhang()),
+    max_niter = 100_000
+)
+stats
+
+# ### More-Thuente
+_, stats = newton_krylov(
+    generalized_rosenbrock,
+    copy(x_start);
+    algo = :gmres,
+    linesearch! = Ariadne.LineSearches.LineSearches_JL(MoreThuente()),
+    max_niter = 100_000
+)
+stats

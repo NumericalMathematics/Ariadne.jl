@@ -4,32 +4,43 @@ import Ariadne.LineSearches: LineSearches_JL
 using LineSearches
 using LinearAlgebra
 
-using Enzyme: autodiff, Forward, ForwardWithPrimal, Duplicated, make_zero
+import Ariadne: evaluate!
 
+function (ls::LineSearches_JL)(ws, norm_res_prior, d)
+    # TODO: avoid allocations in the line by providing a workspace for the line search
+    u₀ = copy(ws.u)
+    jvp = similar(ws.res)
 
-function (ls::LineSearches_JL)(F!, res, n_res_prior, u, p, d)
+    # LineSearches.jl operates on a scalar objective ϕ(α) and its derivative dϕ(α).
+    # We use ϕ(α) = ‖F(u₀ + α·d)‖²/2 so that dϕ = dot(F, J·d) without having to calculate
+    # norm(ws.res).
     function ϕ(α)
-        u_trial = muladd.(α, d, u) # u_trial = u + α * d
-        F!(res, u_trial, p)
-        return norm(res)
+        ws.u .= muladd.(α, d, u₀) # u = u₀ + α * d
+        fx = evaluate!(ws)
+        return fx^2 / 2
     end
 
     function dϕ(α)
-        dr, = autodiff(Forward, Duplicated(ϕ, make_zero(ϕ)), Duplicated(α, one(α)))
-        return dr
+        ws.u .= muladd.(α, d, u₀) # u = u₀ + α * d
+        mul!(jvp, ws.J, d)         # sets ws.res = F(ws.u) as primal, jvp = J(ws.u)*d
+        return dot(ws.res, jvp)
     end
 
     function ϕdϕ(α)
-        dr, r = autodiff(ForwardWithPrimal, Duplicated(ϕ, make_zero(ϕ)), Duplicated(α, one(α)))
-        return r, dr
+        ws.u .= muladd.(α, d, u₀) # u = u₀ + α * d
+        mul!(jvp, ws.J, d)        # sets ws.res = F(ws.u) as primal, jvp = J(ws.u)*d
+        fx = norm(ws.res)
+        return fx^2 / 2, dot(ws.res, jvp)
     end
 
-    # ϕ0 = ϕ(0.0) # ϕ(0) is the norm of the residual at the current point, i.e., n_res_prior
-    dϕ0 = dϕ(0.0) # can we get this for free?
+    ϕ₀ = norm_res_prior^2 / 2
+    dϕ₀ = dϕ(0.0)
 
-    α, fx = ls.linesearch(ϕ, dϕ, ϕdϕ, 1.0, n_res_prior, dϕ0)
-    u .= muladd.(α, d, u)
-    return fx
+    dϕ₀ ≥ 0 && return oftype(norm_res_prior, Inf) # d is not a descent direction; take no step
+
+    α, fx = ls.linesearch(ϕ, dϕ, ϕdϕ, 1.0, ϕ₀, dϕ₀)
+    ws.u .= muladd.(α, d, u₀) # ensure ws.u is at the final step
+    return sqrt(2 * fx)
 end
 
 end # module LineSearchesAriadneExt
