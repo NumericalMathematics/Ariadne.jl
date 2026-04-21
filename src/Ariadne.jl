@@ -328,17 +328,25 @@ end
 
 function NewtonKrylovWorkspace(
         F!, u::AbstractArray, p = nothing;
-        M::Int = length(u),
-        res::AbstractArray = similar(u, M),
-        algo = :gmres,
-        assume_p_const::Bool = false,
+        M::Int = length(u), algo=Val(:gmres), kwargs...
     )
-    # res .= 0 might ignore ghost cells
+    if algo isa Symbol
+        algo = Val(algo)
+    end
+    res = similar(u, M)
+    return NewtonKrylovWorkspace(F!, u, p, res, algo; kwargs...)
+end
+
+function NewtonKrylovWorkspace(
+        F!, u::AbstractArray, p, res::AbstractArray, ::Val{Algo}=Val(:gmres);
+        assume_p_const::Bool = false, kwargs...
+    ) where {Algo}
     Enzyme.make_zero!(res)
     neg_res = similar(res)
+    Enzyme.make_zero!(neg_res)
     J = JacobianOperator(F!, res, u, p; assume_p_const)
     kc = KrylovConstructor(res)
-    krylov = krylov_workspace(algo, kc)
+    krylov = krylov_workspace(Val(Algo), kc)
     return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov)
 end
 
