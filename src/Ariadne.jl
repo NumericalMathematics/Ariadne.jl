@@ -442,7 +442,7 @@ function newton_krylov!(
         assume_p_const::Bool = false,
         kwargs...,
     )
-    ws = NewtonKrylovWorkspace(F!, u, p, res, Val(algo); assume_p_const, kwargs...)
+    ws = NewtonKrylovWorkspace(F!, u, p, res, Val(algo); assume_p_const)
     return newton_krylov!(ws; kwargs...)
 end
 
