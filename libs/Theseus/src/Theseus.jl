@@ -2,7 +2,7 @@ module Theseus
 
 using UnPack
 using LinearAlgebra
-import Ariadne: JacobianOperator, newton_krylov!, NewtonKrylovWorkspace
+import Ariadne: JacobianOperator, newton_krylov!
 using Krylov
 
 abstract type RKTableau end

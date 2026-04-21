@@ -346,7 +346,7 @@ $(KWARGS_DOCS)
 """
 function newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); algo = :gmres, assume_p_const::Bool = false, kwargs...)
     ws = NewtonKrylovWorkspace(F!, u₀, p; M, algo, assume_p_const)
-    return newton_krylov!(ws, u₀; kwargs...)
+    return newton_krylov!(ws; kwargs...)
 end
 
 struct Stats
@@ -372,12 +372,13 @@ are allocated during the Newton iteration.
 
 ## Constructor
 
-    NewtonKrylovWorkspace(F!, u, p = nothing; M = length(u), algo = :gmres, assume_p_const = false)
+    NewtonKrylovWorkspace(F!, u, p = nothing; M = length(u), res = similar(u, M), algo = :gmres, assume_p_const = false)
 
 - `F!`: in-place residual function `F!(res, u, p)`
 - `u`: initial-guess array (used as template; the workspace holds a reference to it)
 - `p`: parameters
 - `M`: output dimension of `F!` (defaults to `length(u)`)
+- `res`: pre-allocated residual buffer (defaults to `similar(u, M)`)
 - `algo`: Krylov algorithm symbol (e.g. `:gmres`, `:fgmres`)
 - `assume_p_const`: passed through to [`JacobianOperator`](@ref)
 """
@@ -394,10 +395,11 @@ end
 function NewtonKrylovWorkspace(
         F!, u::AbstractArray, p = nothing;
         M::Int = length(u),
+        res::AbstractArray = similar(u, M),
         algo = :gmres,
         assume_p_const::Bool = false,
     )
-    res = similar(u, M)
+    # res .= 0 might ignore ghost cells
     Enzyme.make_zero!(res)
     neg_res = similar(res)
     J = JacobianOperator(F!, res, u, p; assume_p_const)
@@ -435,8 +437,7 @@ function newton_krylov!(
         assume_p_const::Bool = false,
         kwargs...,
     )
-    ws = NewtonKrylovWorkspace(F!, u, p; M = length(res), algo, assume_p_const)
-    ws.res .= res
+    ws = NewtonKrylovWorkspace(F!, u, p; res, algo, assume_p_const)
     return newton_krylov!(ws; kwargs...)
 end
 
@@ -463,6 +464,7 @@ function newton_krylov!(ws::NewtonKrylovWorkspace, u::AbstractArray; kwargs...)
 end
 
 """
+    newton_krylov!(ws; kwargs...)
 
 ## Arguments
   - `ws`: Pre-allocated [`NewtonKrylovWorkspace`](@ref)
@@ -482,8 +484,6 @@ function newton_krylov!(
         krylov_kwargs = (;),
         callback = (args...) -> nothing,
     )
-    krylov_ws = ws.krylov
-
     t₀ = time_ns()
     norm_res = evaluate!(ws)
     callback(ws.u, ws.res, norm_res)
