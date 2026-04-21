@@ -312,6 +312,9 @@ are allocated during the Newton iteration.
 - `res`: pre-allocated residual buffer (defaults to `similar(u, M)`)
 - `algo`: Krylov algorithm symbol (e.g. `:gmres`, `:fgmres`)
 - `assume_p_const`: passed through to [`JacobianOperator`](@ref)
+
+## Example
+
 """
 struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW}
     f::F
@@ -439,7 +442,7 @@ Updates `ws.u` with the initial guess `u` and then calls `newton_krylov!(ws; kwa
 
 ## Arguments
   - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
-  - `u`: Initial guess (modified in-place)
+  - `u`: Initial guess (must have the same shape as `ws.u`)
   - `p`:
   - `res`: Temporary for residual
 
