@@ -228,22 +228,6 @@ function Base.collect(JOp::Union{Adjoint{<:Any, <:AbstractJacobianOperator}, Tra
 end
 
 ##
-# LineSearches
-##
-
-"""
-    Ariadne.evaluate!(ws) -> norm_res
-
-Evaluate the residual function `F!` stored in `ws` at the current state `ws.u`
-and return `norm(ws.res)`. Defined for [`NewtonKrylovWorkspace`](@ref).
-"""
-function evaluate! end
-
-include("linesearches.jl")
-import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch
-export NoLineSearch, BacktrackingLineSearch
-
-##
 # Newton-Krylov
 ##
 import Base: @kwdef
@@ -281,8 +265,6 @@ initial(F::Fixed) = F.η
     γ::Float64 = 0.9
 end
 
-# @assert η_max === nothing || 0.0 < η_max < 1.0
-
 """
 Compute the Eisenstat-Walker forcing term for n > 0
 """
@@ -297,57 +279,6 @@ function (F::EisenstatWalker)(η, tol, norm_res, norm_res_prior)
     return min(F.η_max, max(η_safe, 1 // 2 * tol / norm_res)) # Eq 3.5
 end
 initial(F::EisenstatWalker) = F.η_max
-
-const KWARGS_DOCS = """
-## Keyword Arguments
-  - `tol_rel`: Relative tolerance
-  - `tol_abs`: Absolute tolerance
-  - `max_niter`: Maximum number of iterations
-  - `forcing`: Maximum forcing term for inexact Newton.
-             If `nothing` an exact Newton method is used.
-  - `verbose`:
-  - `Workspace`:
-  - `M`:
-  - `N`:
-  - `krylov_kwarg`
-  - `callback`:
-"""
-
-"""
-    newton_krylov(F, u₀::AbstractArray, p = nothing, M::Int = length(u₀); kwargs...)
-
-Takes a out-of-place residual function `F(u, p)`.
-
-## Arguments
-  - `F`: `res = F(u₀, p)` solves `res = F(u₀) = 0`
-  - `u₀`: Initial guess
-  - `p`: Parameters
-  - `M`: Length of the output of `F`. Defaults to `length(u₀)`.
-
-$(KWARGS_DOCS)
-"""
-function newton_krylov(F, u₀::AbstractArray, p = nothing, M::Int = length(u₀); kwargs...)
-    F!(res, u, p) = (res .= F(u, p); nothing)
-    return newton_krylov!(F!, u₀, p, M; kwargs...)
-end
-
-"""
-    newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); kwargs...)
-
-Takes an in-place residual function `F!(res, u, p)`.
-
-## Arguments
-  - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
-  - `u₀`: Initial guess
-  - `p`: Parameters
-  - `M`: Length of  the output of `F!`. Defaults to `length(u₀)`
-
-$(KWARGS_DOCS)
-"""
-function newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); algo = :gmres, assume_p_const::Bool = false, kwargs...)
-    ws = NewtonKrylovWorkspace(F!, u₀, p; M, algo, assume_p_const)
-    return newton_krylov!(ws; kwargs...)
-end
 
 struct Stats
     outer_iterations::Int
@@ -416,6 +347,66 @@ Evaluate `F!(ws.res, ws.u, ws.p)` in-place and return `norm(ws.res)`.
 function evaluate!(ws::NewtonKrylovWorkspace)
     ws.f(ws.res, ws.u, ws.p)
     return norm(ws.res)
+end
+
+##
+# LineSearches
+##
+
+include("linesearches.jl")
+import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch
+export NoLineSearch, BacktrackingLineSearch
+
+
+const KWARGS_DOCS = """
+## Keyword Arguments
+  - `tol_rel`: Relative tolerance
+  - `tol_abs`: Absolute tolerance
+  - `max_niter`: Maximum number of iterations
+  - `forcing`: Maximum forcing term for inexact Newton.
+             If `nothing` an exact Newton method is used.
+  - `linesearch!`: Line search strategy. Must be a subtype of `AbstractLineSearch`.
+  - `verbose::Int`: Verbosity level
+  - `M::Union{Nothing, Function}`: If provided, `M(ws.J)` is passed as a keyword argument to the Krylov solver.
+  - `N::Union{Nothing, Function}`: If provided, `N(ws.J)` is passed as a keyword argument to the Krylov solver.
+  - `krylov_kwargs`: Keyword arguments passed to the Krylov solver.
+  - `callback`: A function called after each Newton iteration with signature `callback(u, res, norm_res)`.
+"""
+
+"""
+    newton_krylov(F, u₀::AbstractArray, p = nothing, M::Int = length(u₀); kwargs...)
+
+Takes a out-of-place residual function `F(u, p)`.
+
+## Arguments
+  - `F`: `res = F(u₀, p)` solves `res = F(u₀) = 0`
+  - `u₀`: Initial guess
+  - `p`: Parameters
+  - `M`: Length of the output of `F`. Defaults to `length(u₀)`.
+
+$(KWARGS_DOCS)
+"""
+function newton_krylov(F, u₀::AbstractArray, p = nothing, M::Int = length(u₀); kwargs...)
+    F!(res, u, p) = (res .= F(u, p); nothing)
+    return newton_krylov!(F!, u₀, p, M; kwargs...)
+end
+
+"""
+    newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); kwargs...)
+
+Takes an in-place residual function `F!(res, u, p)`.
+
+## Arguments
+  - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
+  - `u₀`: Initial guess
+  - `p`: Parameters
+  - `M`: Length of  the output of `F!`. Defaults to `length(u₀)`
+
+$(KWARGS_DOCS)
+"""
+function newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); algo = :gmres, assume_p_const::Bool = false, kwargs...)
+    ws = NewtonKrylovWorkspace(F!, u₀, p; M, algo, assume_p_const)
+    return newton_krylov!(ws; kwargs...)
 end
 
 """

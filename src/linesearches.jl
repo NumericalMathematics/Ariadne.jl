@@ -9,12 +9,17 @@ import ..evaluate!
 Line search updates `ws.u` in-place along the Newton direction `d` and calls
 `evaluate!(ws)` to refresh `ws.res` and obtain the new residual norm.
 
+## Implemented variants
+- [`NoLineSearch`](@ref)
+- [`BacktrackingLineSearch`](@ref)
+
+## Custom line searches
 ```julia
-struct NewLineSearch <: AbstractLineSearch
+struct CustomLineSearch <: AbstractLineSearch
     # parameters for the line search
 end
 
-function (ls::NewLineSearch)(ws, norm_res_prior, d)
+function (ls::CustomLineSearch)(ws, norm_res_prior, d)
     # update ws.u
     ws.u .+= d # for example, take the full Newton step
     return evaluate!(ws)
