@@ -12,8 +12,8 @@ end
 
     @testset "evaluate!" begin
         x₀ = [1.0, 1.0]  # exact solution: F(x₀) = 0
-        ws = NewtonKrylovWorkspace(F!, x₀)
-        norm_res = evaluate!(ws)
+        ws = @inferred NewtonKrylovWorkspace(F!, x₀)
+        norm_res = @inferred evaluate!(ws)
         @test norm_res ≈ 0.0 atol = 1.0e-14
         @test ws.res == [0.0, 0.0]
 

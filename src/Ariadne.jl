@@ -1,6 +1,6 @@
 module Ariadne
 
-export newton_krylov, newton_krylov!, NewtonKrylovWorkspace, evaluate!
+export newton_krylov, newton_krylov!, NewtonKrylovWorkspace
 
 using Krylov
 using LinearAlgebra, SparseArrays
@@ -232,7 +232,7 @@ end
 ##
 
 """
-    evaluate!(ws) -> norm_res
+    Ariadne.evaluate!(ws) -> norm_res
 
 Evaluate the residual function `F!` stored in `ws` at the current state `ws.u`
 and return `norm(ws.res)`. Defined for [`NewtonKrylovWorkspace`](@ref).
@@ -409,7 +409,7 @@ function NewtonKrylovWorkspace(
 end
 
 """
-    evaluate!(ws::NewtonKrylovWorkspace) -> norm_res
+    Ariadne.evaluate!(ws::NewtonKrylovWorkspace) -> norm_res
 
 Evaluate `F!(ws.res, ws.u, ws.p)` in-place and return `norm(ws.res)`.
 """
@@ -444,7 +444,7 @@ end
 """
     newton_krylov!(ws::NewtonKrylovWorkspace, u; kwargs...)
 
-Updates ws.u with the initial guess `u` and then calls `newton_krylov!(ws; kwargs...)`.
+Updates `ws.u` with the initial guess `u` and then calls `newton_krylov!(ws; kwargs...)`.
 
 ## Arguments
   - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
