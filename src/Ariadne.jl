@@ -258,27 +258,48 @@ end
 initial(F::Fixed) = F.η
 
 """
-    EisenstatWalker(η_max = 0.999, γ = 0.9)
+    EisenstatWalker(η₀ = 0.999, η_max = 0.999, γ = 0.9, α = 2.0)
+
+Adaptive forcing term for inexact Newton-Krylov methods. The forcing term η
+is updated each iteration as ([Kelley2022](@cite), Eq. 3.6).
+
+## Parameters
+- `η₀`:    Initial forcing term. Default: `0.999`.
+- `η_max`: Maximum forcing term; must satisfy `η_max ∈ (0, 1)`. Default: `0.999`.
+- `γ`:     Contraction factor for the convergence rate estimate. Default: `0.9`.
+- `α`:     Exponent for the convergence rate estimate; should be in `(1, 2]`. Default: `2.0`.
+
+## References
+- Kelley, C. T. (2022).
+  Solving nonlinear equations with iterative methods:
+  Solvers and examples in Julia.
+  Society for Industrial and Applied Mathematics.
+- Eisenstat, S. C., & Walker, H. F. (1996).
+  Choosing the forcing terms in an inexact Newton method.
+  SIAM Journal on Scientific Computing, 17(1), 16-32.
 """
 @kwdef struct EisenstatWalker <: Forcing
+    η₀::Float64 = 0.999
     η_max::Float64 = 0.999
     γ::Float64 = 0.9
+    α::Float64 = 2.0
 end
 
 """
 Compute the Eisenstat-Walker forcing term for n > 0
 """
 function (F::EisenstatWalker)(η, tol, norm_res, norm_res_prior)
-    η_res = F.γ * norm_res^2 / norm_res_prior^2
-    # Eq 3.6
-    if F.γ * η^2 <= 1 // 10
-        η_safe = min(F.η_max, η_res)
+    (; γ, α, η_max) = F
+    η_res = γ * (norm_res / norm_res_prior)^α
+    # Eq 3.6 from Kelley2022
+    if γ * η^α <= 1 // 10
+        η_safe = min(η_max, η_res)
     else
-        η_safe = min(F.η_max, max(η_res, F.γ * η^2))
+        η_safe = min(η_max, max(η_res, γ * η^α))
     end
-    return min(F.η_max, max(η_safe, 1 // 2 * tol / norm_res)) # Eq 3.5
+    return min(η_max, max(η_safe, 1 // 2 * tol / norm_res)) # Eq 3.5
 end
-initial(F::EisenstatWalker) = F.η_max
+initial(F::EisenstatWalker) = F.η₀
 
 struct Stats
     outer_iterations::Int
@@ -495,6 +516,8 @@ function newton_krylov!(
 
     if forcing !== nothing
         η = initial(forcing)
+    else
+        η = missing
     end
 
     verbose > 0 && @info "Jacobian-Free Newton-Krylov" res₀ = norm_res tol tol_rel tol_abs η
