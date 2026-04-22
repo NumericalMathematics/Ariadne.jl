@@ -495,6 +495,8 @@ function newton_krylov!(
 
     if forcing !== nothing
         η = initial(forcing)
+    else
+        η = missing
     end
 
     verbose > 0 && @info "Jacobian-Free Newton-Krylov" res₀ = norm_res tol tol_rel tol_abs η
