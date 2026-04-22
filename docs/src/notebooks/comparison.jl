@@ -47,7 +47,7 @@ function generalized_rosenbrock(x, _)
 end
 
 # ╔═╡ 078b6618-f037-44b1-9c17-4a1785170bfc
-N = 5
+N = 9
 
 # ╔═╡ 80cde332-fbd1-49a0-bd61-944720f885fe
 x_start = vcat(-1.2, ones(N - 1))
@@ -89,6 +89,12 @@ md"""
 # ╔═╡ eafb63ff-857d-4cc3-84eb-19ad4dd5755a
 prob = NLS.NonlinearProblem(generalized_rosenbrock, x_start)
 
+# ╔═╡ 58fbc259-aa11-49a4-8252-7c9d8acd1dcc
+let
+    sol = NLS.solve(prob, reltol = 1.0e-6, abstol = 1.0e-12, verbose = false)
+    sol.stats
+end
+
 # ╔═╡ 69a3e7b5-bf52-408b-bd33-80e0618b539b
 alg = NLS.NewtonRaphson(
     linesearch = missing,
@@ -128,6 +134,7 @@ end
 # ╠═42a30e51-8cf7-49fa-8348-159803d4a1c3
 # ╟─4ec97f25-7af2-4138-9203-f933d8e593d9
 # ╠═eafb63ff-857d-4cc3-84eb-19ad4dd5755a
+# ╠═58fbc259-aa11-49a4-8252-7c9d8acd1dcc
 # ╠═69a3e7b5-bf52-408b-bd33-80e0618b539b
 # ╠═aa53ea6f-9d39-43ea-b130-f0c98f187958
 # ╠═08473c35-a4f6-4115-8db5-03b13f4a2cce
