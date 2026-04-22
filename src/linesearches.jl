@@ -1,26 +1,28 @@
 module LineSearches
 
 using LinearAlgebra
+import ..evaluate!
 
 """
     AbstractLineSearch
 
-Line search may update the solution `u` and the residual `res` in-place,
-given the function `F!`, parameters `p`, and the Newton direction `d`.
+Line search updates `ws.u` in-place along the Newton direction `d` and calls
+`evaluate!(ws)` to refresh `ws.res` and obtain the new residual norm.
 
-They must call `F!(res, u, p)` to update the residual after updating `u`.
+## Implemented variants
+- [`NoLineSearch`](@ref)
+- [`BacktrackingLineSearch`](@ref)
 
+## Custom line searches
 ```julia
-struct NewLineSearch <: AbstractLineSearch
+struct CustomLineSearch <: AbstractLineSearch
     # parameters for the line search
 end
 
-function (ls::NewLineSearch)(J::AbstractJacobianOperator, F!, res, norm_res_prior, u, p, d)
-    # perform line search to find an appropriate step size
-    # ...
-    # update u and res in-place
-    F!(res, u, p)
-    return norm(res)
+function (ls::CustomLineSearch)(ws, norm_res_prior, d)
+    # update ws.u
+    ws.u .+= d # for example, take the full Newton step
+    return evaluate!(ws)
 end
 ```
 """
@@ -33,11 +35,9 @@ A line search that does not perform any line search: it simply takes the full Ne
 """
 struct NoLineSearch <: AbstractLineSearch end
 
-function (::NoLineSearch)(J, F!, res, norm_res_prior, u, p, d)
-    # No line search: take the full Newton step
-    u .+= d
-    F!(res, u, p)
-    return norm(res)
+function (::NoLineSearch)(ws, _, d)
+    ws.u .+= d
+    return evaluate!(ws)
 end
 
 """
@@ -56,7 +56,7 @@ Base.@kwdef struct BacktrackingLineSearch <: AbstractLineSearch
     alpha::Float64 = 1.0e-4
 end
 
-function (ls::BacktrackingLineSearch)(J, F!, res, norm_res_prior, u, p, d)
+function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d)
     alpha = ls.alpha
     lambda = 1.0
 
@@ -64,9 +64,8 @@ function (ls::BacktrackingLineSearch)(J, F!, res, norm_res_prior, u, p, d)
     @assert alpha > 0 "alpha must be positive"
 
     # Take the full Newton step (lambda = 1.0)
-    u .= muladd.(lambda, d, u) # u = u + lambda * d
-    F!(res, u, p)
-    norm_res = norm(res)
+    ws.u .= muladd.(lambda, d, ws.u) # u = u + lambda * d
+    norm_res = evaluate!(ws)
 
     for _ in 2:ls.n_iter_max
         # Armijo condition
@@ -79,10 +78,9 @@ function (ls::BacktrackingLineSearch)(J, F!, res, norm_res_prior, u, p, d)
         # so the adjustment is (new_lambda - old_lambda)*d (negative).
         new_lambda = lambda * 0.5
         s = new_lambda - lambda
-        u .= muladd.(s, d, u) # u = u + (new_lambda - old_lambda) * d
+        ws.u .= muladd.(s, d, ws.u) # u = u + (new_lambda - old_lambda) * d
         lambda = new_lambda
-        F!(res, u, p)
-        norm_res = norm(res)
+        norm_res = evaluate!(ws)
     end
     return norm_res
 end
