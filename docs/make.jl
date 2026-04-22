@@ -1,6 +1,5 @@
-pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add Ariadne to environment stack
-
 using Ariadne
+using Theseus
 using Documenter
 import Documenter.Remotes: GitHub
 using Literate
@@ -30,6 +29,7 @@ end
 
 
 DocMeta.setdocmeta!(Ariadne, :DocTestSetup, :(using Ariadne); recursive = true)
+DocMeta.setdocmeta!(Theseus, :DocTestSetup, :(using Theseus); recursive = true)
 
 
 ##
@@ -40,6 +40,7 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR = joinpath(@__DIR__, "src/generated")
 
 examples = [
+    "Rosenbrock" => "rosenbrock",
     "Bratu -- 1D" => "bratu",
     "Bratu -- KernelAbstractions" => "bratu_ka",
     "Simple" => "simple",
@@ -53,6 +54,9 @@ examples = [
     "Trixi Rosenbrock" => "trixi_rosenbrock",
     "Trixi Rosenbrock Warm Bubble" => "trixi_rosenbrock_warm_bubble",
     "Trixi Rosenbrock Blast Wave" => "trixi_rosenbrock_blast_wave",
+    "Trixi IMEX SSP" => "trixi_imex_ssp",
+    "Trixi IMEX ARS" => "trixi_imex_ars",
+    "Trixi IMEX Von Karman street" => "trixi_imex_von_karman_street",
 ]
 
 for (_, name) in examples
@@ -65,7 +69,7 @@ examples = [title => joinpath("generated", string(name, ".md")) for (title, name
 bib = CitationBibliography(joinpath(@__DIR__, "src", "refs.bib"))
 
 makedocs(;
-    modules = [Ariadne],
+    modules = [Ariadne, Theseus],
     authors = "Valentin Churavy",
     repo = GitHub("vchuravy", "Ariadne.jl"),
     sitename = "Ariadne.jl",
@@ -79,7 +83,8 @@ makedocs(;
         size_threshold = 10_000_000,
     ),
     pages = [
-        "Home" => "index.md",
+        "Ariadne.jl" => "index.md",
+        "Theseus.jl" => "theseus.md",
         "Examples" => examples,
         "Notebooks" => [
             "Heat 2D" => "notebooks/heat_2d.md",
@@ -94,5 +99,12 @@ makedocs(;
 deploydocs(;
     repo = "github.com/NumericalMathematics/Ariadne.jl.git",
     devbranch = "main",
-    push_preview = true,
+    # Only push previews if all the relevant environment variables are non-empty.
+    push_preview = all(
+        !isempty,
+        (
+            get(ENV, "GITHUB_TOKEN", ""),
+            get(ENV, "DOCUMENTER_KEY", ""),
+        )
+    )
 )

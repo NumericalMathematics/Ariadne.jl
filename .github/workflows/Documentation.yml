@@ -16,11 +16,11 @@ jobs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
         with:
           version: "1.11"
-      - uses: julia-actions/cache@v2
+      - uses: julia-actions/cache@v3
       - name: instantiate docs
         run: |
           julia --project=docs -e '
@@ -32,8 +32,11 @@ jobs:
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
             using Ariadne
+            using Theseus
             DocMeta.setdocmeta!(Ariadne, :DocTestSetup, :(using Ariadne); recursive=true)
+            DocMeta.setdocmeta!(Theseus, :DocTestSetup, :(using Theseus); recursive=true)
             doctest(Ariadne)
+            doctest(Theseus; manual=false)
           '
       - name: generate docs
         run: julia --project=docs docs/make.jl

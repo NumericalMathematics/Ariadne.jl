@@ -1,2 +1,4 @@
 **/Manifest.toml
 **/*.h5
+**/run*/
+**/*.code-workspace
