@@ -1,7 +1,8 @@
 [deps]
+Ariadne = "0be81120-40bf-4f8b-adf0-26103efb66f1"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Krylov = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
-Ariadne = "0be81120-40bf-4f8b-adf0-26103efb66f1"
+NonlinearSolve = "8913a72c-1f9b-4ce2-8d82-65094dcecaec"
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 PlutoLinks = "0ff47ea0-7a50-410d-8455-4348d5de0420"
