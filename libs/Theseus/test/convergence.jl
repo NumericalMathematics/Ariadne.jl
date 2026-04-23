@@ -439,3 +439,47 @@ end
         end
     end # IMEX methods
 end
+
+@testset "Convergence linear system for IMEX methods" begin
+    function rhs_full!(du, u, p, t)
+        du[1] = -u[2]
+        du[2] = u[1]
+        du[3] = -u[3]
+        return nothing
+    end
+    function rhs_zero!(du, u, p, t)
+        du .= 0
+        return nothing
+    end
+    ode_split_1 = SplitODEProblem(
+        rhs_full!, rhs_zero!,
+        [1.0, 0.0, 1.0],
+        (0.0, 1.0)
+    )
+    ode_split_2 = SplitODEProblem(
+        rhs_zero!, rhs_full!,
+        ode_split_1.u0,
+        ode_split_1.tspan
+    )
+    u_ana = [
+        cos(ode.tspan[end]),
+        sin(ode.tspan[end]),
+        exp(-ode.tspan[end]),
+    ]
+
+    @testset "SP111" begin
+        alg = Theseus.SP111()
+        order = 1
+        dts = 2.0 .^ (-2:-1:-6)
+        for ode_split in (ode_split_1, ode_split_2)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-8
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
+
+    # TODO: Add tests for other IMEX methods
+end
