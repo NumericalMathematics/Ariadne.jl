@@ -462,9 +462,9 @@ end
         ode_split_1.tspan
     )
     u_ana = [
-        cos(ode.tspan[end]),
-        sin(ode.tspan[end]),
-        exp(-ode.tspan[end]),
+        cos(ode_split_1.tspan[end]),
+        sin(ode_split_1.tspan[end]),
+        exp(-ode_split_1.tspan[end]),
     ]
 
     @testset "SP111" begin
