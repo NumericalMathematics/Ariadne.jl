@@ -261,7 +261,7 @@ initial(F::Fixed) = F.η
     EisenstatWalker(η₀ = 0.999, η_max = 0.999, γ = 0.9, α = 2.0)
 
 Adaptive forcing term for inexact Newton-Krylov methods. The forcing term η
-is updated each iteration as ([Kelley2022](@cite), Eq. 3.6).
+is updated each iteration as in [Kelley2022](@cite), Eq. (3.6).
 
 ## Parameters
 - `η₀`:    Initial forcing term. Default: `0.999`.
