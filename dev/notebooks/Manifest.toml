@@ -102,7 +102,7 @@ version = "1.1.2"
 deps = ["Enzyme", "Krylov", "LinearAlgebra", "SparseArrays"]
 path = "../../.."
 uuid = "0be81120-40bf-4f8b-adf0-26103efb66f1"
-version = "0.1.1"
+version = "0.1.2"
 
 [[deps.ArrayInterface]]
 deps = ["Adapt", "LinearAlgebra"]
@@ -1734,9 +1734,9 @@ version = "0.6.43"
 
 [[deps.SciMLBase]]
 deps = ["ADTypes", "Accessors", "Adapt", "ArrayInterface", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "PreallocationTools", "PrecompileTools", "Preferences", "Printf", "Random", "RecipesBase", "RecursiveArrayTools", "Reexport", "RuntimeGeneratedFunctions", "SciMLLogging", "SciMLOperators", "SciMLPublic", "SciMLStructures", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface"]
-git-tree-sha1 = "6360c98eb5f2698d9df01014fe2c8d636005bca5"
+git-tree-sha1 = "28445c425e2b916f98b75236f5c99a73f4df0504"
 uuid = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
-version = "3.5.0"
+version = "3.6.0"
 
     [deps.SciMLBase.extensions]
     SciMLBaseChainRulesCoreExt = "ChainRulesCore"
