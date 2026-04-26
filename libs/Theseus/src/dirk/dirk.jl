@@ -27,11 +27,10 @@ stages(::DIRK{N}) where {N} = N
 #   z^i - \sum_{j=1}^i a_{ij} f(y^j) = 0.
 #
 # In the implementation below, `u = z` is the unknown for the current `stage`.
-function (::DIRK{N})(res, uₙ, Δt, f!, du, du_tmp, u, p, t, stages, stage, RK) where {N}
-    @. res = u
-    for j in 1:(stage - 1)
-        @. res = res - RK.a[stage, j] * stages[j]
-    end
+# `tmp` is the contribution of the previous stages computed in the method
+# defined below.
+function (::DIRK{N})(res, tmp, uₙ, Δt, f!, du, du_tmp, u, p, t, stage, RK) where {N}
+    @. res = tmp + u
     @. du = u * Δt + uₙ
     f!(du_tmp, du, p, t + RK.c[stage] * Δt)
     @. res = res - RK.a[stage, stage] * du_tmp
@@ -39,7 +38,7 @@ function (::DIRK{N})(res, uₙ, Δt, f!, du, du_tmp, u, p, t, stages, stage, RK)
 end
 
 function nonlinear_problem(alg::SimpleDiagonallyImplicitAlgorithm, f::F) where {F}
-    return (res, u, (uₙ, Δt, du, du_tmp, p, t, stages, stage, RK)) -> alg(res, uₙ, Δt, f, du, du_tmp, u, p, t, stages, stage, RK)
+    return (res, u, (tmp, uₙ, Δt, du, du_tmp, p, t, stage, RK)) -> alg(res, tmp, uₙ, Δt, f, du, du_tmp, u, p, t, stage, RK)
 end
 
 mutable struct SimpleDiagonallyImplicitOptions{Callback}
@@ -87,6 +86,7 @@ mutable struct SimpleDiagonallyImplicit{
     du::uType
     du_tmp::uType
     u_tmp::uType
+    tmp::uType
     stages::NTuple{M, uType}
     res::uType
     t::RealT
@@ -119,11 +119,12 @@ function init(
     du = zero(u)
     res = zero(u)
     u_tmp = similar(u)
+    tmp = similar(u)
     stages = ntuple(_ -> similar(u), Val(N))
     t = first(ode.tspan)
     iter = 0
     integrator = SimpleDiagonallyImplicit(
-        u, du, copy(du), u_tmp, stages, res, t, dt, zero(dt), iter, ode.p,
+        u, du, copy(du), u_tmp, tmp, stages, res, t, dt, zero(dt), iter, ode.p,
         (prob = ode,), ode.f,
         alg,
         SimpleDiagonallyImplicitOptions(
@@ -253,17 +254,21 @@ function stage!(integrator, alg::DIRK)
         if iszero(integrator.RK.a[stage, stage])
             # In this case, the stage is explicit and can be computed directly
             # without solving any (nonlinear) system.
-            @. integrator.u_tmp = 0
+	    fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
             for j in 1:(stage - 1)
                 @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a[stage, j] * integrator.stages[j]
             end
         else
             # In this case, we have an implicit stage that requires solving a
             # nonlinear system.
+            fill!(integrator.tmp, zero(eltype(integrator.tmp)))
+            for j in 1:(stage - 1)
+                @. integrator.tmp = integrator.tmp - integrator.RK.a[stage, j] * integrator.stages[j]
+            end
             F! = nonlinear_problem(alg, integrator.f)
             # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
             _, stats = newton_krylov!(
-                F!, integrator.u_tmp, (integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, integrator.stages, stage, integrator.RK), integrator.res;
+                F!, integrator.u_tmp, (integrator.tmp, integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, stage, integrator.RK), integrator.res;
                 verbose = integrator.opts.verbose,
                 tol_abs = integrator.opts.newton_tol_abs,
                 tol_rel = integrator.opts.newton_tol_rel,
@@ -315,7 +320,7 @@ function stage!(integrator, alg::DIRK)
         @. integrator.u_tmp = integrator.u_tmp + b * integrator.stages[j]
     end
     @. integrator.u_tmp = integrator.u + integrator.dt * integrator.u_tmp
-    return
+    return nothing
 end
 
 # get a cache where the RHS can be stored
