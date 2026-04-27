@@ -338,7 +338,7 @@ struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW}
 end
 
 function NewtonKrylovWorkspace(
-        F!, u::AbstractArray, p, res::AbstractArray, ::Val{Algo}=Val(:gmres);
+        F!, u::AbstractArray, p, res::AbstractArray, ::Val{Algo} = Val(:gmres);
         assume_p_const::Bool = false
     ) where {Algo}
     # res .= 0 might ignore ghost cells

@@ -96,5 +96,5 @@ Base.zero(v::WrappedVector) = WrappedVector(zero(v.data))
     res = zero(x₀)
     x, stats = newton_krylov!(F!, x₀, nothing, res)
     @test stats.solved
-    @test x ≈ [1.0, 1.0] atol = 1e-5
+    @test x ≈ [1.0, 1.0] atol = 1.0e-5
 end

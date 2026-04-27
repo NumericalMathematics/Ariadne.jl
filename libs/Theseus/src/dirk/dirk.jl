@@ -254,14 +254,16 @@ function stage!(integrator, alg::DIRK)
         if iszero(integrator.RK.a[stage, stage])
             # In this case, the stage is explicit and can be computed directly
             # without solving any (nonlinear) system.
-	    fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
+            @. integrator.u_tmp = 0
+            # fill!(integrator.u_tmp, zero(eltype(integrator.u_tmp)))
             for j in 1:(stage - 1)
                 @. integrator.u_tmp = integrator.u_tmp + integrator.RK.a[stage, j] * integrator.stages[j]
             end
         else
             # In this case, we have an implicit stage that requires solving a
             # nonlinear system.
-            fill!(integrator.tmp, zero(eltype(integrator.tmp)))
+            @. integrator.tmp = 0
+            # fill!(integrator.tmp, zero(eltype(integrator.tmp)))
             for j in 1:(stage - 1)
                 @. integrator.tmp = integrator.tmp - integrator.RK.a[stage, j] * integrator.stages[j]
             end
