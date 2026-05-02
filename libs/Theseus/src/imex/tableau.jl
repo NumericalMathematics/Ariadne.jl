@@ -530,3 +530,96 @@ function RKTableau(alg::ARS443, RealT)
     c_im[5] = 1
     return IMEXButcher(a, b, c, a_im, b_im, c_im)
 end
+
+"""
+    KenCarpARK437()
+
+A fourth-order, seven-stage type II IMEX method developed by Kennedy and Carpenter (2019).
+The implicit method is A-stable and stiffly accurate.
+
+## References
+- Christopher A. Kennedy and Mark H. Carpenter (2019)
+  *Higher-order additive Runge–Kutta schemes for ordinary differential equations.*
+  *Applied Numerical Mathematics* 136:183-205.
+  [DOI: 10.1016/j.apnum.2018.10.007](https://doi.org/10.1016/j.apnum.2018.10.007)
+"""
+struct KenCarpARK437 <: RKIMEX{7} end
+function RKTableau(alg::KenCarpARK437, RealT)
+    nstage = 7
+    gamma = RealT(1235) / RealT(10_000)
+
+    c_ex = zeros(RealT, nstage)
+    c_ex[2] = RealT(247) / RealT(1000)
+    c_ex[3] = RealT(4276536705230) / RealT(10142255878289)
+    c_ex[4] = RealT(67) / RealT(200)
+    c_ex[5] = RealT(3) / RealT(40)
+    c_ex[6] = RealT(7) / RealT(10)
+    c_ex[7] = RealT(1)
+
+    b_ex = zeros(RealT, nstage)
+    b_ex[3] = RealT(9164257142617) / RealT(17756377923965)
+    b_ex[4] = RealT(-10812980402763) / RealT(74029279521829)
+    b_ex[5] = RealT(1335994250573) / RealT(5691609445217)
+    b_ex[6] = RealT(2273837961795) / RealT(8368240463276)
+    b_ex[7] = RealT(247) / RealT(2000)
+
+    a_ex = zeros(RealT, nstage, nstage)
+    a_ex[2, 1] = c_ex[2]
+    a_ex[3, 1] = RealT(247) / RealT(4000)
+    a_ex[3, 2] = RealT(2694949928731) / RealT(7487940209513)
+    a_ex[4, 1] = RealT(464650059369) / RealT(8764239774964)
+    a_ex[4, 2] = RealT(878889893998) / RealT(2444806327765)
+    a_ex[4, 3] = RealT(-952945855348) / RealT(12294611323341)
+    a_ex[5, 1] = RealT(476636172619) / RealT(8159180917465)
+    a_ex[5, 2] = RealT(-1271469283451) / RealT(7793814740893)
+    a_ex[5, 3] = RealT(-859560642026) / RealT(4356155882851)
+    a_ex[5, 4] = RealT(1723805262919) / RealT(4571918432560)
+    a_ex[6, 1] = RealT(6338158500785) / RealT(11769362343261)
+    a_ex[6, 2] = RealT(-4970555480458) / RealT(10924838743837)
+    a_ex[6, 3] = RealT(3326578051521) / RealT(2647936831840)
+    a_ex[6, 4] = RealT(-880713585975) / RealT(1841400956686)
+    a_ex[6, 5] = RealT(-1428733748635) / RealT(8843423958496)
+    a_ex[7, 1] = RealT(760814592956) / RealT(3276306540349)
+    a_ex[7, 2] = a_ex[7, 1]
+    a_ex[7, 3] = RealT(-47223648122716) / RealT(6934462133451)
+    a_ex[7, 4] = RealT(71187472546993) / RealT(9669769126921)
+    a_ex[7, 5] = RealT(-13330509492149) / RealT(9695768672337)
+    a_ex[7, 6] = RealT(11565764226357) / RealT(8513123442827)
+    @assert c_ex ≈ sum(a_ex, dims = 2)
+
+    a_im = zeros(RealT, nstage, nstage)
+    a_im[2, 1] = gamma
+    a_im[2, 2] = gamma
+    a_im[3, 1] = RealT(624185399699) / RealT(4186980696204)
+    a_im[3, 2] = a_im[3, 1]
+    a_im[3, 3] = gamma
+    a_im[4, 1] = RealT(1258591069120) / RealT(10082082980243)
+    a_im[4, 2] = a_im[4, 1]
+    a_im[4, 3] = RealT(-322722984531) / RealT(8455138723562)
+    a_im[4, 4] = gamma
+    a_im[5, 1] = RealT(-436103496990) / RealT(5971407786587)
+    a_im[5, 2] = a_im[5, 1]
+    a_im[5, 3] = RealT(-2689175662187) / RealT(11046760208243)
+    a_im[5, 4] = RealT(4431412449334) / RealT(12995360898505)
+    a_im[5, 5] = gamma
+    a_im[6, 1] = RealT(-2207373168298) / RealT(14430576638973)
+    a_im[6, 2] = a_im[6, 1]
+    a_im[6, 3] = RealT(242511121179) / RealT(3358618340039)
+    a_im[6, 4] = RealT(3145666661981) / RealT(7780404714551)
+    a_im[6, 5] = RealT(5882073923981) / RealT(14490790706663)
+    a_im[6, 6] = gamma
+    a_im[7, 1] = RealT(0)
+    a_im[7, 2] = a_im[7, 1]
+    a_im[7, 3] = RealT(9164257142617) / RealT(17756377923965)
+    a_im[7, 4] = RealT(-10812980402763) / RealT(74029279521829)
+    a_im[7, 5] = RealT(1335994250573) / RealT(5691609445217)
+    a_im[7, 6] = RealT(2273837961795) / RealT(8368240463276)
+    a_im[7, 7] = gamma
+    b_im = copy(b_ex)
+    c_im = copy(c_ex)
+    @assert c_im ≈ sum(a_im, dims = 2)
+
+    # TODO: Implement embedded methods
+
+    return IMEXButcher(a_ex, b_ex, c_ex, a_im, b_im, c_im)
+end
