@@ -8,7 +8,7 @@ struct IMEXButcher{T1 <: AbstractArray, T2 <: AbstractArray} <: RKTableau
 end
 
 """
-    SP111()
+    Theseus.SP111()
 
 The symplectic Euler method, a first-order, one-stage type I IMEX method
 combining an explicit and an implicit Euler method.
@@ -35,7 +35,7 @@ function RKTableau(alg::SP111, RealT)
 end
 
 """
-    H222()
+    Theseus.H222()
 
 A second-order, two-stage type I IMEX method.
 The explicit part is strong stability preserving (SSP), the implicit part
@@ -69,7 +69,7 @@ function RKTableau(alg::H222, RealT)
 end
 
 """
-    SSP2222()
+    Theseus.SSP2222()
 
 A second-order, two-stage type I IMEX method developed by Pareschi and Russo (2005).
 The explicit part is strong stability preserving (SSP), the implicit part
@@ -110,7 +110,7 @@ function RKTableau(alg::SSP2222, RealT)
 end
 
 """
-    SSP2322()
+    Theseus.SSP2322()
 
 A second-order, three-stage type I IMEX method developed by Pareschi and Russo (2005).
 The explicit part is strong stability preserving (SSP), the implicit part
@@ -149,7 +149,7 @@ function RKTableau(alg::SSP2322, RealT)
 end
 
 """
-    SSP2332()
+    Theseus.SSP2332()
 
 A second-order, three-stage type I IMEX method developed by Pareschi and Russo (2005).
 The explicit part is strong stability preserving (SSP), the implicit part
@@ -197,7 +197,7 @@ function RKTableau(alg::SSP2332, RealT)
 end
 
 """
-    SSP3332()
+    Theseus.SSP3332()
 
 A second-order, three-stage type I IMEX method developed by Pareschi and Russo (2005).
 The explicit part is strong stability preserving (SSP) and third-order accurate,
@@ -243,7 +243,7 @@ function RKTableau(alg::SSP3332, RealT)
 end
 
 """
-    SSP3433()
+    Theseus.SSP3433()
 
 A third-order, four-stage type I IMEX method developed by Pareschi and Russo (2005).
 The explicit part is strong stability preserving (SSP) and third-order accurate,
@@ -298,7 +298,7 @@ function RKTableau(alg::SSP3433, RealT)
 end
 
 """
-    HT222()
+    Theseus.HT222()
 
 A second-order, two-stage type II IMEX method.
 The explicit part is strong stability preserving (SSP), the implicit part
@@ -331,7 +331,7 @@ function RKTableau(alg::HT222, RealT)
 end
 
 """
-    ARS111()
+    Theseus.ARS111()
 
 A first-order, effectively one-stage, globally stiffly accurate (GSA) type II IMEX method
 developed by Ascher, Ruuth, and Spiteri (1997).
@@ -370,7 +370,7 @@ function RKTableau(alg::ARS111, RealT)
 end
 
 """
-    ARS222()
+    Theseus.ARS222()
 
 A second-order, effectively two-stage, globally stiffly accurate (GSA) type II IMEX method
 developed by Ascher, Ruuth, and Spiteri (1997).
@@ -419,7 +419,7 @@ function RKTableau(alg::ARS222, RealT)
 end
 
 """
-    ARS233()
+    Theseus.ARS233()
 
 A third-order, effectively three-stage type II IMEX method
 developed by Ascher, Ruuth, and Spiteri (1997).
@@ -463,7 +463,7 @@ function RKTableau(alg::ARS233, RealT)
 end
 
 """
-    ARS443()
+    Theseus.ARS443()
 
 A third-order, effectively four-stage, globally stiffly accurate (GSA) type II IMEX method
 developed by Ascher, Ruuth, and Spiteri (1997).
@@ -532,7 +532,7 @@ function RKTableau(alg::ARS443, RealT)
 end
 
 """
-    KenCarpARK437()
+    Theseus.KenCarpARK437()
 
 A fourth-order, seven-stage type II IMEX method developed by Kennedy and Carpenter (2019).
 The implicit method is A-stable and stiffly accurate.
