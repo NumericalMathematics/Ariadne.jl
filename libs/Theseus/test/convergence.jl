@@ -204,6 +204,24 @@ end
             eoc = compute_eoc(dts, errors)
             @test isapprox(eoc, order; atol = 0.1)
         end
+
+        @testset "KenCarpARK437" begin
+            alg = Theseus.KenCarpARK437()
+            order = 4
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "KenCarpARK548" begin
+            alg = Theseus.KenCarpARK548()
+            order = 5
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
     end # IMEX methods
 end
 
@@ -397,7 +415,7 @@ end
             eoc = compute_eoc(dts, errors)
             @test_broken isapprox(eoc, order; atol = 0.1)
             # This appears to be even second-order accurate,
-            # but it is documented to be third-order.
+            # but it is documented to be first-order.
         end
 
         @testset "ARS222" begin
@@ -433,6 +451,32 @@ end
                 ode_split, u_ana, alg, dts;
                 newton_tol_abs = 1.0e-9,
                 newton_tol_rel = 1.0e-9
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "KenCarpARK437" begin
+            alg = Theseus.KenCarpARK437()
+            order = 4
+            dts = 2.0 .^ (0:-1:-4)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-9,
+                newton_tol_rel = 1.0e-9
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "KenCarpARK548" begin
+            alg = Theseus.KenCarpARK548()
+            order = 5
+            dts = 2.0 .^ (0:-1:-4)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-12,
+                newton_tol_rel = 1.0e-12
             )
             eoc = compute_eoc(dts, errors)
             @test isapprox(eoc, order; atol = 0.1)
@@ -482,4 +526,34 @@ end
     end
 
     # TODO: Add tests for other IMEX methods
+
+    @testset "KenCarpARK437" begin
+        alg = Theseus.KenCarpARK437()
+        order = 4
+        dts = 2.0 .^ (0:-1:-4)
+        for ode_split in (ode_split_1, ode_split_2)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-12,
+                newton_tol_rel = 1.0e-12
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
+
+    @testset "KenCarpARK548" begin
+        alg = Theseus.KenCarpARK548()
+        order = 5
+        dts = 2.0 .^ (-2:-1:-6)
+        for ode_split in (ode_split_1, ode_split_2)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-12,
+                newton_tol_rel = 1.0e-12
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
 end
