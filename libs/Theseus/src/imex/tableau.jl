@@ -535,7 +535,7 @@ end
     Theseus.KenCarpARK437()
 
 A fourth-order, seven-stage type II IMEX method developed by Kennedy and Carpenter (2019).
-The implicit method is A-stable and stiffly accurate.
+The implicit method is A-stable, L-stable, and stiffly accurate.
 
 ## References
 - Christopher A. Kennedy and Mark H. Carpenter (2019)
@@ -629,7 +629,7 @@ end
     Theseus.KenCarpARK548()
 
 A fifth-order, eight-stage type II IMEX method developed by Kennedy and Carpenter (2019).
-The implicit method is A-stable and stiffly accurate.
+The implicit method is A-stable, L-stable, and stiffly accurate.
 
 ## References
 - Christopher A. Kennedy and Mark H. Carpenter (2019)
