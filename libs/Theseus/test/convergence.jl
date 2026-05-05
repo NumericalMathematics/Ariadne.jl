@@ -138,13 +138,11 @@ end
 
         @testset "SSP3332" begin
             alg = Theseus.SSP3332()
-            order = 3
+            order = 2
             dts = 2.0 .^ (-2:-1:-6)
             errors = compute_errors(ode_split, u_ana, alg, dts)
             eoc = compute_eoc(dts, errors)
-            @test_broken isapprox(eoc, order; atol = 0.1)
-            # This appears to be only second-order accurate,
-            # but it is documented to be third-order.
+            @test isapprox(eoc, order; atol = 0.1)
         end
 
         @testset "SSP3433" begin
@@ -350,16 +348,14 @@ end
 
         @testset "SSP3332" begin
             alg = Theseus.SSP3332()
-            order = 3
+            order = 2
             dts = 2.0 .^ (-2:-1:-6)
             errors = compute_errors(
                 ode_split, u_ana, alg, dts;
                 newton_tol_abs = 1.0e-8
             )
             eoc = compute_eoc(dts, errors)
-            @test_broken isapprox(eoc, order; atol = 0.1)
-            # This appears to be only second-order accurate,
-            # but it is documented to be third-order.
+            @test isapprox(eoc, order; atol = 0.1)
         end
 
         @testset "SSP3433" begin
@@ -548,13 +544,11 @@ end
 
     @testset "SSP3332" begin
         alg = Theseus.SSP3332()
-        order = 3
+        order = 2
         dts = 2.0 .^ (-3:-1:-7)
         errors = compute_errors(ode_split, u_ana, alg, dts)
         eoc = compute_eoc(dts, errors)
-        @test_broken isapprox(eoc, order; atol = 0.1)
-        # This appears to be only second-order accurate,
-        # but it is documented to be third-order.
+        @test isapprox(eoc, order; atol = 0.1)
     end
 
     @testset "SSP3433" begin
