@@ -102,7 +102,7 @@ end
 
 """
     CooperSayfy5
-A 5th-order, 5-stage, A-stable DIRK method.
+A fifth-order, five-stage, A-stable DIRK method.
 
 ## References
 - E. Hairer, G. Wanner. Solving ordinary differential equations II: Stiff and Differential-Algebraic Problems.
@@ -158,7 +158,7 @@ end
 
 """
     HairerWannerSDIRK4()
-A 4th-order, 5-stage, L-stable SDIRK method.
+A fourth-order, five-stage, L-stable SDIRK method.
 
 ## References
 - E. Hairer, G. Wanner. Solving ordinary differential equations II: Stiff and Differential-Algebraic Problems.
@@ -212,7 +212,7 @@ end
 
 """
     CrouzeixRaviart34
-A 4th-order, 3-stage, L-stable SDIRK method.
+A fourth-order, three-stage, L-stable SDIRK method.
 
 ## References
 - E. Hairer, G. Wanner. Solving ordinary differential equations II: Stiff and Differential-Algebraic Problems.
@@ -224,9 +224,7 @@ function RKTableau(alg::CrouzeixRaviart34, RealT)
     nstage = 3
     
     sqrt3 = sqrt(convert(RealT, 3))
-    π_val = convert(RealT, π)
-    γ = (1 / sqrt3) * cos(π_val / 18) + 1 // 2
-
+    γ = (1 / sqrt3) * cospi(1 / 18) + 1 // 2
     δ = 1 / (6 * (2 * γ - 1)^2)
     
     a = zeros(RealT, nstage, nstage)
