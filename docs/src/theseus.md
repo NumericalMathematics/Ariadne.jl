@@ -48,7 +48,7 @@ Theseus.SSP3332
 Theseus.SSP3433
 ```
 
-### Type II methods (Ascher–Ruuth–Spiteri)
+### Type II methods (Ascher–Ruuth–Spiteri and Kennedy–Carpenter)
 
 ```@docs
 Theseus.HT222
@@ -56,6 +56,8 @@ Theseus.ARS111
 Theseus.ARS222
 Theseus.ARS233
 Theseus.ARS443
+Theseus.KenCarpARK437
+Theseus.KenCarpARK548
 ```
 
 ## Rosenbrock-W Methods
