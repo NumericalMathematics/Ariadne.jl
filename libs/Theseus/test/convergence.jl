@@ -93,7 +93,7 @@ end
     @testset "IMEX methods" begin
         @testset "SP111" begin
             alg = Theseus.SP111()
-            order = 1 + 1 # trapezoidal quadrature for this symmetric split
+            order = 1 + 1 # trapezoidal quadrature for this symmetric, time-only split
             dts = 2.0 .^ (-2:-1:-6)
             errors = compute_errors(ode_split, u_ana, alg, dts)
             eoc = compute_eoc(dts, errors)
@@ -147,13 +147,11 @@ end
 
         @testset "SSP3433" begin
             alg = Theseus.SSP3433()
-            order = 3
+            order = 3 + 1 # Simpson quadrature for this time-only split
             dts = 2.0 .^ (-2:-1:-6)
             errors = compute_errors(ode_split, u_ana, alg, dts)
             eoc = compute_eoc(dts, errors)
-            @test_broken isapprox(eoc, order; atol = 0.1)
-            # This appears to be even fourth-order accurate,
-            # but it is documented to be third-order.
+            @test isapprox(eoc, order; atol = 0.1)
         end
 
         @testset "HT222" begin
@@ -167,13 +165,11 @@ end
 
         @testset "ARS111" begin
             alg = Theseus.ARS111()
-            order = 1
+            order = 1 + 1 # trapezoidal quadrature for this symmetric, time-only split
             dts = 2.0 .^ (-2:-1:-6)
             errors = compute_errors(ode_split, u_ana, alg, dts)
             eoc = compute_eoc(dts, errors)
-            @test_broken isapprox(eoc, order; atol = 0.1)
-            # This appears to be even second-order accurate,
-            # but it is documented to be first-order.
+            @test isapprox(eoc, order; atol = 0.1)
         end
 
         @testset "ARS222" begin
