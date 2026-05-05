@@ -31,6 +31,6 @@ end
 
     solve(ode, Theseus.ARS443(); 
         dt = 0.02,
-        newton_kwargs = (; linesearch! = NoLineSearch())
+        newton_kwargs = (; linesearch! = BacktrackingLineSearch())
     )
 end
