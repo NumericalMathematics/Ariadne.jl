@@ -1,6 +1,7 @@
 # Jacobian-Free-Newton-Krylov solvers and time integration methods
 
 [![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://NumericalMathematics.github.io/Ariadne.jl/dev/)
+[![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://NumericalMathematics.github.io/Ariadne.jl/stable/)
 [![Build Status](https://github.com/NumericalMathematics/Ariadne.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/NumericalMathematics/Ariadne.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 
