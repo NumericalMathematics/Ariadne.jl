@@ -519,7 +519,7 @@ end
         order = 3
         dts = 2.0 .^ (-2:-1:-6)
         for ode_split in (ode_split_1, ode_split_2)
-            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-12, newton_tol_rel = 1.0e-12)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-9, newton_tol_rel = 1.0e-9)
             eoc = compute_eoc(dts, errors)
             @test isapprox(eoc, order; atol = 0.1)
         end
@@ -530,7 +530,7 @@ end
         order = 3
         dts = 2.0 .^ (-2:-1:-6)
         for ode_split in (ode_split_1, ode_split_2)
-            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-12, newton_tol_rel = 1.0e-12)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-9, newton_tol_rel = 1.0e-9)
             eoc = compute_eoc(dts, errors)
             @test isapprox(eoc, order; atol = 0.1)
         end

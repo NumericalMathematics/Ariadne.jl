@@ -534,7 +534,7 @@ end
 """
    BHR553G1()
    
-A third order (not stiffly accurate) type II IMEX method developed by
+A third order, stiffly accurate, L-stable type II IMEX method developed by
 Boscarino and Russo (2009)
 
 ##References
@@ -560,7 +560,6 @@ function RKTableau(alg::BHR553G1, RealT)
     a[5, 4] = -987618231894176581438124717087 // 23877337660202969319526901856000
     b = zeros(RealT, nstage)
     b[1] = 487698502336740678603511//1181159636928185920260208
-    #Bs geändert wie in b_im, ev tippfehler in Paper?
     b[3] = 302987763081184622639300143137943089//1535359944203293318639180129368156500
     b[4] = -105235928335100616072938218863//2282554452064661756575727198000
     #
@@ -600,7 +599,7 @@ end
 """
    BHR553G2()
    
-A third order (not stiffly accurate) type II IMEX method developed by
+A third order, stiffly accurate, L-stable type II IMEX method developed by
 Boscarino and Russo (2009)
 
 ##References

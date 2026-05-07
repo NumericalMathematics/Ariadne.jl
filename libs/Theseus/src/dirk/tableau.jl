@@ -101,7 +101,7 @@ function RKTableau(alg::DIRK43, RealT)
 end
 
 """
-    ESDIRK43SA2()
+    Theseus.ESDIRK43SA2()
 
 A fourth-order, six-stage, stiffly accurate ESDIRK method 
 with an embedded third-order method for error estimation.
