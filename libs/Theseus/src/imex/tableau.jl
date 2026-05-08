@@ -535,7 +535,7 @@ end
     Theseus.BHR553G1()
    
 A third order, stiffly accurate, L-stable type II IMEX method developed by
-Boscarino and Russo (2009)
+Boscarino and Russo (2009).
 
 ## References
 - Sebastiano Boscarino and Giovanni Russo (2009)
