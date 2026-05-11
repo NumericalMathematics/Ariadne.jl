@@ -101,13 +101,17 @@ function RKTableau(alg::DIRK43, RealT)
 end
 
 """
-    CooperSayfy5
+    Theseus.CooperSayfy5()
 A fifth-order, five-stage, A-stable DIRK method.
 
 ## References
 - E. Hairer, G. Wanner. Solving ordinary differential equations II: Stiff and Differential-Algebraic Problems.
   Springer, 1996. 
   page.101
+- Cooper, G. J., and A. Sayfy. Semiexplicit Runge-Kutta methods for stiff differential equations. 
+  Mathematics of Computation 33, 
+  no. 146 (1979): 541-556. 
+  doi:10.1090/S0025-5718-1979-0521275-1.
 """
 struct CooperSayfy5 <: DIRK{5} end
 function RKTableau(alg::CooperSayfy5, RealT)
@@ -157,7 +161,7 @@ end
 
 
 """
-    HairerWannerSDIRK4()
+    Theseus.HairerWannerSDIRK4()
 A fourth-order, five-stage, L-stable SDIRK method.
 
 ## References
@@ -211,20 +215,22 @@ end
 
 
 """
-    CrouzeixRaviart34
+    Theseus.CrouzeixRaviart34()
 A fourth-order, three-stage, L-stable SDIRK method.
 
 ## References
 - E. Hairer, G. Wanner. Solving ordinary differential equations II: Stiff and Differential-Algebraic Problems.
   Springer, 1996. 
   page.100
+- M. Crouzeix. Sur l’approximation des équations différentielles opérationnelles linéaires par des méthodes de Runge-Kutta. 
+  Thèse d'état, Univ. Paris 6 192pp, 1975.
 """
 struct CrouzeixRaviart34 <: DIRK{3} end
 function RKTableau(alg::CrouzeixRaviart34, RealT)
     nstage = 3
     
     sqrt3 = sqrt(convert(RealT, 3))
-    γ = (1 / sqrt3) * cospi(1 / 18) + 1 // 2
+    γ = (1 / sqrt3) * cospi(one(RealT) / 18) + 1 // 2
     δ = 1 / (6 * (2 * γ - 1)^2)
     
     a = zeros(RealT, nstage, nstage)
