@@ -147,7 +147,7 @@ function RKTableau(alg::CooperSayfy5, RealT)
     
     c = zeros(RealT, nstage)
     c[1] = γ
-    c[2] = (6 + 9 * sqrt6) / 35  # Corrected from the row 2 c-column
+    c[2] = (6 + 9 * sqrt6) / 35
     c[3] = 1 
     c[4] = (4 - sqrt6) / 10
     c[5] = (4 + sqrt6) / 10
