@@ -8,7 +8,6 @@ stages(::MISAlgorithm{N}) where {N} = N
 	(::MISAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, RK, assume_p_const) where N
 
 """
-@muladd begin
 function (::MISSlowAlgorithm{N})(un, Δt, fslow!, Zn0, dZn, Yn, du, p, t, stages, stage, RK, integrator_fast, dt_fast) where {N}
     invdt = inv(Δt)
 	
@@ -28,7 +27,6 @@ function (::MISSlowAlgorithm{N})(un, Δt, fslow!, Zn0, dZn, Yn, du, p, t, stages
 		
 	@trixi_timeit timer() "slow tendencies" fslow!(du, Yn[stage], p, t + Δt)
 	stages[stage] .= du
-end
 end
 
 function solve_fastode!(alg, integrator_fast, Zn0, dZn, Yn, stage, T, dt)
