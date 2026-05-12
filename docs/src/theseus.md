@@ -26,6 +26,9 @@ one Newton–Krylov solve.  They accept an `ODEProblem`.
 Theseus.LobattoIIIA2
 Theseus.Crouzeix32
 Theseus.DIRK43
+Theseus.CooperSayfy5
+Theseus.CrouzeixRaviart34
+Theseus.HairerWannerSDIRK4
 ```
 
 ## Implicit–Explicit (IMEX) Runge–Kutta Methods
