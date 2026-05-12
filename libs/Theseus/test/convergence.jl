@@ -554,7 +554,13 @@ end
         alg = Theseus.BHR553G1()
         order = 3
         dts = 2.0 .^ (-2:-1:-6)
-        for ode_split in (ode_split_1, ode_split_2)
+        let ode_split = ode_split_2
+            # The explicit method is fourth-order accurate for linear problems
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-9, newton_tol_rel = 1.0e-9)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order + 1; atol = 0.1)
+        end
+        let ode_split = ode_split_1
             errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-9, newton_tol_rel = 1.0e-9)
             eoc = compute_eoc(dts, errors)
             @test isapprox(eoc, order; atol = 0.1)
@@ -563,10 +569,11 @@ end
 
     @testset "BHR553G2" begin
         alg = Theseus.BHR553G2()
-        order = 3
+        # Both individual methods are fourth-order accurate for linear problems.
+        order = 3 + 1
         dts = 2.0 .^ (-2:-1:-6)
         for ode_split in (ode_split_1, ode_split_2)
-            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-9, newton_tol_rel = 1.0e-9)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-10, newton_tol_rel = 1.0e-10)
             eoc = compute_eoc(dts, errors)
             @test isapprox(eoc, order; atol = 0.1)
         end
@@ -737,4 +744,30 @@ end
         eoc = compute_eoc(dts, errors)
         @test isapprox(eoc, order; atol = 0.1)
     end
+
+     @testset "BHR553G1" begin
+        alg = Theseus.BHR553G1()
+        order = 3
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(
+            ode_split, u_ana, alg, dts;
+            newton_tol_abs = 1.0e-9,
+            newton_tol_rel = 1.0e-9
+        )
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+     end
+
+     @testset "BHR553G2" begin
+        alg = Theseus.BHR553G2()
+        order = 3
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(
+            ode_split, u_ana, alg, dts;
+            newton_tol_abs = 1.0e-9,
+            newton_tol_rel = 1.0e-9
+        )
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+     end
 end
