@@ -29,6 +29,7 @@ Theseus.DIRK43
 Theseus.CooperSayfy5
 Theseus.CrouzeixRaviart34
 Theseus.HairerWannerSDIRK4
+Theseus.ESDIRK43SA2
 ```
 
 ## Implicit–Explicit (IMEX) Runge–Kutta Methods
@@ -58,6 +59,8 @@ Theseus.ARS233
 Theseus.ARS443
 Theseus.KenCarpARK437
 Theseus.KenCarpARK548
+Theseus.BHR553G1
+Theseus.BHR553G2
 ```
 
 ## Rosenbrock-W Methods
