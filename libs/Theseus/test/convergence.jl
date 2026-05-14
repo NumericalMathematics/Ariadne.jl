@@ -6,7 +6,7 @@ function compute_eoc(dts, errors)
     eocs = similar(errors)
     eocs[begin] = 0 # no EOC defined for the first grid
     for idx in Iterators.drop(eachindex(errors, dts, eocs), 1)
-        eocs[idx] = log(errors[idx] / errors[idx - 1]) / 
+        eocs[idx] = log(errors[idx] / errors[idx - 1]) /
             log(dts[idx] / dts[idx - 1])
     end
     return mean(eocs[(begin + 1):end])
@@ -16,7 +16,7 @@ function compute_errors(prob, u_ana, alg, dts; kwargs...)
     errors = similar(dts)
     for (i, dt) in enumerate(dts)
         sol = @inferred solve(
-            prob, alg; 
+            prob, alg;
             dt, adaptive = false, kwargs...
         )
         u_num = sol.u[end]
@@ -69,6 +69,33 @@ end
 
         @testset "ESDIRK43SA2" begin
             alg = Theseus.ESDIRK43SA2()
+            order = 4
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "CooperSayfy5" begin
+            alg = Theseus.CooperSayfy5()
+            order = 5
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "HairerWannerSDIRK4" begin
+            alg = Theseus.HairerWannerSDIRK4()
+            order = 4
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "CrouzeixRaviart34" begin
+            alg = Theseus.CrouzeixRaviart34()
             order = 4
             dts = 2.0 .^ (-2:-1:-6)
             errors = compute_errors(ode, u_ana, alg, dts)
@@ -216,7 +243,7 @@ end
             eoc = compute_eoc(dts, errors)
             @test isapprox(eoc, order; atol = 0.1)
         end
-  
+
         @testset "KenCarpARK437" begin
             alg = Theseus.KenCarpARK437()
             order = 4
@@ -234,7 +261,7 @@ end
             eoc = compute_eoc(dts, errors)
             @test isapprox(eoc, order; atol = 0.1)
         end
-  
+
         @testset "KenCarpARK548" begin
             alg = Theseus.KenCarpARK548()
             order = 5
