@@ -646,7 +646,17 @@ end
         alg = Theseus.AGSA342()
         order = 2
         dts = 2.0 .^ (-2:-1:-6)
-        for ode_split in (ode_split_1, ode_split_2)
+        let ode_split = ode_split_2
+            # The explicit method is third-order accurate for linear problems.
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-10,
+                newton_tol_rel = 1.0e-10
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order + 1; atol = 0.1)
+        end
+        let ode_split = ode_split_1
             errors = compute_errors(
                 ode_split, u_ana, alg, dts;
                 newton_tol_abs = 1.0e-10,
