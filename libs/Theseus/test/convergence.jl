@@ -259,7 +259,7 @@ end
             dts = 2.0 .^ (-2:-1:-6)
             errors = compute_errors(ode_split, u_ana, alg, dts)
             eoc = compute_eoc(dts, errors)
-            @test isapprox(eoc, order; atol=0.1)
+             @test isapprox(eoc, order; atol = 0.1)
         end
 
         @testset "BHR553G1" begin
