@@ -47,6 +47,8 @@ function finalize_callbacks(integrator::AbstractTimeIntegrator)
     end
 end
 
+using SciMLBase: SciMLBase
+
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
     init, step!, check_error,
     get_proposed_dt, set_proposed_dt!,
