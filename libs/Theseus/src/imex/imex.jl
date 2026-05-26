@@ -340,6 +340,8 @@ get_tmp_cache(integrator::SimpleImplicitExplicit) = (integrator.u_tmp,)
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::SimpleImplicitExplicit, ::Bool) = false
 
+derivative_discontinuity!(integrator::SimpleImplicitExplicit, ::Bool) = false
+
 # used by adaptive timestepping algorithms in DiffEq
 function set_proposed_dt!(integrator::SimpleImplicitExplicit, dt)
     return integrator.dt = dt

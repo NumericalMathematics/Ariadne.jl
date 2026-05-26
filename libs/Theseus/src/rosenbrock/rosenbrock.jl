@@ -255,6 +255,8 @@ get_tmp_cache(integrator::Rosenbrock) = (integrator.u_tmp,)
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
 u_modified!(integrator::Rosenbrock, ::Bool) = false
 
+derivative_discontinuity!(integrator::Rosenbrock, ::Bool) = false
+
 # used by adaptive timestepping algorithms in DiffEq
 function set_proposed_dt!(integrator::Rosenbrock, dt)
     return integrator.dt = dt
