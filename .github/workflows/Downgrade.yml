@@ -1,4 +1,5 @@
 name: Downgrade
+
 on:
   push:
     branches:
@@ -29,20 +30,25 @@ jobs:
           - x64
     steps:
       - uses: actions/checkout@v6
+
       - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
+
       - uses: julia-actions/cache@v3
+
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
           skip: LinearAlgebra,SparseArrays,Test,Statistics,Krylov,Enzyme
           projects: ., test
           mode: forcedeps
+
       - name: Run tests
         run: |
           julia --project=test --color=yes -e '
-            import Pkg; Pkg.instantiate()
+            import Pkg
+            Pkg.instantiate()
             include("test/runtests.jl")
           '
 
@@ -60,23 +66,27 @@ jobs:
           - x64
     steps:
       - uses: actions/checkout@v6
+
       - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
+
       - uses: julia-actions/cache@v3
+
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
           skip: LinearAlgebra,SparseArrays,Test,Statistics,Krylov
           projects: libs/Theseus, libs/Theseus/test
           mode: forcedeps
+
       - name: Run tests
+        working-directory: libs/Theseus
         run: |
-          julia --project=libs/Theseus/test --color=yes -e '
-          import Pkg
-          Pkg.develop(Pkg.PackageSpec(path="../../.."))
-          Pkg.develop(Pkg.PackageSpec(path=".."))
-          Pkg.instantiate()
-          Pkg.status(; mode = Pkg.PKGMODE_MANIFEST)
-          include("runtests.jl")
-        '
+          julia --project=test --color=yes -e '
+            import Pkg
+            Pkg.develop(Pkg.PackageSpec(path="."))
+            Pkg.develop(Pkg.PackageSpec(path="../.."))
+            Pkg.instantiate()
+            include("test/runtests.jl")
+          '
