@@ -67,7 +67,7 @@ jobs:
       - uses: julia-actions/cache@v3
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
-          skip: LinearAlgebra,SparseArrays,Test,Statistics,Krylov,Enzyme
+          skip: LinearAlgebra,SparseArrays,Test,Statistics,Krylov
           projects: libs/Theseus, libs/Theseus/test
           mode: forcedeps
       - name: Run tests
