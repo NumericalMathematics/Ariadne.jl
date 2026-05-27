@@ -48,6 +48,7 @@ jobs:
         run: |
           julia --project=test --color=yes -e '
             import Pkg
+            Pkg.develop(Pkg.PackageSpec(path=pwd()))
             Pkg.instantiate()
             include("test/runtests.jl")
           '
