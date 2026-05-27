@@ -43,7 +43,7 @@ jobs:
         run: |
           julia --project=test --color=yes -e '
             import Pkg; Pkg.instantiate()
-            include("test/runtests.jl")
+            include("runtests.jl")
           '
 
   Theseus:
@@ -77,5 +77,5 @@ jobs:
             Pkg.develop(Pkg.PackageSpec(path="."))
             Pkg.develop(Pkg.PackageSpec(path="libs/Theseus"))
             Pkg.instantiate()
-            include("libs/Theseus/test/runtests.jl")
+            include("runtests.jl")
           '
