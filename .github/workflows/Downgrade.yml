@@ -73,9 +73,10 @@ jobs:
       - name: Run tests
         run: |
           julia --project=libs/Theseus/test --color=yes -e '
-            import Pkg
-            Pkg.develop(Pkg.PackageSpec(path="."))
-            Pkg.develop(Pkg.PackageSpec(path="libs/Theseus"))
-            Pkg.instantiate()
-            include("libs/Theseus/test/runtests.jl")
-          '
+          import Pkg
+          Pkg.develop(Pkg.PackageSpec(path="../../.."))
+          Pkg.develop(Pkg.PackageSpec(path=".."))
+          Pkg.instantiate()
+          Pkg.status(; mode = Pkg.PKGMODE_MANIFEST)
+          include("runtests.jl")
+        '
