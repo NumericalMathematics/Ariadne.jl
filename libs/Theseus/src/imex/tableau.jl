@@ -300,15 +300,24 @@ end
 """
     Theseus.AGSA342()
 
-A second-order, four-stage type I IMEX method listed by Biswas, Ketcheson,
-Ranocha, and Schütz (2025), Table 12. The explicit part is FSAL and the
-implicit part is stiffly accurate, hence the method is globally stiffly accurate
-(GSA).
+A second-order, four-stage type I IMEX method, also denoted AGSA(3,4,2),
+introduced by Boscarino and Russo (2013). The explicit part is FSAL and the
+implicit part is stiffly accurate, hence the method is globally stiffly
+accurate (GSA).
+
+This method is taken from Biswas, Ketcheson, Ranocha, and Schütz (2025),
+Table 12.
 
 ## References
+- Sebastiano Boscarino and Giovanni Russo (2013)
+  *Flux-Explicit IMEX Runge--Kutta Schemes for Hyperbolic to Parabolic
+  Relaxation Problems.*
+  *SIAM Journal on Numerical Analysis* 51(1):163--190.
+  [DOI: 10.1137/110850803](https://doi.org/10.1137/110850803)
 - Abhijit Biswas, David I. Ketcheson, Hendrik Ranocha, and Jochen Schütz (2025)
   *Traveling-Wave Solutions and Structure-Preserving Numerical Methods for a
-  Hyperbolic Approximation of the Korteweg-de Vries Equation.*
+  Hyperbolic Approximation of the Korteweg--de Vries Equation.*
+  *Journal of Scientific Computing* 103:90.
   [DOI: 10.1007/s10915-025-02898-x](https://doi.org/10.1007/s10915-025-02898-x)
 """
 struct AGSA342 <: RKIMEX{4} end
@@ -605,7 +614,8 @@ This method is listed in Biswas, Ketcheson, Ranocha, and Schütz (2025), Table 1
   [DOI: 10.1016/S0168-9274(02)00138-1](https://doi.org/10.1016/S0168-9274(02)00138-1)
 - Abhijit Biswas, David I. Ketcheson, Hendrik Ranocha, and Jochen Schütz (2025)
   *Traveling-Wave Solutions and Structure-Preserving Numerical Methods for a
-  Hyperbolic Approximation of the Korteweg-de Vries Equation.*
+  Hyperbolic Approximation of the Korteweg--de Vries Equation.*
+  *Journal of Scientific Computing* 103:90.
   [DOI: 10.1007/s10915-025-02898-x](https://doi.org/10.1007/s10915-025-02898-x)
 """
 struct KenCarpARK324L2SA <: RKIMEX{4} end
@@ -662,7 +672,8 @@ This method is listed in Biswas, Ketcheson, Ranocha, and Schütz (2025), Table 1
   [DOI: 10.1016/S0168-9274(02)00138-1](https://doi.org/10.1016/S0168-9274(02)00138-1)
 - Abhijit Biswas, David I. Ketcheson, Hendrik Ranocha, and Jochen Schütz (2025)
   *Traveling-Wave Solutions and Structure-Preserving Numerical Methods for a
-  Hyperbolic Approximation of the Korteweg-de Vries Equation.*
+  Hyperbolic Approximation of the Korteweg--de Vries Equation.*
+  *Journal of Scientific Computing* 103:90.
   [DOI: 10.1007/s10915-025-02898-x](https://doi.org/10.1007/s10915-025-02898-x)
 """
 struct KenCarpARK436L2SA <: RKIMEX{6} end
