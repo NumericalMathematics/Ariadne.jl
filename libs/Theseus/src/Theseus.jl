@@ -382,8 +382,6 @@ get_du(integrator::NonLinearImplicit) = integrator.du
 get_tmp_cache(integrator::NonLinearImplicit) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::NonLinearImplicit, ::Bool) = false
-
 derivative_discontinuity!(integrator::NonLinearImplicit, ::Bool) = false
 
 # used by adaptive timestepping algorithms in DiffEq
