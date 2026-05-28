@@ -82,12 +82,11 @@ jobs:
           mode: forcedeps
 
       - name: Run tests
-        working-directory: libs/Theseus
         run: |
-          julia --project=test --color=yes -e '
+          julia --project=libs/Theseus/test --color=yes -e '
             import Pkg
             Pkg.develop(Pkg.PackageSpec(path="."))
             Pkg.develop(Pkg.PackageSpec(path="../.."))
             Pkg.instantiate()
-            include("test/runtests.jl")
+            include("libs/Theseus/test/runtests.jl")
           '
