@@ -88,5 +88,5 @@ jobs:
             Pkg.develop(Pkg.PackageSpec(path="."))
             Pkg.develop(Pkg.PackageSpec(path="../.."))
             Pkg.instantiate()
-            include("libs/Theseus/test/runtests.jl")
+            include("runtests.jl")
           '
