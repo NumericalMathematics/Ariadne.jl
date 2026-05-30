@@ -298,6 +298,73 @@ function RKTableau(alg::SSP3433, RealT)
 end
 
 """
+    Theseus.AGSA342()
+
+A second-order, four-stage type I IMEX method, also denoted AGSA(3,4,2),
+introduced by Boscarino and Russo (2013). The explicit part is FSAL and the
+implicit part is stiffly accurate, hence the method is globally stiffly
+accurate (GSA).
+
+This method is taken from Biswas, Ketcheson, Ranocha, and Schütz (2025),
+Table 12.
+
+## References
+- Sebastiano Boscarino and Giovanni Russo (2013)
+  *Flux-Explicit IMEX Runge--Kutta Schemes for Hyperbolic to Parabolic
+  Relaxation Problems.*
+  *SIAM Journal on Numerical Analysis* 51(1):163--190.
+  [DOI: 10.1137/110850803](https://doi.org/10.1137/110850803)
+- Abhijit Biswas, David I. Ketcheson, Hendrik Ranocha, and Jochen Schütz (2025)
+  *Traveling-Wave Solutions and Structure-Preserving Numerical Methods for a
+  Hyperbolic Approximation of the Korteweg--de Vries Equation.*
+  *Journal of Scientific Computing* 103:90.
+  [DOI: 10.1007/s10915-025-02898-x](https://doi.org/10.1007/s10915-025-02898-x)
+"""
+struct AGSA342 <: RKIMEX{4} end
+function RKTableau(alg::AGSA342, RealT)
+    nstage = 4
+
+    a = zeros(RealT, nstage, nstage)
+    a[2, 1] = RealT(-139833537) / RealT(38613965)
+    a[3, 1] = RealT(85870407) / RealT(49798258)
+    a[3, 2] = RealT(-121251843) / RealT(1756367063)
+
+    b = zeros(RealT, nstage)
+    b[1] = RealT(1) / RealT(6)
+    b[2] = RealT(1) / RealT(6)
+    b[3] = RealT(2) / RealT(3)
+
+    a[4, :] .= b
+    c = vec(sum(a, dims = 2))
+    c[4] = one(RealT)
+
+    gamma = RealT(202439144) / RealT(118586105)
+
+    a_im = zeros(RealT, nstage, nstage)
+    a_im[1, 1] = RealT(168999711) / RealT(74248304)
+    a_im[2, 1] = RealT(44004295) / RealT(24775207)
+    a_im[2, 2] = gamma
+    a_im[3, 1] = RealT(-6418119) / RealT(169001713)
+    a_im[3, 2] = RealT(-748951821) / RealT(1043823139)
+    a_im[3, 3] = RealT(12015439) / RealT(183058594)
+
+    b_im = zeros(RealT, nstage)
+    b_im[1] = one(RealT) - gamma - RealT(1) / RealT(3)
+    b_im[2] = RealT(1) / RealT(3)
+    b_im[4] = gamma
+
+    a_im[4, :] .= b_im
+    c_im = vec(sum(a_im, dims = 2))
+
+    @assert c ≈ vec(sum(a, dims = 2))
+    @assert c_im ≈ vec(sum(a_im, dims = 2))
+    @assert b ≈ a[end, :]
+    @assert b_im ≈ a_im[end, :]
+
+    return IMEXButcher(a, b, c, a_im, b_im, c_im)
+end
+
+"""
     Theseus.HT222()
 
 A second-order, two-stage type II IMEX method.
@@ -529,6 +596,144 @@ function RKTableau(alg::ARS443, RealT)
     c_im[4] = 1 // 2
     c_im[5] = 1
     return IMEXButcher(a, b, c, a_im, b_im, c_im)
+end
+
+
+"""
+    Theseus.KenCarpARK324L2SA()
+
+A third-order, four-stage type II IMEX method of Kennedy and Carpenter (2003),
+also denoted ARK3(2)4 L[2]SA. The implicit method is stiffly accurate.
+
+This method is listed in Biswas, Ketcheson, Ranocha, and Schütz (2025), Table 16.
+
+## References
+- Christopher A. Kennedy and Mark H. Carpenter (2003)
+  *Additive Runge–Kutta schemes for convection-diffusion-reaction equations.*
+  *Applied Numerical Mathematics* 44(1-2):139-181.
+  [DOI: 10.1016/S0168-9274(02)00138-1](https://doi.org/10.1016/S0168-9274(02)00138-1)
+- Abhijit Biswas, David I. Ketcheson, Hendrik Ranocha, and Jochen Schütz (2025)
+  *Traveling-Wave Solutions and Structure-Preserving Numerical Methods for a
+  Hyperbolic Approximation of the Korteweg--de Vries Equation.*
+  *Journal of Scientific Computing* 103:90.
+  [DOI: 10.1007/s10915-025-02898-x](https://doi.org/10.1007/s10915-025-02898-x)
+"""
+struct KenCarpARK324L2SA <: RKIMEX{4} end
+function RKTableau(alg::KenCarpARK324L2SA, RealT)
+    nstage = 4
+    gamma = RealT(1767732205903) / RealT(4055673282236)
+
+    c_ex = zeros(RealT, nstage)
+    c_ex[2] = RealT(1767732205903) / RealT(2027836641118)
+    c_ex[3] = RealT(3) / RealT(5)
+    c_ex[4] = RealT(1)
+
+    a_ex = zeros(RealT, nstage, nstage)
+    a_ex[2, 1] = c_ex[2]
+    a_ex[3, 1] = RealT(5535828885825) / RealT(10492691773637)
+    a_ex[3, 2] = RealT(788022342437) / RealT(10882634858940)
+    a_ex[4, 1] = RealT(6485989280629) / RealT(16251701735622)
+    a_ex[4, 2] = RealT(-4246266847089) / RealT(9704473918619)
+    a_ex[4, 3] = RealT(10755448449292) / RealT(10357097424841)
+
+    a_im = zeros(RealT, nstage, nstage)
+    a_im[2, 1] = gamma
+    a_im[2, 2] = gamma
+    a_im[3, 1] = RealT(2746238789719) / RealT(10658868560708)
+    a_im[3, 2] = RealT(-640167445237) / RealT(6845629431997)
+    a_im[3, 3] = gamma
+    a_im[4, 1] = RealT(1471266399579) / RealT(7840856788654)
+    a_im[4, 2] = RealT(-4482444167858) / RealT(7529755066697)
+    a_im[4, 3] = RealT(11266239266428) / RealT(11593286722821)
+    a_im[4, 4] = gamma
+
+    b_ex = copy(a_im[end, :])
+    b_im = copy(b_ex)
+    c_im = copy(c_ex)
+
+    @assert c_ex ≈ vec(sum(a_ex, dims = 2))
+    @assert c_im ≈ vec(sum(a_im, dims = 2))
+
+    return IMEXButcher(a_ex, b_ex, c_ex, a_im, b_im, c_im)
+end
+
+"""
+    Theseus.KenCarpARK436L2SA()
+
+A fourth-order, six-stage type II IMEX method of Kennedy and Carpenter (2003),
+also denoted ARK4(3)6 L[2]SA. The implicit method is stiffly accurate.
+
+This method is listed in Biswas, Ketcheson, Ranocha, and Schütz (2025), Table 17.
+
+## References
+- Christopher A. Kennedy and Mark H. Carpenter (2003)
+  *Additive Runge–Kutta schemes for convection-diffusion-reaction equations.*
+  *Applied Numerical Mathematics* 44(1-2):139-181.
+  [DOI: 10.1016/S0168-9274(02)00138-1](https://doi.org/10.1016/S0168-9274(02)00138-1)
+- Abhijit Biswas, David I. Ketcheson, Hendrik Ranocha, and Jochen Schütz (2025)
+  *Traveling-Wave Solutions and Structure-Preserving Numerical Methods for a
+  Hyperbolic Approximation of the Korteweg--de Vries Equation.*
+  *Journal of Scientific Computing* 103:90.
+  [DOI: 10.1007/s10915-025-02898-x](https://doi.org/10.1007/s10915-025-02898-x)
+"""
+struct KenCarpARK436L2SA <: RKIMEX{6} end
+function RKTableau(alg::KenCarpARK436L2SA, RealT)
+    nstage = 6
+    gamma = RealT(1) / RealT(4)
+
+    c_ex = zeros(RealT, nstage)
+    c_ex[2] = RealT(1) / RealT(2)
+    c_ex[3] = RealT(83) / RealT(250)
+    c_ex[4] = RealT(31) / RealT(50)
+    c_ex[5] = RealT(17) / RealT(20)
+    c_ex[6] = RealT(1)
+
+    a_ex = zeros(RealT, nstage, nstage)
+    a_ex[2, 1] = RealT(1) / RealT(2)
+    a_ex[3, 1] = RealT(13861) / RealT(62500)
+    a_ex[3, 2] = RealT(6889) / RealT(62500)
+    a_ex[4, 1] = RealT(-116923316275) / RealT(2393684061468)
+    a_ex[4, 2] = RealT(-2731218467317) / RealT(15368042101831)
+    a_ex[4, 3] = RealT(9408046702089) / RealT(11113171139209)
+    a_ex[5, 1] = RealT(-451086348788) / RealT(2902428689909)
+    a_ex[5, 2] = RealT(-2682348792572) / RealT(7519795681897)
+    a_ex[5, 3] = RealT(12662868775082) / RealT(11960479115383)
+    a_ex[5, 4] = RealT(3355817975965) / RealT(11060851509271)
+    a_ex[6, 1] = RealT(647845179188) / RealT(3216320057751)
+    a_ex[6, 2] = RealT(73281519250) / RealT(8382639484533)
+    a_ex[6, 3] = RealT(552539513391) / RealT(3454668386233)
+    a_ex[6, 4] = RealT(3354512671639) / RealT(8306763924573)
+    a_ex[6, 5] = RealT(4040) / RealT(17871)
+
+    a_im = zeros(RealT, nstage, nstage)
+    a_im[2, 1] = gamma
+    a_im[2, 2] = gamma
+    a_im[3, 1] = RealT(8611) / RealT(62500)
+    a_im[3, 2] = RealT(-1743) / RealT(31250)
+    a_im[3, 3] = gamma
+    a_im[4, 1] = RealT(5012029) / RealT(34652500)
+    a_im[4, 2] = RealT(-654441) / RealT(2922500)
+    a_im[4, 3] = RealT(174375) / RealT(388108)
+    a_im[4, 4] = gamma
+    a_im[5, 1] = RealT(15267082809) / RealT(155376265600)
+    a_im[5, 2] = RealT(-71443401) / RealT(120774400)
+    a_im[5, 3] = RealT(730878875) / RealT(902184768)
+    a_im[5, 4] = RealT(2285395) / RealT(8070912)
+    a_im[5, 5] = gamma
+    a_im[6, 1] = RealT(82889) / RealT(524892)
+    a_im[6, 3] = RealT(15625) / RealT(83664)
+    a_im[6, 4] = RealT(69875) / RealT(102672)
+    a_im[6, 5] = RealT(-2260) / RealT(8211)
+    a_im[6, 6] = gamma
+
+    b_ex = copy(a_im[end, :])
+    b_im = copy(b_ex)
+    c_im = copy(c_ex)
+
+    @assert c_ex ≈ vec(sum(a_ex, dims = 2))
+    @assert c_im ≈ vec(sum(a_im, dims = 2))
+
+    return IMEXButcher(a_ex, b_ex, c_ex, a_im, b_im, c_im)
 end
 
 """

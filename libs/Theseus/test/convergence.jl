@@ -190,6 +190,15 @@ end
             @test isapprox(eoc, order; atol = 0.1)
         end
 
+        @testset "AGSA342" begin
+            alg = Theseus.AGSA342()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
         @testset "HT222" begin
             alg = Theseus.HT222()
             order = 2
@@ -233,6 +242,24 @@ end
             errors = compute_errors(ode_split, u_ana, alg, dts)
             eoc = compute_eoc(dts, errors)
             @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "KenCarpARK324L2SA" begin
+            alg = Theseus.KenCarpARK324L2SA()
+            order = 3
+            dts = 2.0 .^ (-3:-1:-7)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.2)
+        end
+
+        @testset "KenCarpARK436L2SA" begin
+            alg = Theseus.KenCarpARK436L2SA()
+            order = 4
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+             @test isapprox(eoc, order; atol = 0.1)
         end
 
         @testset "BHR553G1" begin
@@ -426,6 +453,18 @@ end
             @test isapprox(eoc, order; atol = 0.1)
         end
 
+        @testset "AGSA342" begin
+            alg = Theseus.AGSA342()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-8
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
         @testset "HT222" begin
             alg = Theseus.HT222()
             order = 2
@@ -519,6 +558,32 @@ end
             @test isapprox(eoc, order; atol = 0.1)
         end
 
+        @testset "KenCarpARK324L2SA" begin
+            alg = Theseus.KenCarpARK324L2SA()
+            order = 3
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-9,
+                newton_tol_rel = 1.0e-9
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "KenCarpARK436L2SA" begin
+            alg = Theseus.KenCarpARK436L2SA()
+            order = 4
+            dts = 2.0 .^ (0:-1:-4)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-9,
+                newton_tol_rel = 1.0e-9
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
         @testset "KenCarpARK437" begin
             alg = Theseus.KenCarpARK437()
             order = 4
@@ -577,6 +642,31 @@ end
         end
     end
 
+    @testset "AGSA342" begin
+        alg = Theseus.AGSA342()
+        order = 2
+        dts = 2.0 .^ (-2:-1:-6)
+        let ode_split = ode_split_2
+            # The explicit method is third-order accurate for linear problems.
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-10,
+                newton_tol_rel = 1.0e-10
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order + 1; atol = 0.1)
+        end
+        let ode_split = ode_split_1
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-10,
+                newton_tol_rel = 1.0e-10
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
+
     @testset "BHR553G1" begin
         alg = Theseus.BHR553G1()
         order = 3
@@ -607,6 +697,36 @@ end
     end
 
     # TODO: Add tests for other IMEX methods
+
+    @testset "KenCarpARK324L2SA" begin
+        alg = Theseus.KenCarpARK324L2SA()
+        order = 3
+        dts = 2.0 .^ (-2:-1:-6)
+        for ode_split in (ode_split_1, ode_split_2)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-12,
+                newton_tol_rel = 1.0e-12
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
+
+    @testset "KenCarpARK436L2SA" begin
+        alg = Theseus.KenCarpARK436L2SA()
+        order = 4
+        dts = 2.0 .^ (0:-1:-4)
+        for ode_split in (ode_split_1, ode_split_2)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-12,
+                newton_tol_rel = 1.0e-12
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
 
     @testset "KenCarpARK437" begin
         alg = Theseus.KenCarpARK437()
@@ -723,6 +843,19 @@ end
         @test isapprox(eoc, order; atol = 0.1)
     end
 
+    @testset "AGSA342" begin
+        alg = Theseus.AGSA342()
+        order = 2
+        dts = 2.0 .^ (-5:-1:-9)
+        errors = compute_errors(
+            ode_split, u_ana, alg, dts;
+            newton_tol_abs = 1.0e-10,
+            newton_tol_rel = 1.0e-10
+        )
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
     @testset "HT222" begin
         alg = Theseus.HT222()
         order = 2
@@ -772,7 +905,7 @@ end
         @test isapprox(eoc, order; atol = 0.1)
     end
 
-     @testset "BHR553G1" begin
+    @testset "BHR553G1" begin
         alg = Theseus.BHR553G1()
         order = 3
         dts = 2.0 .^ (-3:-1:-7)
@@ -783,9 +916,9 @@ end
         )
         eoc = compute_eoc(dts, errors)
         @test isapprox(eoc, order; atol = 0.1)
-     end
+    end
 
-     @testset "BHR553G2" begin
+    @testset "BHR553G2" begin
         alg = Theseus.BHR553G2()
         order = 3
         dts = 2.0 .^ (-3:-1:-7)
@@ -796,5 +929,31 @@ end
         )
         eoc = compute_eoc(dts, errors)
         @test isapprox(eoc, order; atol = 0.1)
-     end
+    end
+
+    @testset "KenCarpARK324L2SA" begin
+        alg = Theseus.KenCarpARK324L2SA()
+        order = 3
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(
+            ode_split, u_ana, alg, dts;
+            newton_tol_abs = 1.0e-10,
+            newton_tol_rel = 1.0e-10
+        )
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "KenCarpARK436L2SA" begin
+        alg = Theseus.KenCarpARK436L2SA()
+        order = 4
+        dts = 2.0 .^ (-2:-1:-6)
+        errors = compute_errors(
+            ode_split, u_ana, alg, dts;
+            newton_tol_abs = 1.0e-12,
+            newton_tol_rel = 1.0e-12
+        )
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
 end

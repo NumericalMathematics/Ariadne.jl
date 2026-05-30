@@ -47,6 +47,7 @@ Theseus.SSP2322
 Theseus.SSP2332
 Theseus.SSP3332
 Theseus.SSP3433
+Theseus.AGSA342
 ```
 
 ### Type II methods (Ascher–Ruuth–Spiteri and Kennedy–Carpenter)
@@ -57,6 +58,8 @@ Theseus.ARS111
 Theseus.ARS222
 Theseus.ARS233
 Theseus.ARS443
+Theseus.KenCarpARK324L2SA
+Theseus.KenCarpARK436L2SA
 Theseus.KenCarpARK437
 Theseus.KenCarpARK548
 Theseus.BHR553G1
