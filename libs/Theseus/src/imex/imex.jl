@@ -51,6 +51,7 @@ mutable struct SimpleImplicitExplicitOptions{Callback}
     newton_tol_abs::Float64
     newton_tol_rel::Float64
     newton_max_niter::Int
+    newton_kwargs::Any
     krylov_algo::Symbol
     krylov_kwargs::Any
 end
@@ -62,6 +63,7 @@ function SimpleImplicitExplicitOptions(
         newton_tol_abs = 1.0e-6,
         newton_tol_rel = 1.0e-6,
         newton_max_niter = 50,
+        newton_kwargs = (;),
         krylov_algo = :gmres,
         krylov_kwargs = (;),
         kwargs...
@@ -73,6 +75,7 @@ function SimpleImplicitExplicitOptions(
         newton_tol_abs,
         newton_tol_rel,
         newton_max_niter,
+        newton_kwargs,
         krylov_algo,
         krylov_kwargs,
     )
@@ -278,7 +281,8 @@ function stage!(integrator, alg::RKIMEX)
                 tol_rel = integrator.opts.newton_tol_rel,
                 max_niter = integrator.opts.newton_max_niter,
                 algo = integrator.opts.krylov_algo,
-                krylov_kwargs = integrator.opts.krylov_kwargs
+                krylov_kwargs = integrator.opts.krylov_kwargs,
+                integrator.opts.newton_kwargs...,
             )
             if !stats.solved
                 @warn "Newton did not converge" stats integrator.t
