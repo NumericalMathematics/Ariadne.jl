@@ -51,6 +51,7 @@ jobs:
             import Pkg
             Pkg.develop(Pkg.PackageSpec(path=".."))
             Pkg.instantiate()
+            Pkg.status(; mode = Pkg.PKGMODE_MANIFEST)
             include("runtests.jl")
           '
 
@@ -79,7 +80,7 @@ jobs:
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
           skip: LinearAlgebra,SparseArrays,Test,Statistics
-          projects: libs/Theseus
+          projects: libs/Theseus, libs/Theseus/test
           mode: forcedeps
 
       - name: Run tests
@@ -89,6 +90,7 @@ jobs:
             import Pkg
             Pkg.develop(Pkg.PackageSpec(path=".."))
             Pkg.develop(Pkg.PackageSpec(path="../../.."))
+            Pkg.status(; mode = Pkg.PKGMODE_MANIFEST)
             Pkg.instantiate()
             include("runtests.jl")
           '
