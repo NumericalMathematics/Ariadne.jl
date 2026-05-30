@@ -40,17 +40,18 @@ jobs:
 
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
-          skip: LinearAlgebra,SparseArrays,Test,Statistics,Krylov,Enzyme
+          skip: LinearAlgebra,SparseArrays,Test,Statistics
           projects: ., test
           mode: forcedeps
 
       - name: Run tests
+        working-directory: test
         run: |
-          julia --project=test --color=yes -e '
+          julia --project=. --color=yes -e '
             import Pkg
-            Pkg.develop(Pkg.PackageSpec(path=pwd()))
+            Pkg.develop(Pkg.PackageSpec(path=".."))
             Pkg.instantiate()
-            include("test/runtests.jl")
+            include("runtests.jl")
           '
 
   Theseus:
@@ -77,16 +78,17 @@ jobs:
 
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
-          skip: LinearAlgebra,SparseArrays,Test,Statistics,Krylov
+          skip: LinearAlgebra,SparseArrays,Test,Statistics
           projects: libs/Theseus
           mode: forcedeps
 
       - name: Run tests
+        working-directory: libs/Theseus/test
         run: |
-          julia --project=libs/Theseus/test --color=yes -e '
+          julia --project=. --color=yes -e '
             import Pkg
-            Pkg.develop(Pkg.PackageSpec(path="."))
-            Pkg.develop(Pkg.PackageSpec(path="../.."))
+            Pkg.develop(Pkg.PackageSpec(path=".."))
+            Pkg.develop(Pkg.PackageSpec(path="../../.."))
             Pkg.instantiate()
             include("runtests.jl")
           '
