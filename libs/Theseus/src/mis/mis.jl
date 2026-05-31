@@ -13,19 +13,19 @@ function (::MISSlowAlgorithm{N})(un, Δt, fslow!, Zn0, dZn, Yn, du, p, t, stages
 	
     @. Zn0 = un
 
-    @trixi_timeit timer() "init MIS" compute_initial_condition!(Zn0, Yn, un, RK.alfa, stage)
+        compute_initial_condition!(Zn0, Yn, un, RK.alfa, stage)
 	
     	o = zero(eltype(un))
 	@. dZn = o
-	@trixi_timeit timer() "setting ODE MIS"	compute_slow_tendencies!(dZn, Yn, stages, un, RK.d, RK.gamma, RK.beta, invdt, stage)
+	compute_slow_tendencies!(dZn, Yn, stages, un, RK.d, RK.gamma, RK.beta, invdt, stage)
 	
 	if stage == 1
-		@. Yn[stage] = un
+	@. Yn[stage] = un
 	else
-	     @trixi_timeit timer() "solve fast ODE" solve_fastode!(integrator_fast.alg, integrator_fast, Zn0, dZn, Yn, stage, RK.d[stage] * Δt, dt_fast)
+	solve_fastode!(integrator_fast.alg, integrator_fast, Zn0, dZn, Yn, stage, RK.d[stage] * Δt, dt_fast)
 	end
 		
-	@trixi_timeit timer() "slow tendencies" fslow!(du, Yn[stage], p, t + Δt)
+	fslow!(du, Yn[stage], p, t + Δt)
 	stages[stage] .= du
 end
 
@@ -65,7 +65,7 @@ mutable struct MISOptions{Callback, TStops}
 end
 
 function MISOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, kwargs...)
-    tstops_internal = BinaryHeap{eltype(tspan)}(FasterForward())
+        tstops_internal = eltype(tspan)[]
     # We add last(tspan) to make sure that the time integration stops at the end time
     push!(tstops_internal, last(tspan))
     # We add 2 * last(tspan) because add_tstop!(integrator, t) is only called by DiffEqCallbacks.jl if tstops contains a time that is larger than t
@@ -84,7 +84,7 @@ end
 # which are used in Trixi.jl.
 mutable struct MISSlow{RealT <: Real, uType, Params, Sol, F, M,
                           Alg <: MISSlowAlgorithm,
-                          MISOptions, RKTableau, Thread, IntegratorType} <:
+                          MISOptions, RKTableau, IntegratorType, WorkspaceType} <:
                AbstractTimeIntegrator
     u::uType
     du::uType
@@ -107,12 +107,12 @@ mutable struct MISSlow{RealT <: Real, uType, Params, Sol, F, M,
     RK::RKTableau
     const dtchangeable::Bool
     const force_stepfail::Bool
-    thread::Thread
     integrator_fast::IntegratorType
     dt_fast::RealT
+    workspace::WorkspaceType
 end
 
-function init(ode::SplitODEProblem, alg::Tuple{MISSlowAlgorithm{N},FastAlg};
+function init(ode::ODEProblem, alg::Tuple{MISSlowAlgorithm{N},FastAlg};
               dt, callback::Union{CallbackSet, Nothing} = nothing,
 	      dt_fast, kwargs...,) where {N, FastAlg}
     u = copy(ode.u0)
@@ -129,11 +129,12 @@ function init(ode::SplitODEProblem, alg::Tuple{MISSlowAlgorithm{N},FastAlg};
 
 alg_slow = alg[1]
 alg_fast = alg[2]
-integrator = (; dZn) 
 
+integrator = (; dZn) 
+workspace= nothing
 integrator_fast = let
     corrected_ffast! = (du, u, p, t) -> begin
-        ode.f.f1!(du, u, p, t)
+        ode.f.f1(du, u, p, t)
         du .+= integrator.dZn
     end
 
@@ -144,7 +145,7 @@ end
                             (prob = ode,), ode.f.f2, alg_slow,
                             MISOptions(callback, ode.tspan;
                                               kwargs...,), false, RKTableau(alg_slow, eltype(u)),
-                            false, false, thread, integrator_fast, dt_fast)
+                            false, false, integrator_fast, dt_fast, workspace)
     # initialize callbacks
     if callback isa CallbackSet
         foreach(callback.continuous_callbacks) do cb
@@ -159,7 +160,7 @@ end
 end
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::SplitODEProblem,alg::Tuple{<:MISSlowAlgorithm,Any};
+function solve(ode::ODEProblem, alg::Tuple{<:MISSlowAlgorithm, Any};
                dt, callback = nothing, 
                kwargs...,)
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
@@ -187,14 +188,10 @@ end
 function stage!(integrator, alg::MISSlowAlgorithm)
 
     for stage in 1:stages(alg)
-        @trixi_timeit timer() "slow time integration" alg(integrator.u, integrator.dt,
-                                               integrator.f, integrator.Zn0, integrator.dZn, integrator.Yn, integrator.du,
-                                               integrator.p, integrator.t,
-                                               integrator.stages, stage, integrator.RK,
-                                               integrator.integrator_fast, integrator.dt_fast)
+        alg(integrator.u, integrator.dt, integrator.f, integrator.Zn0, integrator.dZn, integrator.Yn, integrator.du, integrator.p, integrator.t, integrator.stages, stage, integrator.RK, integrator.integrator_fast, integrator.dt_fast)
     end
 
- @. integrator.u_tmp = integrator.Yn[end]
+    @. integrator.u_tmp = integrator.Yn[end]
 
     return
 end
