@@ -40,7 +40,7 @@ jobs:
 
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
-          skip: LinearAlgebra,SparseArrays,Test,Statistics
+          skip: LinearAlgebra,SparseArrays
           projects: ., test
           mode: forcedeps
 
@@ -79,7 +79,7 @@ jobs:
 
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
-          skip: LinearAlgebra,SparseArrays,Test,Statistics
+          skip: LinearAlgebra
           projects: libs/Theseus, libs/Theseus/test
           mode: forcedeps
 
