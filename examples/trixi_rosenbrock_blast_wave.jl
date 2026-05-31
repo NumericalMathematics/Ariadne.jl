@@ -26,7 +26,6 @@ sol = solve(
     ode, Theseus.ROS2();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
-    # verbose=1,
     krylov_algo = :gmres,
     assume_p_const = false,
 );
