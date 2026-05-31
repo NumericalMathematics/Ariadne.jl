@@ -47,10 +47,20 @@ function finalize_callbacks(integrator::AbstractTimeIntegrator)
     end
 end
 
+using SciMLBase: SciMLBase
+
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
     init, step!, check_error,
     get_proposed_dt, set_proposed_dt!,
     terminate!, remake, add_tstop!, has_tstop, first_tstop
+
+# To keep backwards compatibility with SciMLBase v2, see
+# https://github.com/trixi-framework/Trixi.jl/pull/2918#issuecomment-4233720339
+@static if isdefined(SciMLBase, :derivative_discontinuity!)
+    import SciMLBase: derivative_discontinuity!
+else
+    const derivative_discontinuity! = SciMLBase.u_modified!
+end
 
 
 # Abstract base type for time integration schemes
@@ -372,7 +382,7 @@ get_du(integrator::NonLinearImplicit) = integrator.du
 get_tmp_cache(integrator::NonLinearImplicit) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::NonLinearImplicit, ::Bool) = false
+derivative_discontinuity!(integrator::NonLinearImplicit, ::Bool) = false
 
 # used by adaptive timestepping algorithms in DiffEq
 function set_proposed_dt!(integrator::NonLinearImplicit, dt)

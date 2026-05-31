@@ -328,7 +328,7 @@ get_du(integrator::SimpleDiagonallyImplicit) = integrator.du
 get_tmp_cache(integrator::SimpleDiagonallyImplicit) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::SimpleDiagonallyImplicit, ::Bool) = false
+derivative_discontinuity!(integrator::SimpleDiagonallyImplicit, ::Bool) = false
 
 # used by adaptive timestepping algorithms in DiffEq
 function set_proposed_dt!(integrator::SimpleDiagonallyImplicit, dt)
