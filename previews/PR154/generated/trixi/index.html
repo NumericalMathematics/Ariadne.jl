@@ -24,8 +24,8 @@ F!(res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))
 
 @time mul!(u, J, v)
 @time F!(res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.
-  0.000261 seconds (83 allocations: 8.906 KiB)
-  0.000169 seconds (7 allocations: 352 bytes)</code></pre><p>Cost of time(mul!) ≈ 2 * time(F!)</p><h3 id="Solve-using-ODE-interface"><a class="docs-heading-anchor" href="#Solve-using-ODE-interface">Solve using ODE interface</a><a id="Solve-using-ODE-interface-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-ODE-interface" title="Permalink"></a></h3><pre><code class="language-julia hljs">sol_trbdf2 = solve(
+  0.000205 seconds (79 allocations: 7.844 KiB)
+  0.000136 seconds (7 allocations: 352 bytes)</code></pre><p>Cost of time(mul!) ≈ 2 * time(F!)</p><h3 id="Solve-using-ODE-interface"><a class="docs-heading-anchor" href="#Solve-using-ODE-interface">Solve using ODE interface</a><a id="Solve-using-ODE-interface-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-ODE-interface" title="Permalink"></a></h3><pre><code class="language-julia hljs">sol_trbdf2 = solve(
     ode, Theseus.TRBDF2();
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
@@ -43,98 +43,98 @@ F!(res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ SemidiscretizationHyperbolic                                                                     │
 │ ════════════════════════════                                                                     │
-│ #spatial dimensions: ………………………… 2                                                                │
-│ mesh: ………………………………………………………………… TreeMesh{2, Trixi.SerialTree{2, Float64}} with length 341        │
-│ equations: …………………………………………………… LinearScalarAdvectionEquation2D                                  │
-│ initial condition: ……………………………… initial_condition_convergence_test                               │
-│ boundary conditions: ………………………… Trixi.BoundaryConditionPeriodic                                  │
-│ source terms: …………………………………………… nothing                                                          │
-│ solver: …………………………………………………………… DG                                                               │
-│ total #DOFs per field: …………………… 4096                                                             │
+│ #spatial dimensions: ……………………………………… 2                                                           │
+│ mesh: ……………………………………………………………………………… TreeMesh{2, Trixi.SerialTree{2, Float64}} with length 341   │
+│ equations: ………………………………………………………………… LinearScalarAdvectionEquation2D                             │
+│ initial condition: …………………………………………… initial_condition_convergence_test                          │
+│ boundary conditions: ……………………………………… Trixi.BoundaryConditionPeriodic                             │
+│ source terms: ………………………………………………………… nothing                                                     │
+│ solver: ………………………………………………………………………… DG                                                          │
+│ total #DOFs per field: ………………………………… 4096                                                        │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ TreeMesh{2, Trixi.SerialTree{2, Float64}}                                                        │
 │ ═════════════════════════════════════════                                                        │
-│ center: …………………………………………………………… [0.0, 0.0]                                                       │
-│ length: …………………………………………………………… 2.0                                                              │
-│ periodicity: ……………………………………………… (true, true)                                                     │
-│ current #cells: ……………………………………… 341                                                              │
-│ #leaf-cells: ……………………………………………… 256                                                              │
-│ maximum #cells: ……………………………………… 30000                                                            │
+│ center: ………………………………………………………………………… [0.0, 0.0]                                                  │
+│ length: ………………………………………………………………………… 2.0                                                         │
+│ periodicity: …………………………………………………………… (true, true)                                                │
+│ current #cells: …………………………………………………… 341                                                         │
+│ #leaf-cells: …………………………………………………………… 256                                                         │
+│ current capacity: ……………………………………………… 341                                                         │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ LinearScalarAdvectionEquation2D                                                                  │
 │ ═══════════════════════════════                                                                  │
-│ #variables: ………………………………………………… 1                                                                │
-│ │ variable 1: …………………………………………… scalar                                                           │
+│ #variables: ……………………………………………………………… 1                                                           │
+│ │ variable 1: ………………………………………………………… scalar                                                      │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ DG{Float64}                                                                                      │
 │ ═══════════                                                                                      │
-│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
-│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
-│ surface integral: ………………………………… SurfaceIntegralWeakForm                                          │
-│ │ surface flux: ……………………………………… FluxLaxFriedrichs(max_abs_speed)                                 │
-│ volume integral: …………………………………… VolumeIntegralWeakForm                                           │
+│ basis: …………………………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                    │
+│ mortar: ………………………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                 │
+│ surface integral: ……………………………………………… SurfaceIntegralWeakForm                                     │
+│ │ surface flux: …………………………………………………… FluxLaxFriedrichs(max_abs_speed)                            │
+│ volume integral: ………………………………………………… VolumeIntegralWeakForm                                      │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ AnalysisCallback                                                                                 │
 │ ════════════════                                                                                 │
-│ interval: ……………………………………………………… 100                                                              │
-│ analyzer: ……………………………………………………… LobattoLegendreAnalyzer{Float64}(polydeg=6)                      │
-│ │ error 1: …………………………………………………… l2_error                                                         │
-│ │ error 2: …………………………………………………… linf_error                                                       │
-│ │ integral 1: …………………………………………… entropy_timederivative                                           │
-│ save analysis to file: …………………… no                                                               │
+│ interval: …………………………………………………………………… 100                                                         │
+│ analyzer: …………………………………………………………………… LobattoLegendreAnalyzer{Float64}(polydeg=6)                 │
+│ │ error 1: ………………………………………………………………… l2_error                                                    │
+│ │ error 2: ………………………………………………………………… linf_error                                                  │
+│ │ integral 1: ………………………………………………………… entropy_timederivative                                      │
+│ save analysis to file: ………………………………… no                                                          │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ SaveSolutionCallback                                                                             │
 │ ════════════════════                                                                             │
-│ interval: ……………………………………………………… 100                                                              │
-│ solution variables: …………………………… cons2prim                                                        │
-│ save initial solution: …………………… yes                                                              │
-│ save final solution: ………………………… yes                                                              │
-│ output directory: ………………………………… /home/runner/work/Ariadne.jl/Ariadne.jl/docs/build/generated/out │
+│ interval: …………………………………………………………………… 100                                                         │
+│ solution variables: ………………………………………… cons2prim                                                   │
+│ save initial solution: ………………………………… yes                                                         │
+│ save final solution: ……………………………………… yes                                                         │
+│ output directory: ……………………………………………… /home/runner/work/Ariadne.jl/…e.jl/docs/build/generated/out │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ StepsizeCallback                                                                                 │
 │ ════════════════                                                                                 │
-│ CFL Advective: ………………………………………… Returns{Float64}(1.6)                                            │
-│ CFL Diffusive: ………………………………………… Returns{Float64}(0.0)                                            │
-│ Interval: ……………………………………………………… 1                                                                │
+│ CFL Hyperbolic: …………………………………………………… Returns{Float64}(1.6)                                       │
+│ CFL Parabolic: ……………………………………………………… Returns{Float64}(0.0)                                       │
+│ Interval: …………………………………………………………………… 1                                                           │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ Time integration                                                                                 │
 │ ════════════════                                                                                 │
-│ Start time: ………………………………………………… 0.0                                                              │
-│ Final time: ………………………………………………… 1.0                                                              │
-│ time integrator: …………………………………… TRBDF2                                                           │
-│ adaptive: ……………………………………………………… false                                                            │
+│ Start time: ……………………………………………………………… 0.0                                                         │
+│ Final time: ……………………………………………………………… 1.0                                                         │
+│ time integrator: ………………………………………………… TRBDF2                                                      │
+│ adaptive: …………………………………………………………………… false                                                       │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ Environment information                                                                          │
 │ ═══════════════════════                                                                          │
-│ #threads: ……………………………………………………… 1                                                                │
-│ threading backend: ……………………………… static                                                           │
-│ LoopVectorization: ……………………………… disabled                                                         │
+│ #threads: …………………………………………………………………… 1                                                           │
+│ threading backend: …………………………………………… static                                                      │
+│ LoopVectorization: …………………………………………… disabled                                                    │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       1.09962898e+00 s
+ #timesteps:                  0                run time:       1.08802647e+00 s
  Δt:             1.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  3.17101440e-08 s
+ sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  2.57090454e-08 s
                                                PID:                   Inf s
- #DOFs per field:          4096                alloc&#39;d memory:        685.680 MiB
- #elements:                 256
+ #DOFs per field:          4096                alloc&#39;d memory:        456.107 MiB
+ #elements:                 256                device memory:           0.000 MiB
 
  Variable:       scalar
  L2 error:       3.94120825e-06
@@ -142,79 +142,51 @@ F!(res, u, (ode.u0, 1.0, du, ode.p, 0.0, (), 1))
  ∑∂S/∂U ⋅ Uₜ :  -2.19124035e-16
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-┌ Warning: TODO forward zero-set of memorycopy used memset rather than runtime type
-│ Caused by:
-│ Stacktrace:
-│   [1] copy
-│     @ ./array.jl:350
-│   [2] unaliascopy
-│     @ ./abstractarray.jl:1516
-│   [3] unalias
-│     @ ./abstractarray.jl:1500
-│   [4] broadcast_unalias
-│     @ ./broadcast.jl:946
-│   [5] preprocess
-│     @ ./broadcast.jl:953
-│   [6] preprocess_args
-│     @ ./broadcast.jl:955
-│   [7] preprocess
-│     @ ./broadcast.jl:952
-│   [8] override_bc_copyto!
-│     @ ~/.julia/packages/Enzyme/9OkvN/src/compiler/interpreter.jl:818
-│   [9] copyto!
-│     @ ./broadcast.jl:925
-│  [10] materialize!
-│     @ ./broadcast.jl:883
-│  [11] materialize!
-│     @ ./broadcast.jl:880
-│  [12] TRBDF2
-│     @ ~/work/Ariadne.jl/Ariadne.jl/libs/Theseus/src/Theseus.jl:178
-└ @ Enzyme.Compiler ~/.julia/packages/Enzyme/9OkvN/src/rules/llvmrules.jl:812
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 18                run time:       3.06127980e+01 s
- Δt:             5.55555556e-02                └── GC time:    4.81350936e-01 s (1.572%)
- sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  2.25715990e-08 s
-                                               PID:            1.34188320e-05 s
- #DOFs per field:          4096                alloc&#39;d memory:        417.440 MiB
- #elements:                 256
+ #timesteps:                 18                run time:       3.56019718e+01 s
+ Δt:             5.55555556e-02                └── GC time:    3.38409874e-01 s (0.951%)
+ sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  2.08299359e-08 s
+                                               PID:            1.57132427e-05 s
+ #DOFs per field:          4096                alloc&#39;d memory:        394.247 MiB
+ #elements:                 256                device memory:           0.000 MiB
 
  Variable:       scalar
  L2 error:       1.71224434e-04
  Linf error:     2.52822142e-04
- ∑∂S/∂U ⋅ Uₜ :  -1.97551211e-09
+ ∑∂S/∂U ⋅ Uₜ :  -1.97551223e-09
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
 ────────────────────────────────────────────────────────────────────────────────────
              Trixi.jl                      Time                    Allocations
                                   ───────────────────────   ────────────────────────
-        Tot / % measured:              30.9s /   5.0%           1.60GiB /   2.2%
+        Tot / % measured:              35.9s /   4.4%           1.89GiB /   1.8%
 
 Section                   ncalls     time    %tot     avg     alloc    %tot      avg
 ────────────────────────────────────────────────────────────────────────────────────
-I/O                            3    1.28s   82.7%   427ms   16.9MiB   47.6%  5.63MiB
-  ~I/O~                        3    1.06s   68.5%   353ms   12.6MiB   35.5%  4.20MiB
-  save solution                2    212ms   13.7%   106ms   3.67MiB   10.4%  1.84MiB
-  get element variables        2   8.62ms    0.6%  4.31ms    621KiB    1.7%   311KiB
-  get node variables           2   1.09μs    0.0%   548ns     0.00B    0.0%    0.00B
-  save mesh                    2    523ns    0.0%   262ns     0.00B    0.0%    0.00B
-analyze solution               2    218ms   14.1%   109ms   18.6MiB   52.4%  9.31MiB
-rhs!                         533   49.1ms    3.2%  92.2μs   4.78KiB    0.0%    9.19B
-  volume integral            533   31.1ms    2.0%  58.3μs     0.00B    0.0%    0.00B
-  interface flux             533   4.86ms    0.3%  9.11μs     0.00B    0.0%    0.00B
-  surface integral           533   4.67ms    0.3%  8.76μs     0.00B    0.0%    0.00B
-  prolong2interfaces         533   3.68ms    0.2%  6.90μs     0.00B    0.0%    0.00B
-  Jacobian                   533   3.00ms    0.2%  5.62μs     0.00B    0.0%    0.00B
-  reset ∂u/∂t                533   1.06ms    0.1%  1.99μs     0.00B    0.0%    0.00B
-  ~rhs!~                     533    675μs    0.0%  1.27μs   4.78KiB    0.0%    9.19B
-  prolong2mortars            533   52.2μs    0.0%  97.9ns     0.00B    0.0%    0.00B
-  mortar flux                533   36.8μs    0.0%  69.1ns     0.00B    0.0%    0.00B
-  prolong2boundaries         533   36.8μs    0.0%  69.0ns     0.00B    0.0%    0.00B
-  boundary flux              533   15.1μs    0.0%  28.3ns     0.00B    0.0%    0.00B
-  source terms               533   13.5μs    0.0%  25.3ns     0.00B    0.0%    0.00B
-calculate dt                  19   59.7μs    0.0%  3.14μs   2.67KiB    0.0%     144B
+I/O                            3    1.32s   83.8%   440ms   16.6MiB   47.1%  5.53MiB
+  ~I/O~                        3    1.14s   72.6%   381ms   12.6MiB   35.7%  4.20MiB
+  save solution                2    170ms   10.8%  85.2ms   3.41MiB    9.7%  1.71MiB
+  get element variables        2   6.21ms    0.4%  3.10ms    620KiB    1.7%   310KiB
+  get node variables           2    892ns    0.0%   446ns     0.00B    0.0%    0.00B
+  save mesh                    2    510ns    0.0%   255ns     0.00B    0.0%    0.00B
+analyze solution               2    210ms   13.3%   105ms   18.6MiB   52.9%  9.31MiB
+rhs!                         533   45.4ms    2.9%  85.2μs   4.78KiB    0.0%    9.19B
+  volume integral            533   30.4ms    1.9%  57.1μs     0.00B    0.0%    0.00B
+  interface flux             533   4.41ms    0.3%  8.27μs     0.00B    0.0%    0.00B
+  surface integral           533   3.30ms    0.2%  6.19μs     0.00B    0.0%    0.00B
+  prolong2interfaces         533   3.29ms    0.2%  6.17μs     0.00B    0.0%    0.00B
+  Jacobian                   533   2.76ms    0.2%  5.18μs     0.00B    0.0%    0.00B
+  ~rhs!~                     533    531μs    0.0%   997ns   4.78KiB    0.0%    9.19B
+  reset ∂u/∂t                533    528μs    0.0%   990ns     0.00B    0.0%    0.00B
+  prolong2mortars            533   37.8μs    0.0%  70.9ns     0.00B    0.0%    0.00B
+  prolong2boundaries         533   35.0μs    0.0%  65.6ns     0.00B    0.0%    0.00B
+  mortar flux                533   27.7μs    0.0%  52.0ns     0.00B    0.0%    0.00B
+  boundary flux              533   16.3μs    0.0%  30.6ns     0.00B    0.0%    0.00B
+  source terms               533   15.7μs    0.0%  29.5ns     0.00B    0.0%    0.00B
+calculate dt                  19   14.7μs    0.0%   775ns   2.67KiB    0.0%     144B
 ────────────────────────────────────────────────────────────────────────────────────</code></pre><h4 id="Plot-the-solution"><a class="docs-heading-anchor" href="#Plot-the-solution">Plot the solution</a><a id="Plot-the-solution-1"></a><a class="docs-heading-anchor-permalink" href="#Plot-the-solution" title="Permalink"></a></h4><p>We have to manually convert the sol since Theseus has it&#39;s own lightweight solution type.</p><pre><code class="language-julia hljs">plot(Trixi.PlotData2DTriangulated(sol_trbdf2.u[end], sol_trbdf2.prob.p))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"></code></pre><h3 id="Solve-using-OrdinaryDiffEqSDIRK"><a class="docs-heading-anchor" href="#Solve-using-OrdinaryDiffEqSDIRK">Solve using OrdinaryDiffEqSDIRK</a><a id="Solve-using-OrdinaryDiffEqSDIRK-1"></a><a class="docs-heading-anchor-permalink" href="#Solve-using-OrdinaryDiffEqSDIRK" title="Permalink"></a></h3><pre><code class="language-julia hljs">import OrdinaryDiffEqSDIRK
 import DifferentiationInterface: AutoFiniteDiff
 sol_sdrik = solve(
@@ -233,98 +205,98 @@ sol_sdrik = solve(
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ SemidiscretizationHyperbolic                                                                     │
 │ ════════════════════════════                                                                     │
-│ #spatial dimensions: ………………………… 2                                                                │
-│ mesh: ………………………………………………………………… TreeMesh{2, Trixi.SerialTree{2, Float64}} with length 341        │
-│ equations: …………………………………………………… LinearScalarAdvectionEquation2D                                  │
-│ initial condition: ……………………………… initial_condition_convergence_test                               │
-│ boundary conditions: ………………………… Trixi.BoundaryConditionPeriodic                                  │
-│ source terms: …………………………………………… nothing                                                          │
-│ solver: …………………………………………………………… DG                                                               │
-│ total #DOFs per field: …………………… 4096                                                             │
+│ #spatial dimensions: ……………………………………… 2                                                           │
+│ mesh: ……………………………………………………………………………… TreeMesh{2, Trixi.SerialTree{2, Float64}} with length 341   │
+│ equations: ………………………………………………………………… LinearScalarAdvectionEquation2D                             │
+│ initial condition: …………………………………………… initial_condition_convergence_test                          │
+│ boundary conditions: ……………………………………… Trixi.BoundaryConditionPeriodic                             │
+│ source terms: ………………………………………………………… nothing                                                     │
+│ solver: ………………………………………………………………………… DG                                                          │
+│ total #DOFs per field: ………………………………… 4096                                                        │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ TreeMesh{2, Trixi.SerialTree{2, Float64}}                                                        │
 │ ═════════════════════════════════════════                                                        │
-│ center: …………………………………………………………… [0.0, 0.0]                                                       │
-│ length: …………………………………………………………… 2.0                                                              │
-│ periodicity: ……………………………………………… (true, true)                                                     │
-│ current #cells: ……………………………………… 341                                                              │
-│ #leaf-cells: ……………………………………………… 256                                                              │
-│ maximum #cells: ……………………………………… 30000                                                            │
+│ center: ………………………………………………………………………… [0.0, 0.0]                                                  │
+│ length: ………………………………………………………………………… 2.0                                                         │
+│ periodicity: …………………………………………………………… (true, true)                                                │
+│ current #cells: …………………………………………………… 341                                                         │
+│ #leaf-cells: …………………………………………………………… 256                                                         │
+│ current capacity: ……………………………………………… 341                                                         │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ LinearScalarAdvectionEquation2D                                                                  │
 │ ═══════════════════════════════                                                                  │
-│ #variables: ………………………………………………… 1                                                                │
-│ │ variable 1: …………………………………………… scalar                                                           │
+│ #variables: ……………………………………………………………… 1                                                           │
+│ │ variable 1: ………………………………………………………… scalar                                                      │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ DG{Float64}                                                                                      │
 │ ═══════════                                                                                      │
-│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
-│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
-│ surface integral: ………………………………… SurfaceIntegralWeakForm                                          │
-│ │ surface flux: ……………………………………… FluxLaxFriedrichs(max_abs_speed)                                 │
-│ volume integral: …………………………………… VolumeIntegralWeakForm                                           │
+│ basis: …………………………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                    │
+│ mortar: ………………………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                 │
+│ surface integral: ……………………………………………… SurfaceIntegralWeakForm                                     │
+│ │ surface flux: …………………………………………………… FluxLaxFriedrichs(max_abs_speed)                            │
+│ volume integral: ………………………………………………… VolumeIntegralWeakForm                                      │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ AnalysisCallback                                                                                 │
 │ ════════════════                                                                                 │
-│ interval: ……………………………………………………… 100                                                              │
-│ analyzer: ……………………………………………………… LobattoLegendreAnalyzer{Float64}(polydeg=6)                      │
-│ │ error 1: …………………………………………………… l2_error                                                         │
-│ │ error 2: …………………………………………………… linf_error                                                       │
-│ │ integral 1: …………………………………………… entropy_timederivative                                           │
-│ save analysis to file: …………………… no                                                               │
+│ interval: …………………………………………………………………… 100                                                         │
+│ analyzer: …………………………………………………………………… LobattoLegendreAnalyzer{Float64}(polydeg=6)                 │
+│ │ error 1: ………………………………………………………………… l2_error                                                    │
+│ │ error 2: ………………………………………………………………… linf_error                                                  │
+│ │ integral 1: ………………………………………………………… entropy_timederivative                                      │
+│ save analysis to file: ………………………………… no                                                          │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ SaveSolutionCallback                                                                             │
 │ ════════════════════                                                                             │
-│ interval: ……………………………………………………… 100                                                              │
-│ solution variables: …………………………… cons2prim                                                        │
-│ save initial solution: …………………… yes                                                              │
-│ save final solution: ………………………… yes                                                              │
-│ output directory: ………………………………… /home/runner/work/Ariadne.jl/Ariadne.jl/docs/build/generated/out │
+│ interval: …………………………………………………………………… 100                                                         │
+│ solution variables: ………………………………………… cons2prim                                                   │
+│ save initial solution: ………………………………… yes                                                         │
+│ save final solution: ……………………………………… yes                                                         │
+│ output directory: ……………………………………………… /home/runner/work/Ariadne.jl/…e.jl/docs/build/generated/out │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ StepsizeCallback                                                                                 │
 │ ════════════════                                                                                 │
-│ CFL Advective: ………………………………………… Returns{Float64}(1.6)                                            │
-│ CFL Diffusive: ………………………………………… Returns{Float64}(0.0)                                            │
-│ Interval: ……………………………………………………… 1                                                                │
+│ CFL Hyperbolic: …………………………………………………… Returns{Float64}(1.6)                                       │
+│ CFL Parabolic: ……………………………………………………… Returns{Float64}(0.0)                                       │
+│ Interval: …………………………………………………………………… 1                                                           │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ Time integration                                                                                 │
 │ ════════════════                                                                                 │
-│ Start time: ………………………………………………… 0.0                                                              │
-│ Final time: ………………………………………………… 1.0                                                              │
-│ time integrator: …………………………………… TRBDF2                                                           │
-│ adaptive: ……………………………………………………… false                                                            │
+│ Start time: ……………………………………………………………… 0.0                                                         │
+│ Final time: ……………………………………………………………… 1.0                                                         │
+│ time integrator: ………………………………………………… TRBDF2                                                      │
+│ adaptive: …………………………………………………………………… false                                                       │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ Environment information                                                                          │
 │ ═══════════════════════                                                                          │
-│ #threads: ……………………………………………………… 1                                                                │
-│ threading backend: ……………………………… static                                                           │
-│ LoopVectorization: ……………………………… disabled                                                         │
+│ #threads: …………………………………………………………………… 1                                                           │
+│ threading backend: …………………………………………… static                                                      │
+│ LoopVectorization: …………………………………………… disabled                                                    │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       4.07000000e-07 s
+ #timesteps:                  0                run time:       6.91000000e-07 s
  Δt:             1.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  2.76103516e-08 s
+ sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  2.32001953e-08 s
                                                PID:                   Inf s
- #DOFs per field:          4096                alloc&#39;d memory:        754.504 MiB
- #elements:                 256
+ #DOFs per field:          4096                alloc&#39;d memory:        667.819 MiB
+ #elements:                 256                device memory:           0.000 MiB
 
  Variable:       scalar
  L2 error:       3.94120825e-06
@@ -336,47 +308,47 @@ sol_sdrik = solve(
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 18                run time:       2.79314171e+01 s
- Δt:             5.55555556e-02                └── GC time:    3.98041280e-02 s (0.143%)
- sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  1.95849947e-08 s
-                                               PID:            4.62197338e-08 s
- #DOFs per field:          4096                alloc&#39;d memory:        872.357 MiB
- #elements:                 256
+ #timesteps:                 18                run time:       3.81940724e+01 s
+ Δt:             5.55555556e-02                └── GC time:    8.73365131e-01 s (2.287%)
+ sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  2.34623113e-08 s
+                                               PID:            6.32021617e-08 s
+ #DOFs per field:          4096                alloc&#39;d memory:       1024.702 MiB
+ #elements:                 256                device memory:           0.000 MiB
 
  Variable:       scalar
  L2 error:       1.71161806e-04
- Linf error:     2.52798214e-04
- ∑∂S/∂U ⋅ Uₜ :  -1.97752408e-09
+ Linf error:     2.52798215e-04
+ ∑∂S/∂U ⋅ Uₜ :  -1.97752414e-09
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
 ────────────────────────────────────────────────────────────────────────────────────
              Trixi.jl                      Time                    Allocations
                                   ───────────────────────   ────────────────────────
-        Tot / % measured:              27.9s /  42.3%            248MiB /   2.0%
+        Tot / % measured:              38.2s /  37.1%           4.67GiB /   0.1%
 
 Section                   ncalls     time    %tot     avg     alloc    %tot      avg
 ────────────────────────────────────────────────────────────────────────────────────
-rhs!                        148k    11.8s  100.0%  80.1μs   4.78KiB    0.1%    0.03B
-  volume integral           148k    7.56s   63.9%  51.2μs     0.00B    0.0%    0.00B
-  interface flux            148k    1.13s    9.5%  7.65μs     0.00B    0.0%    0.00B
-  surface integral          148k    1.02s    8.6%  6.93μs     0.00B    0.0%    0.00B
-  Jacobian                  148k    969ms    8.2%  6.56μs     0.00B    0.0%    0.00B
-  prolong2interfaces        148k    886ms    7.5%  6.01μs     0.00B    0.0%    0.00B
-  ~rhs!~                    148k    125ms    1.1%   845ns   4.78KiB    0.1%    0.03B
-  reset ∂u/∂t               148k    114ms    1.0%   775ns     0.00B    0.0%    0.00B
-  prolong2boundaries        148k   6.57ms    0.1%  44.5ns     0.00B    0.0%    0.00B
-  prolong2mortars           148k   4.83ms    0.0%  32.8ns     0.00B    0.0%    0.00B
-  mortar flux               148k   4.18ms    0.0%  28.3ns     0.00B    0.0%    0.00B
-  boundary flux             148k   3.41ms    0.0%  23.1ns     0.00B    0.0%    0.00B
-  source terms              148k   2.94ms    0.0%  19.9ns     0.00B    0.0%    0.00B
-I/O                            3   2.14ms    0.0%   714μs    203KiB    3.9%  67.8KiB
-  save solution                2   2.13ms    0.0%  1.07ms    200KiB    3.9%   100KiB
-  ~I/O~                        3   6.49μs    0.0%  2.16μs   1.70KiB    0.0%     581B
-  get element variables        2   2.29μs    0.0%  1.15μs   1.41KiB    0.0%     720B
-  get node variables           2    962ns    0.0%   481ns     0.00B    0.0%    0.00B
-  save mesh                    2    167ns    0.0%  83.5ns     0.00B    0.0%    0.00B
-analyze solution               2   1.52ms    0.0%   758μs   4.87MiB   95.9%  2.44MiB
-calculate dt                  19    122μs    0.0%  6.41μs   2.67KiB    0.1%     144B
+rhs!                        148k    14.2s  100.0%  96.0μs   4.78KiB    0.1%    0.03B
+  volume integral           148k    9.76s   68.8%  66.1μs     0.00B    0.0%    0.00B
+  interface flux            148k    1.14s    8.1%  7.76μs     0.00B    0.0%    0.00B
+  surface integral          148k    1.02s    7.2%  6.94μs     0.00B    0.0%    0.00B
+  Jacobian                  148k    1.01s    7.1%  6.84μs     0.00B    0.0%    0.00B
+  prolong2interfaces        148k    980ms    6.9%  6.64μs     0.00B    0.0%    0.00B
+  ~rhs!~                    148k    125ms    0.9%   851ns   4.78KiB    0.1%    0.03B
+  reset ∂u/∂t               148k    100ms    0.7%   681ns     0.00B    0.0%    0.00B
+  prolong2mortars           148k   5.75ms    0.0%  39.0ns     0.00B    0.0%    0.00B
+  prolong2boundaries        148k   5.66ms    0.0%  38.3ns     0.00B    0.0%    0.00B
+  mortar flux               148k   5.48ms    0.0%  37.1ns     0.00B    0.0%    0.00B
+  source terms              148k   4.43ms    0.0%  30.1ns     0.00B    0.0%    0.00B
+  boundary flux             148k   4.41ms    0.0%  29.9ns     0.00B    0.0%    0.00B
+I/O                            3   2.24ms    0.0%   747μs    203KiB    3.9%  67.8KiB
+  save solution                2   2.23ms    0.0%  1.12ms    200KiB    3.9%   100KiB
+  ~I/O~                        3   4.69μs    0.0%  1.56μs   1.70KiB    0.0%     581B
+  get element variables        2   1.47μs    0.0%   736ns   1.41KiB    0.0%     720B
+  get node variables           2   1.17μs    0.0%   586ns     0.00B    0.0%    0.00B
+  save mesh                    2    180ns    0.0%  90.0ns     0.00B    0.0%    0.00B
+analyze solution               2   1.80ms    0.0%   901μs   4.87MiB   95.9%  2.44MiB
+calculate dt                  19   63.3μs    0.0%  3.33μs   2.67KiB    0.1%     144B
 ────────────────────────────────────────────────────────────────────────────────────</code></pre><h4 id="Plot-the-solution-2"><a class="docs-heading-anchor" href="#Plot-the-solution-2">Plot the solution</a><a class="docs-heading-anchor-permalink" href="#Plot-the-solution-2" title="Permalink"></a></h4><pre><code class="language-julia hljs">plot(Trixi.PlotData2DTriangulated(sol_sdrik.u[end], sol_sdrik.prob.p))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"></code></pre><h2 id="Increase-CFL-numbers"><a class="docs-heading-anchor" href="#Increase-CFL-numbers">Increase CFL numbers</a><a id="Increase-CFL-numbers-1"></a><a class="docs-heading-anchor-permalink" href="#Increase-CFL-numbers" title="Permalink"></a></h2><pre><code class="language-julia hljs">trixi_include(@__MODULE__, joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &quot;elixir_advection_basic.jl&quot;), cfl = 10, sol = nothing);
 
 sol = solve(
@@ -391,7 +363,7 @@ sol = solve(
 @show callbacks.discrete_callbacks[4]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ StepsizeCallback                                                                                 │
 │ ════════════════                                                                                 │
-│ CFL Advective: ………………………………………… Returns{Int64}(10)                                               │
-│ CFL Diffusive: ………………………………………… Returns{Float64}(0.0)                                            │
-│ Interval: ……………………………………………………… 1                                                                │
-└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><h3 id="Plot-the-solution-3"><a class="docs-heading-anchor" href="#Plot-the-solution-3">Plot the solution</a><a class="docs-heading-anchor-permalink" href="#Plot-the-solution-3" title="Permalink"></a></h3><pre><code class="language-julia hljs">plot(Trixi.PlotData2DTriangulated(sol.u[end], sol.prob.p))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"></code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_2D/">« Implicit – Heat 2D</a><a class="docs-footer-nextpage" href="../trixi_imex_ssp/">Trixi IMEX SSP »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 5 May 2026 14:20">Tuesday 5 May 2026</span>. Using Julia version 1.11.9.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+│ CFL Hyperbolic: …………………………………………………… Returns{Int64}(10)                                          │
+│ CFL Parabolic: ……………………………………………………… Returns{Float64}(0.0)                                       │
+│ Interval: …………………………………………………………………… 1                                                           │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><h3 id="Plot-the-solution-3"><a class="docs-heading-anchor" href="#Plot-the-solution-3">Plot the solution</a><a class="docs-heading-anchor-permalink" href="#Plot-the-solution-3" title="Permalink"></a></h3><pre><code class="language-julia hljs">plot(Trixi.PlotData2DTriangulated(sol.u[end], sol.prob.p))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"></code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_2D/">« Implicit – Heat 2D</a><a class="docs-footer-nextpage" href="../trixi_imex_ssp/">Trixi IMEX SSP »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 29 June 2026 10:04">Monday 29 June 2026</span>. Using Julia version 1.11.9.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
