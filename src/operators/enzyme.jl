@@ -2,7 +2,7 @@ using Enzyme
 
 function init_cache(x)
     if !Enzyme.Compiler.guaranteed_const(typeof(x))
-        create_shadow(x)
+        Enzyme.make_zero(x)
     else
         return nothing
     end
@@ -12,7 +12,7 @@ function maybe_duplicated(x::T, x′::Union{Nothing, T}) where {T}
     if x′ === nothing
         return Const(x)
     else
-        zero_shadow!(x′)
+        Enzyme.make_zero!(x′)
         return Duplicated(x, x′)
     end
 end
