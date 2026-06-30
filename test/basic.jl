@@ -81,3 +81,23 @@ end
     mul!(out, J, [1.0, 0.0])
     @test out ≈ [6.0, 7.38905609893065]
 end
+
+@testset "NewtonKrylov Operator/Backend Selection" begin
+    # 1. Explicit operator type (EnzymeJacobianOperator)
+    let x₀ = [3.0, 5.0]
+        x, stats = newton_krylov(F, x₀; operator = Ariadne.EnzymeJacobianOperator)
+        @test stats.solved
+    end
+
+    # 2. Explicit operator type (DIJacobianOperator) with backend (AutoEnzyme)
+    let x₀ = [3.0, 5.0]
+        x, stats = newton_krylov(F, x₀; operator = Ariadne.DIJacobianOperator, backend = ADTypes.AutoEnzyme())
+        @test stats.solved
+    end
+
+    # 2. Explicit operator type (DIJacobianOperator) with backend (AutoFiniteDiff)
+    let x₀ = [3.0, 5.0]
+        x, stats = newton_krylov(F, x₀; operator = Ariadne.DIJacobianOperator, backend = ADTypes.AutoFiniteDiff())
+        @test stats.solved
+    end
+end

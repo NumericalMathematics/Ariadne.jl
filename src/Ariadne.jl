@@ -183,15 +183,25 @@ struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW}
 end
 
 function NewtonKrylovWorkspace(
-        F!, u::AbstractArray, p, res::AbstractArray, ::Val{Algo} = Val(:gmres);
-        assume_p_const::Bool = false
+        F!, u::AbstractArray, p, res::AbstractArray, ::Val{Algo} = Val(:gmres), operator::Type{Op} = JacobianOperator;
+        assume_p_const::Bool = false,
+        backend = nothing,
     ) where {Algo}
     # res .= 0 might ignore ghost cells
     # memory allocated with similar might contain NaN/Inf
     Enzyme.make_zero!(res)
     neg_res = similar(res)
     Enzyme.make_zero!(neg_res)
-    J = JacobianOperator(F!, res, u, p; assume_p_const)
+    if operator <: DIJacobianOperator
+        if backend === nothing
+            error("DIJacobianOperator requires a differentiation backend (e.g. backend = ADTypes.AutoEnzyme())")
+        end
+        J = operator(backend, F!, res, u, p)
+    elseif operator <: EnzymeJacobianOperator
+        J = operator(F!, res, u, p; assume_p_const)
+    else
+        error("Unknown Jacobian operator type: $operator")
+    end
     kc = KrylovConstructor(res)
     krylov = krylov_workspace(Val(Algo), kc)
     return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov)
@@ -262,9 +272,16 @@ Takes an in-place residual function `F!(res, u, p)`.
 
 $(KWARGS_DOCS)
 """
-function newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); algo::Symbol = :gmres, assume_p_const::Bool = false, kwargs...)
+function newton_krylov!(
+        F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀);
+        algo::Symbol = :gmres,
+        assume_p_const::Bool = false,
+        backend = nothing,
+        operator::Type{<:AbstractJacobianOperator} = JacobianOperator,
+        kwargs...
+    )
     res = similar(u₀, M)
-    ws = NewtonKrylovWorkspace(F!, u₀, p, res, Val(algo); assume_p_const)
+    ws = NewtonKrylovWorkspace(F!, u₀, p, res, Val(algo), operator; assume_p_const, backend)
     return newton_krylov!(ws; kwargs...)
 end
 
@@ -285,9 +302,11 @@ function newton_krylov!(
         F!, u::AbstractArray, p, res::AbstractArray;
         algo::Symbol = :gmres,
         assume_p_const::Bool = false,
+        backend = nothing,
+        operator::Type{<:AbstractJacobianOperator} = JacobianOperator,
         kwargs...,
     )
-    ws = NewtonKrylovWorkspace(F!, u, p, res, Val(algo); assume_p_const)
+    ws = NewtonKrylovWorkspace(F!, u, p, res, Val(algo), operator; assume_p_const, backend)
     return newton_krylov!(ws; kwargs...)
 end
 
