@@ -25,6 +25,7 @@ end
 import Ariadne: JacobianOperator
 using Enzyme, LinearAlgebra
 using ADTypes
+using FiniteDiff
 
 @testset "Enzyme: JacobianOperator" begin
     J_Enz = jacobian(Forward, x -> F(x, nothing), [3.0, 5.0]) |> only
@@ -55,7 +56,7 @@ using ADTypes
     @test collect(transpose(J)) == transpose(collect(J))
 end
 
-@testset "DifferentiationInterface: JacobianOperator" begin
+@testset "DifferentiationInterface: AutoEnzyme JacobianOperator" begin
     backend = ADTypes.AutoEnzyme()
     J = Ariadne.DIJacobianOperator(backend, F!, zeros(2), [3.0, 5.0], nothing)
 
@@ -66,4 +67,17 @@ end
     out = [NaN, NaN]
     mul!(out, J, [1.0, 0.0])
     @test out == [6.0, 7.38905609893065]
+end
+
+@testset "DifferentiationInterface: AutoFiniteDiff JacobianOperator" begin
+    backend = ADTypes.AutoFiniteDiff()
+    J = Ariadne.DIJacobianOperator(backend, F!, zeros(2), [3.0, 5.0], nothing)
+
+    @test size(J) == (2, 2)
+    @test length(J) == 4
+    @test eltype(J) == Float64
+
+    out = [NaN, NaN]
+    mul!(out, J, [1.0, 0.0])
+    @test out ≈ [6.0, 7.38905609893065]
 end
