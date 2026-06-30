@@ -22,10 +22,12 @@ let x₀ = [3.0, 5.0]
     @test stats.solved
 end
 
-import Ariadne: JacobianOperator, BatchedJacobianOperator
+import Ariadne: JacobianOperator
 using Enzyme, LinearAlgebra
+using ADTypes
+using FiniteDiff
 
-@testset "Jacobian" begin
+@testset "Enzyme: JacobianOperator" begin
     J_Enz = jacobian(Forward, x -> F(x, nothing), [3.0, 5.0]) |> only
     J = JacobianOperator(F!, zeros(2), [3.0, 5.0], nothing)
 
@@ -52,19 +54,50 @@ using Enzyme, LinearAlgebra
     @test out ≈ J_Enz * v
 
     @test collect(transpose(J)) == transpose(collect(J))
+end
 
-    # Batched
-    if VERSION >= v"1.11.0"
-        J = BatchedJacobianOperator{2}(F!, zeros(2), [3.0, 5.0], nothing)
+@testset "DifferentiationInterface: AutoEnzyme JacobianOperator" begin
+    backend = ADTypes.AutoEnzyme()
+    J = Ariadne.DIJacobianOperator(backend, F!, zeros(2), [3.0, 5.0], nothing)
 
-        V = [1.0 0.0; 0.0 1.0]
-        Out = similar(V)
-        mul!(Out, J, V)
+    @test size(J) == (2, 2)
+    @test length(J) == 4
+    @test eltype(J) == Float64
 
-        @test Out == J_Enz
+    out = [NaN, NaN]
+    mul!(out, J, [1.0, 0.0])
+    @test out == [6.0, 7.38905609893065]
+end
 
-        mul!(Out, transpose(J), V)
-        @test Out == J_Enz'
-        # @test Out == collect(transpose(J))
+@testset "DifferentiationInterface: AutoFiniteDiff JacobianOperator" begin
+    backend = ADTypes.AutoFiniteDiff()
+    J = Ariadne.DIJacobianOperator(backend, F!, zeros(2), [3.0, 5.0], nothing)
+
+    @test size(J) == (2, 2)
+    @test length(J) == 4
+    @test eltype(J) == Float64
+
+    out = [NaN, NaN]
+    mul!(out, J, [1.0, 0.0])
+    @test out ≈ [6.0, 7.38905609893065]
+end
+
+@testset "NewtonKrylov Operator/Backend Selection" begin
+    # 1. Explicit operator type (EnzymeJacobianOperator)
+    let x₀ = [3.0, 5.0]
+        x, stats = newton_krylov(F, x₀; operator = Ariadne.EnzymeJacobianOperator)
+        @test stats.solved
+    end
+
+    # 2. Explicit operator type (DIJacobianOperator) with backend (AutoEnzyme)
+    let x₀ = [3.0, 5.0]
+        x, stats = newton_krylov(F, x₀; operator = Ariadne.DIJacobianOperator, backend = ADTypes.AutoEnzyme())
+        @test stats.solved
+    end
+
+    # 2. Explicit operator type (DIJacobianOperator) with backend (AutoFiniteDiff)
+    let x₀ = [3.0, 5.0]
+        x, stats = newton_krylov(F, x₀; operator = Ariadne.DIJacobianOperator, backend = ADTypes.AutoFiniteDiff())
+        @test stats.solved
     end
 end
