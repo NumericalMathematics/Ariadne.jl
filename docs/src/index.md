@@ -18,9 +18,11 @@ NoLineSearch
 BacktrackingLineSearch
 ```
 
-### Statistics
+### Norms and statistics
 
 ```@docs
+ScaledNorm
+Ariadne.variable_residual_ratio
 Ariadne.Stats
 ```
 

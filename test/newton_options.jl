@@ -56,3 +56,44 @@ end
     @test result.status === :nonfinite
     @test result.stats.outer_iterations == 0
 end
+
+@testset "scaled norms" begin
+    # Variables of very different magnitude
+    S!(res, x, _) = (res[1] = x[1] - 1.0e6; res[2] = x[2] - 1.0e-6; nothing)
+    scale = (1.0e6, 1.0e-6)
+
+    n = ScaledNorm(scale)
+    @test n([1.0e6, 1.0e-6]) ≈ sqrt(2)
+    @test n([2.0e6, 0.0, 1.0e6, 1.0e-6]) ≈ sqrt(4 + 0 + 1 + 1)
+    @test ScaledNorm([2.0, 4.0])([2.0, 4.0]) ≈ sqrt(2)
+
+    # The workspace uses the given norm for the residual
+    ws = NewtonKrylovWorkspace(S!, [0.0, 0.0], nothing, zeros(2); norm = n)
+    @test evaluate!(ws) ≈ sqrt(2)
+
+    # With the unscaled norm, the second variable is ignored by the termination criterion
+    x, result = newton_krylov!(
+        S!, [0.0, 0.0]; forcing = Ariadne.Fixed(0.5),
+        tol_rel = 1.0e-3, tol_abs = 0.0
+    )
+    @test result.solved
+    # With the scaled norm, both variables are solved to the relative tolerance
+    x_scaled, result = newton_krylov!(
+        S!, [0.0, 0.0]; forcing = Ariadne.Fixed(0.5),
+        tol_rel = 1.0e-3, tol_abs = 0.0, norm = n
+    )
+    @test result.solved
+    @test abs(x_scaled[2] - 1.0e-6) <= 1.0e-3 * 1.0e-6 * sqrt(2)
+    @test abs(x_scaled[1] - 1.0e6) <= 1.0e-3 * 1.0e6 * sqrt(2)
+
+    # Per-variable residual reduction (median over variables, Lodares et al. 2022)
+    res₀ = [1.0, 10.0, 100.0, 1.0, 10.0, 100.0]
+    res = [0.5, 1.0, 100.0, 0.5, 1.0, 100.0]
+    @test Ariadne.variable_residual_ratio(res, res₀, 3) ≈ 0.5
+
+    # Variables with zero initial residual are treated as converged
+    res₀ = [2.0, 0.0, 2.0, 0.0, 2.0, 0.0]
+    res = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    @test Ariadne.variable_residual_ratio(res, res₀, 2) ≈ 0.5
+    @test Ariadne.variable_residual_ratio(res, zeros(6), 2) == 0
+end
