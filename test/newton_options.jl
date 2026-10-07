@@ -132,3 +132,18 @@ end
     @test result.solved
     @test x[1] ≈ 3.0
 end
+
+@testset "iteration callback" begin
+    infos = []
+    _, result = newton_krylov!(
+        F!, [2.0, 0.5];
+        iteration_callback = (ws, info) -> push!(infos, info)
+    )
+    @test result.solved
+    @test length(infos) == result.stats.outer_iterations
+    @test [info.iteration for info in infos] == 1:length(infos)
+    @test sum(info.krylov_iterations for info in infos) == result.stats.inner_iterations
+    @test all(info.krylov_solved for info in infos)
+    @test infos[end].norm_res == result.stats.norm_res
+    @test all(info.norm_res_prior > 0 for info in infos)
+end
