@@ -402,6 +402,113 @@ end
 const KRYLOV_WORKSPACE_KEYS = (:memory, :window)
 krylov_solve_kwargs(kwargs::NamedTuple) = Base.structdiff(kwargs, NamedTuple{KRYLOV_WORKSPACE_KEYS})
 krylov_workspace_kwargs(kwargs::NamedTuple) = Base.structdiff(kwargs, krylov_solve_kwargs(kwargs))
+##
+# Preconditioners
+##
+
+"""
+    AbstractPreconditioner
+
+Preconditioners that are kept across Newton iterations and across calls of
+[`newton_krylov!`](@ref). They can be passed as `M` or `N` to `newton_krylov!`.
+Before each Krylov solve, `newton_krylov!` calls [`prepare!(P, J)`](@ref prepare!)
+with the current [`JacobianOperator`](@ref) and passes `P` itself to the Krylov solver,
+which applies it via `ldiv!` (with `krylov_kwargs = (; ldiv = true)`) or `mul!`.
+After each Krylov solve, it calls [`record!(P, stats)`](@ref record!) with the Krylov stats.
+
+See [`LaggedPreconditioner`](@ref).
+"""
+abstract type AbstractPreconditioner end
+
+"""
+    prepare!(P::AbstractPreconditioner, J)
+
+Called by [`newton_krylov!`](@ref) before each Krylov solve. Rebuild `P` if needed.
+"""
+function prepare! end
+
+"""
+    record!(P::AbstractPreconditioner, stats)
+
+Called by [`newton_krylov!`](@ref) after each Krylov solve with the stats of the Krylov solver.
+"""
+record!(::AbstractPreconditioner, stats) = nothing
+
+"""
+    LaggedPreconditioner(build; refresh_interval = 1, refresh_iterations = typemax(Int))
+
+A preconditioner that is rebuilt lazily by `operator = build(J)`, where `J` is the
+current [`JacobianOperator`](@ref) (with `J.u` and `J.p` the current state and parameters).
+The operator is rebuilt
+- before its first use,
+- after it has been used for `refresh_interval` Krylov solves,
+- when the last Krylov solve needed more than `refresh_iterations` iterations or failed, and
+- after [`refresh!`](@ref) was called.
+
+`LaggedPreconditioner` forwards `ldiv!` and `mul!` to the current operator.
+The same object can be passed to several calls of [`newton_krylov!`](@ref), e.g., in
+pseudo-transient continuation or implicit time stepping, so that the operator is reused
+across calls.
+
+## Example
+
+```julia
+P = LaggedPreconditioner(J -> lu(assemble_jacobian(J.u, J.p)); refresh_interval = 20)
+newton_krylov!(ws; N = P, krylov_kwargs = (; ldiv = true))
+```
+"""
+mutable struct LaggedPreconditioner{B} <: AbstractPreconditioner
+    const build::B
+    operator::Any
+    const refresh_interval::Int
+    const refresh_iterations::Int
+    uses::Int
+    needs_refresh::Bool
+    n_builds::Int
+end
+
+function LaggedPreconditioner(
+        build; refresh_interval::Integer = 1,
+        refresh_iterations::Integer = typemax(Int)
+    )
+    @assert refresh_interval > 0 "refresh_interval must be positive"
+    return LaggedPreconditioner(build, nothing, Int(refresh_interval), Int(refresh_iterations), 0, true, 0)
+end
+
+"""
+    refresh!(P::LaggedPreconditioner)
+
+Rebuild the operator of `P` before its next use.
+"""
+refresh!(P::LaggedPreconditioner) = (P.needs_refresh = true; P)
+
+function prepare!(P::LaggedPreconditioner, J)
+    if P.needs_refresh || P.operator === nothing || P.uses >= P.refresh_interval
+        P.operator = P.build(J)
+        P.uses = 0
+        P.needs_refresh = false
+        P.n_builds += 1
+    end
+    P.uses += 1
+    return P
+end
+
+function record!(P::LaggedPreconditioner, stats)
+    if !stats.solved || stats.niter > P.refresh_iterations
+        P.needs_refresh = true
+    end
+    return nothing
+end
+
+LinearAlgebra.ldiv!(y, P::LaggedPreconditioner, x) = ldiv!(y, P.operator, x)
+LinearAlgebra.mul!(y, P::LaggedPreconditioner, x) = mul!(y, P.operator, x)
+
+# `M` and `N` are either `nothing`, a function `J -> operator` (called before each
+# Krylov solve), or an `AbstractPreconditioner`
+instantiate_preconditioner(P::AbstractPreconditioner, J) = prepare!(P, J)
+instantiate_preconditioner(P, J) = P(J)
+record_preconditioner!(P::AbstractPreconditioner, stats) = record!(P, stats)
+record_preconditioner!(P, stats) = nothing
 
 """
     NewtonKrylovWorkspace
@@ -412,7 +519,13 @@ Enzyme caches), and the Krylov solver workspace so that no intermediate arrays
 are allocated during the Newton iteration.
 
 !!! note
-    To change the parameters `p` you have to create a new workspace.
+    The parameters `p` can be mutated in place between calls of
+    [`newton_krylov!(ws)`](@ref), e.g., the previous time step `uₙ` and the step size
+    `1/Δτ` stored in arrays or `Ref`s of `p` for implicit time stepping or
+    pseudo-transient continuation. The Jacobian-vector products only differentiate
+    with respect to `u`, so no derivative information leaks between calls.
+    Replacing `p` by a different object requires a new workspace, since the workspace
+    holds the Enzyme shadow of `p`.
     To change the initial guess `u`, you can pass it to [`newton_krylov!(ws, u)`](@ref).
 
 ## Constructor
@@ -441,7 +554,7 @@ are allocated during the Newton iteration.
     newton_krylov!(ws)
 
     # To change the initial guess, pass it to newton_krylov!:
-    newton_krylov!(ws, u_new)    
+    newton_krylov!(ws, u_new)
 ```
 
 """
@@ -542,7 +655,7 @@ end
 include("linesearches.jl")
 import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch
 export NoLineSearch, BacktrackingLineSearch
-export ScaledNorm
+export AbstractPreconditioner, LaggedPreconditioner, refresh!, ScaledNorm
 
 
 const KWARGS_DOCS = """
@@ -557,8 +670,10 @@ const KWARGS_DOCS = """
              its own default tolerances, or those given in `krylov_kwargs`.
   - `linesearch!`: Line search strategy, an instance of a subtype of `AbstractLineSearch`.
   - `verbose::Int`: Verbosity level. If `verbose > 0`, progress is logged with `@info`.
-  - `M::Union{Nothing, Function}`: If provided, `M(ws.J)` is passed as a keyword argument to the Krylov solver.
-  - `N::Union{Nothing, Function}`: If provided, `N(ws.J)` is passed as a keyword argument to the Krylov solver.\
+  - `M`, `N`: Left (`M`) and right (`N`) preconditioners for the Krylov solver.
+    Either `nothing`, a function `J -> operator` that is called before each Krylov solve
+    with the [`JacobianOperator`](@ref), or an [`AbstractPreconditioner`](@ref) such as
+    [`LaggedPreconditioner`](@ref) that is reused across Newton iterations and calls.
   - `krylov_kwargs`: Keyword arguments passed to the Krylov solver, e.g.,
     `(; restart = true, itmax = 100)`. The keys that configure the Krylov workspace
     (`memory` and `window`, e.g., `memory = 50` for the restart length of GMRES(k))
@@ -716,11 +831,14 @@ function newton_krylov!(
     while isfinite(norm_res) && norm_res > tol && stats.outer_iterations < max_niter
         # Handle kwargs for Preconditioners
         kwargs = krylov_solve_kwargs(krylov_kwargs)
+        N_op = N === nothing ? nothing : instantiate_preconditioner(N, ws.J)
         if N !== nothing
-            kwargs = (; N = N(ws.J), kwargs...)
+            kwargs = (; N = N_op, kwargs...)
         end
         if M !== nothing
-            kwargs = (; M = M(ws.J), kwargs...)
+            # The same preconditioner object may be passed as `M` and `N`; prepare it once
+            M_op = M === N ? N_op : instantiate_preconditioner(M, ws.J)
+            kwargs = (; M = M_op, kwargs...)
         end
         if forcing !== nothing
             # The termination criterion of the inner Krylov solver is
@@ -746,6 +864,8 @@ function newton_krylov!(
         krylov_solve!(ws.krylov, ws.J, neg_res; kwargs...)
         krylov_stats = ws.krylov.stats
         krylov_solved = krylov_stats.solved
+        N === nothing || record_preconditioner!(N, krylov_stats)
+        M === nothing || M === N || record_preconditioner!(M, krylov_stats)
 
         if !krylov_solved && on_krylov_failure === :stop
             # `ws.res` was overwritten by the Jacobian-vector products

@@ -9,6 +9,12 @@ function F!(res, x, _)
     return nothing
 end
 
+# Scalar problem x^2 = p.a with parameters that are mutated between calls
+function G!(res, x, p)
+    res[1] = x[1]^2 - p.a[]
+    return nothing
+end
+
 @testset "max_niter" begin
     # `max_niter` is the maximal number of Newton iterations
     for max_niter in (0, 1, 3)
@@ -96,4 +102,74 @@ end
     res = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     @test Ariadne.variable_residual_ratio(res, res₀, 2) ≈ 0.5
     @test Ariadne.variable_residual_ratio(res, zeros(6), 2) == 0
+end
+
+@testset "preconditioner reuse" begin
+    builds = Ref(0)
+    build = J -> (builds[] += 1; lu(collect(J)))
+
+    # Rebuilt every Newton iteration
+    P = LaggedPreconditioner(build)
+    _, result = newton_krylov!(F!, [2.0, 0.5]; N = P, krylov_kwargs = (; ldiv = true))
+    @test result.solved
+    @test builds[] == result.stats.outer_iterations
+    @test P.n_builds == builds[]
+
+    # Reused across Newton iterations and calls
+    builds[] = 0
+    P = LaggedPreconditioner(build; refresh_interval = 100)
+    ws = NewtonKrylovWorkspace(F!, [2.0, 0.5], nothing, zeros(2))
+    for x₀ in ([2.0, 0.5], [0.5, 2.0])
+        _, result = newton_krylov!(ws, x₀; N = P, krylov_kwargs = (; ldiv = true))
+        @test result.solved
+    end
+    @test builds[] == 1
+
+    # Explicit refresh
+    refresh!(P)
+    _, result = newton_krylov!(ws, [1.5, 0.8]; N = P, krylov_kwargs = (; ldiv = true))
+    @test result.solved
+    @test builds[] == 2
+
+    # Refresh when the Krylov solver needs too many iterations: the identity
+    # "preconditioner" needs two GMRES iterations for this 2x2 system
+    builds[] = 0
+    P = LaggedPreconditioner(
+        J -> (builds[] += 1; I); refresh_interval = 100,
+        refresh_iterations = 1
+    )
+    _, result = newton_krylov!(F!, [2.0, 0.5]; N = P, forcing = nothing)
+    @test result.solved
+    @test builds[] == result.stats.outer_iterations
+
+    # Function preconditioners are still called in every Newton iteration
+    calls = Ref(0)
+    _, result = newton_krylov!(
+        F!, [2.0, 0.5]; N = J -> (calls[] += 1; lu(collect(J))),
+        krylov_kwargs = (; ldiv = true)
+    )
+    @test result.solved
+    @test calls[] == result.stats.outer_iterations
+end
+
+@testset "same preconditioner as M and N" begin
+    # A preconditioner passed as both `M` and `N` is prepared and recorded once per Krylov solve
+    builds = Ref(0)
+    P = LaggedPreconditioner(J -> (builds[] += 1; lu(collect(J))))
+    _, result = newton_krylov!(F!, [2.0, 0.5]; M = P, N = P, krylov_kwargs = (; ldiv = true))
+    @test result.solved
+    @test builds[] == result.stats.outer_iterations
+end
+
+@testset "mutating parameters between calls" begin
+    p = (; a = Ref(4.0))
+    ws = NewtonKrylovWorkspace(G!, [1.0], p, zeros(1))
+    x, result = newton_krylov!(ws, [1.0]; tol_rel = 1.0e-12)
+    @test result.solved
+    @test x[1] ≈ 2.0
+
+    p.a[] = 9.0 # e.g., a new time step or pseudo-time step size
+    x, result = newton_krylov!(ws, [1.0]; tol_rel = 1.0e-12)
+    @test result.solved
+    @test x[1] ≈ 3.0
 end
