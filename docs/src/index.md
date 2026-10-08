@@ -19,6 +19,16 @@ BacktrackingLineSearch
 Ariadne.LineSearches.parabolic_step
 ```
 
+### Preconditioners
+
+```@docs
+AbstractPreconditioner
+LaggedPreconditioner
+refresh!
+Ariadne.prepare!
+Ariadne.record!
+```
+
 ### Statistics
 
 ```@docs
