@@ -177,6 +177,11 @@ function solve!(integrator::Rosenbrock)
     workspace = krylov_workspace(integrator.opts.algo, kc)
 
     while !integrator.finalstep
+        # The Krylov workspace has to be recreated if a callback resized the integrator (AMR)
+        if length(workspace.x) != length(integrator.res)
+            kc = KrylovConstructor(integrator.res)
+            workspace = krylov_workspace(integrator.opts.algo, kc)
+        end
         step!(integrator, workspace)
     end # "main loop" timer
 
@@ -275,7 +280,10 @@ end
 function Base.resize!(integrator::Rosenbrock, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
-    return resize!(integrator.u_tmp, new_size)
+    resize!(integrator.u_tmp, new_size)
+    foreach(stage -> resize!(stage, new_size), integrator.stages)
+    resize!(integrator.res, new_size)
+    return nothing
 end
 
 include("tableau.jl")
