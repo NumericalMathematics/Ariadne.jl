@@ -334,6 +334,12 @@ function update(stats::Stats, inner_iterations, norm_res)
     )
 end
 
+# Keyword arguments of `Krylov.krylov_workspace` (as of Krylov.jl v0.10). `krylov_kwargs`
+# holds both these and the keyword arguments of `krylov_solve!`.
+const KRYLOV_WORKSPACE_KEYS = (:memory, :window)
+krylov_solve_kwargs(kwargs::NamedTuple) = Base.structdiff(kwargs, NamedTuple{KRYLOV_WORKSPACE_KEYS})
+krylov_workspace_kwargs(kwargs::NamedTuple) = Base.structdiff(kwargs, krylov_solve_kwargs(kwargs))
+
 """
     NewtonKrylovWorkspace
 
@@ -349,7 +355,7 @@ are allocated during the Newton iteration.
 ## Constructor
 
     NewtonKrylovWorkspace(F!, u, p, res, alg=Val(:gmres); assume_p_const = false,
-                          krylov_workspace_kwargs = (;))
+                          krylov_kwargs = (;))
 
 - `F!`: in-place residual function `F!(res, u, p)`
 - `u`: initial-guess array (used as template; the workspace holds a reference to it)
@@ -357,9 +363,11 @@ are allocated during the Newton iteration.
 - `res`: pre-allocated residual buffer
 - `algo`: Krylov algorithm symbol (e.g. `:gmres`, `:fgmres`) passed as a `Val`.
 - `assume_p_const`: passed through to [`JacobianOperator`](@ref)
-- `krylov_workspace_kwargs`: keyword arguments passed to `Krylov.krylov_workspace`,
-  e.g., `(; memory = 50)` for the size of the Krylov basis of GMRES and FGMRES
-  (the restart length with `krylov_kwargs = (; restart = true)`).
+- `krylov_kwargs`: the keyword arguments of the Krylov solver. The keys that configure the
+  Krylov workspace (`memory` and `window`, e.g., `memory = 50` for the size of the Krylov
+  basis of GMRES and FGMRES) are passed to `Krylov.krylov_workspace`, all other keys are
+  ignored. The same `krylov_kwargs` can therefore also be passed to
+  [`newton_krylov!(ws)`](@ref), which ignores the workspace keys.
 
 ## Example
 
@@ -384,7 +392,7 @@ end
 
 function NewtonKrylovWorkspace(
         F!, u::AbstractArray, p, res::AbstractArray, ::Val{Algo} = Val(:gmres);
-        assume_p_const::Bool = false, krylov_workspace_kwargs = (;)
+        assume_p_const::Bool = false, krylov_kwargs = (;)
     ) where {Algo}
     # res .= 0 might ignore ghost cells
     # memory allocated with similar might contain NaN/Inf
@@ -393,7 +401,7 @@ function NewtonKrylovWorkspace(
     Enzyme.make_zero!(neg_res)
     J = JacobianOperator(F!, res, u, p; assume_p_const)
     kc = KrylovConstructor(res)
-    krylov = krylov_workspace(Val(Algo), kc; krylov_workspace_kwargs...)
+    krylov = krylov_workspace(Val(Algo), kc; krylov_workspace_kwargs(krylov_kwargs)...)
     return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov)
 end
 
@@ -427,9 +435,13 @@ const KWARGS_DOCS = """
   - `verbose::Int`: Verbosity level
   - `M::Union{Nothing, Function}`: If provided, `M(ws.J)` is passed as a keyword argument to the Krylov solver.
   - `N::Union{Nothing, Function}`: If provided, `N(ws.J)` is passed as a keyword argument to the Krylov solver.
-  - `krylov_kwargs`: Keyword arguments passed to the Krylov solver.
-  - `algo`, `assume_p_const`, `krylov_workspace_kwargs`: Only for the methods that create
-    a [`NewtonKrylovWorkspace`](@ref); see there.
+  - `krylov_kwargs`: Keyword arguments passed to the Krylov solver, e.g.,
+    `(; restart = true, itmax = 100)`. The keys that configure the Krylov workspace
+    (`memory` and `window`, e.g., `memory = 50` for the restart length of GMRES(k))
+    only take effect when a [`NewtonKrylovWorkspace`](@ref) is created, i.e., in the
+    methods that take a residual function, and are ignored by `newton_krylov!(ws)`.
+  - `algo`, `assume_p_const`: Only for the methods that take a residual function;
+    see [`NewtonKrylovWorkspace`](@ref).
   - `callback`: A function called after each Newton iteration with signature `callback(u, res, norm_res)`.
 """
 
@@ -467,11 +479,11 @@ $(KWARGS_DOCS)
 function newton_krylov!(
         F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀);
         algo::Symbol = :gmres, assume_p_const::Bool = false,
-        krylov_workspace_kwargs = (;), kwargs...
+        krylov_kwargs = (;), kwargs...
     )
     res = similar(u₀, M)
-    ws = NewtonKrylovWorkspace(F!, u₀, p, res, Val(algo); assume_p_const, krylov_workspace_kwargs)
-    return newton_krylov!(ws; kwargs...)
+    ws = NewtonKrylovWorkspace(F!, u₀, p, res, Val(algo); assume_p_const, krylov_kwargs)
+    return newton_krylov!(ws; krylov_kwargs, kwargs...)
 end
 
 """
@@ -491,11 +503,11 @@ function newton_krylov!(
         F!, u::AbstractArray, p, res::AbstractArray;
         algo::Symbol = :gmres,
         assume_p_const::Bool = false,
-        krylov_workspace_kwargs = (;),
+        krylov_kwargs = (;),
         kwargs...,
     )
-    ws = NewtonKrylovWorkspace(F!, u, p, res, Val(algo); assume_p_const, krylov_workspace_kwargs)
-    return newton_krylov!(ws; kwargs...)
+    ws = NewtonKrylovWorkspace(F!, u, p, res, Val(algo); assume_p_const, krylov_kwargs)
+    return newton_krylov!(ws; krylov_kwargs, kwargs...)
 end
 
 """
@@ -556,7 +568,7 @@ function newton_krylov!(
     stats = Stats(0, 0, norm_res)
     while norm_res > tol && stats.outer_iterations < max_niter
         # Handle kwargs for Preconditioners
-        kwargs = krylov_kwargs
+        kwargs = krylov_solve_kwargs(krylov_kwargs)
         if N !== nothing
             kwargs = (; N = N(ws.J), kwargs...)
         end

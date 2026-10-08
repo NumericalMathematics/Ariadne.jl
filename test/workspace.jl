@@ -109,7 +109,12 @@ end
     @test collect(transpose(J)) ≈ J_ref'
 end
 
-@testset "krylov_workspace_kwargs" begin
+@testset "Krylov workspace keys in krylov_kwargs" begin
+    kw = (; memory = 5, restart = true, itmax = 3)
+    @test @inferred(Ariadne.krylov_workspace_kwargs(kw)) === (; memory = 5)
+    @test @inferred(Ariadne.krylov_solve_kwargs(kw)) === (; restart = true, itmax = 3)
+    @test @inferred(Ariadne.krylov_workspace_kwargs((;))) === (;)
+
     # Krylov.jl caps `memory` at the system size, so use a larger system
     C!(res, x, _) = (res .= x .^ 3 .+ x .- 2; nothing)
     x₀ = collect(range(0.5, 3.0; length = 30))
@@ -118,15 +123,16 @@ end
 
     ws = @inferred NewtonKrylovWorkspace(
         C!, copy(x₀), nothing, similar(x₀), Val(:fgmres);
-        krylov_workspace_kwargs = (; memory = 5)
+        krylov_kwargs = (; memory = 5, restart = true)
     )
     @test length(ws.krylov.V) == 5
-    x, stats = newton_krylov!(ws)
+    # `memory` is ignored by the solve, the solver keys are passed on
+    x, stats = newton_krylov!(ws; krylov_kwargs = (; memory = 5, restart = true))
     @test stats.solved
     @test x ≈ ones(30)
 
     # Restarted GMRES(2)
-    kw = (; krylov_workspace_kwargs = (; memory = 2), krylov_kwargs = (; restart = true))
+    kw = (; krylov_kwargs = (; memory = 2, restart = true))
     x, stats = newton_krylov!(C!, copy(x₀); kw...)
     @test stats.solved
     @test x ≈ ones(30)
