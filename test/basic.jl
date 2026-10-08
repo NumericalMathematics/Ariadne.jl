@@ -22,6 +22,18 @@ let x₀ = [3.0, 5.0]
     @test stats.solved
 end
 
+@testset "Float32" begin
+    x, result = newton_krylov!(F!, Float32[2, 0.5])
+    @test result.solved
+    @test eltype(x) === Float32
+    @test result.stats.norm_res isa Float32
+    @test x ≈ [1, 1] atol = 1.0f-3
+
+    x, result = newton_krylov!(F!, Float32[2, 0.5]; forcing = nothing)
+    @test result.solved
+    @test eltype(x) === Float32
+end
+
 import Ariadne: JacobianOperator, BatchedJacobianOperator
 using Enzyme, LinearAlgebra
 
