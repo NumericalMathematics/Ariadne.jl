@@ -98,3 +98,13 @@ Base.zero(v::WrappedVector) = WrappedVector(zero(v.data))
     @test stats.solved
     @test x ≈ [1.0, 1.0] atol = 1.0e-5
 end
+
+@testset "collect with custom array type" begin
+    # The unit vectors must have the array type of `u` and `res`, since the
+    # Enzyme shadows must match the type of the primal
+    x = WrappedVector([2.0, 0.5])
+    J = Ariadne.JacobianOperator(F!, zero(x), x, nothing)
+    J_ref = [4.0 1.0; exp(1.0) 1.0]
+    @test collect(J) ≈ J_ref
+    @test collect(transpose(J)) ≈ J_ref'
+end
