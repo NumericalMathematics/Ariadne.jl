@@ -52,7 +52,20 @@ using SciMLBase: SciMLBase
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
     init, step!, check_error,
     get_proposed_dt, set_proposed_dt!,
-    terminate!, remake, add_tstop!, has_tstop, first_tstop
+    terminate!, remake, add_tstop!, has_tstop, first_tstop, reinit!
+
+
+function reinit!(integrator::AbstractTimeIntegrator,
+                 u0 = integrator.sol.prob.u0;
+                 t0 = first(integrator.sol.prob.tspan),
+                 tf = last(integrator.sol.prob.tspan),
+                 kwargs...)
+    integrator.u .= u0
+    integrator.t = t0
+    integrator.iter = 0
+    integrator.finalstep = false
+    integrator.sol = (prob = remake(integrator.sol.prob; tspan = (t0, tf)),)
+end
 
 # To keep backwards compatibility with SciMLBase v2, see
 # https://github.com/trixi-framework/Trixi.jl/pull/2918#issuecomment-4233720339
@@ -424,4 +437,5 @@ end
 include("rosenbrock/rosenbrock.jl")
 include("imex/imex.jl")
 include("dirk/dirk.jl")
+include("mis/mis.jl")
 end # module Theseus
