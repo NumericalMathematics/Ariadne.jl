@@ -8,6 +8,9 @@ import ..evaluate!
 
 Line search updates `ws.u` in-place along the Newton direction `d` and calls
 `evaluate!(ws)` to refresh `ws.res` and obtain the new residual norm.
+A line search that does not find a step with sufficient decrease reports this with
+`Ariadne.LineSearches.set_linesearch_failed!(ws)`, which [`newton_krylov!`](@ref) counts in
+`stats.linesearch_failures`.
 
 ## Implemented variants
 - [`NoLineSearch`](@ref)
@@ -66,6 +69,31 @@ function evaluate_or_inf!(ws, types::Tuple; verbose = 0)
     end
 end
 
+# Report that the line search found no step with sufficient decrease. Line searches can be
+# called with other workspaces than `NewtonKrylovWorkspace`, which may not have the flag.
+function set_linesearch_failed!(ws, failed::Bool = true)
+    hasproperty(ws, :linesearch_failed) && (ws.linesearch_failed[] = failed)
+    return nothing
+end
+
+"""
+    parabolic_step(λc, λm, ff0, ffc, ffm; σ₀ = 0.1, σ₁ = 0.5)
+
+Safeguarded three-point parabolic model for the step length of a line search, as in
+[Kelley2022](@cite) (`parab3p` of SIAMFANLEquations.jl): minimize the parabola through the
+squared residual norms `ff0` at `λ = 0`, `ffc` at the current step length `λc`, and `ffm` at
+the previous step length `λm`, and clamp the result to `[σ₀ λc, σ₁ λc]`. If the parabola has
+no minimum (or a residual norm is not finite), return `σ₁ λc`.
+"""
+function parabolic_step(λc, λm, ff0, ffc, ffm; σ₀ = 0.1, σ₁ = 0.5)
+    (isfinite(ffc) && isfinite(ffm)) || return σ₁ * λc
+    c2 = λm * (ffc - ff0) - λc * (ffm - ff0)
+    c2 >= 0 && return σ₁ * λc
+    c1 = λc^2 * (ffm - ff0) - λm^2 * (ffc - ff0)
+    λp = -c1 / (2 * c2)
+    return clamp(λp, σ₀ * λc, σ₁ * λc)
+end
+
 """
     NoLineSearch()
 
@@ -80,11 +108,16 @@ end
 
 """
     BacktrackingLineSearch(; n_iter_max = 10, alpha = 1.0e-4,
-                           reject_exceptions = (DomainError,))
+                           reject_exceptions = (DomainError,), parabolic = true)
 
-Armijo backtracking: the step length is halved until
-`‖F(u + λ d)‖ <= (1 - alpha λ) ‖F(u)‖`, for at most `n_iter_max` trials, after which the
-last trial step is taken.
+Armijo backtracking: the step length `λ`, starting from `1`, is reduced until
+`‖F(u + λ d)‖ <= (1 - alpha λ) ‖F(u)‖`, for at most `n_iter_max` trials. If no trial
+satisfies this condition, the last trial step is taken and the line search counts as
+failed (`stats.linesearch_failures` of [`newton_krylov!`](@ref)).
+
+The first reduction halves `λ`. Later reductions use the safeguarded three-point parabolic
+model of [Kelley2022](@cite) ([`Ariadne.LineSearches.parabolic_step`](@ref)), which reduces
+`λ` by a factor in `[0.1, 0.5]`, or halve `λ` if `parabolic = false`.
 
 Trial states whose residual evaluation throws an exception of one of the types
 `reject_exceptions` (e.g., a `DomainError` from `sqrt` or `log` of a quantity that became
@@ -108,6 +141,7 @@ Base.@kwdef struct BacktrackingLineSearch <: AbstractLineSearch
     n_iter_max::Int = 10
     alpha::Float64 = 1.0e-4
     reject_exceptions::Tuple = (DomainError,)
+    parabolic::Bool = true
 end
 
 function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d; verbose = 0)
@@ -121,20 +155,35 @@ function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d; verbose = 0)
     ws.u .= muladd.(lambda, d, ws.u) # u = u + lambda * d
     norm_res = evaluate_or_inf!(ws, ls.reject_exceptions; verbose)
 
-    for _ in 2:ls.n_iter_max
+    # Squared residual norms at λ = 0, at the current and at the previous step length
+    ff0 = norm_res_prior^2
+    ffc = norm_res^2
+    lambda_m = lambda
+    ffm = ffc
+
+    for iter in 2:ls.n_iter_max
         # Armijo condition
         if norm_res <= (1 - alpha * lambda) * norm_res_prior
             return norm_res
         end
 
-        # Halve lambda and retract the excess step incrementally:
+        if iter == 2 || !ls.parabolic
+            new_lambda = lambda * 0.5
+        else
+            new_lambda = parabolic_step(lambda, lambda_m, ff0, ffc, ffm)
+        end
+        # Retract the excess step incrementally:
         # u goes from u + old_lambda*d to u + new_lambda*d,
         # so the adjustment is (new_lambda - old_lambda)*d (negative).
-        new_lambda = lambda * 0.5
         s = new_lambda - lambda
         ws.u .= muladd.(s, d, ws.u) # u = u + (new_lambda - old_lambda) * d
+        lambda_m, ffm = lambda, ffc
         lambda = new_lambda
         norm_res = evaluate_or_inf!(ws, ls.reject_exceptions; verbose)
+        ffc = norm_res^2
+    end
+    if !(norm_res <= (1 - alpha * lambda) * norm_res_prior)
+        set_linesearch_failed!(ws)
     end
     return norm_res
 end
