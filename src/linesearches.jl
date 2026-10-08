@@ -81,7 +81,7 @@ Trial states whose residual evaluation throws an exception of one of the types
 negative in a too long step) count as trial states with infinite residual norm, so the
 step length is reduced further. This also holds for such exceptions thrown in tasks, e.g.,
 in a `Threads.@threads` loop of the residual. Other exceptions are rethrown. If all trials
-throw, the line search returns `Inf` and [`newton_krylov!`](@ref) stops with status
+throw, the line search returns `Inf` and [`newton_krylov!`](@ref Ariadne.newton_krylov!) stops with status
 `:nonfinite`. Use `reject_exceptions = ()` to rethrow all exceptions.
 
 ## References
