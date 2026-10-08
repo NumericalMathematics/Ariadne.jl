@@ -590,6 +590,13 @@ const KWARGS_DOCS = """
   - `tol_rel`: Relative tolerance. Newton stops when `‖F(u)‖ <= tol_rel * ‖F(u₀)‖ + tol_abs`.
   - `tol_abs`: Absolute tolerance
   - `max_niter`: Maximum number of Newton iterations
+  - `tol_step = 0`: Step tolerance. If the Krylov solver reached its tolerance and the
+    (full) Newton step `d` satisfies `‖d‖ <= tol_step ‖u‖` (Euclidean norms), the iteration
+    stops with status `:small_step` (`solved == true`). Then
+    `‖F(u)‖ <= ‖F′(u)‖ ‖d‖ / (1 - η)`, i.e., the residual is at the level of the rounding
+    errors of `F` if `tol_step` is a small multiple of the machine epsilon, e.g., for stiff
+    problems where the residual tolerance is below the rounding floor of the residual.
+    `tol_step = 0` disables this test.
   - `forcing`: Forcing-term strategy for the inexact Newton method, a [`Forcing`](@ref Ariadne.Forcing)
              such as [`EisenstatWalker()`](@ref Ariadne.EisenstatWalker) (default) or [`Fixed(η)`](@ref Ariadne.Fixed).
              It sets `atol = 0` and `rtol = η` for each Krylov solve; `krylov_kwargs` can override both.
@@ -622,6 +629,7 @@ the Krylov solver minimizes `‖M (F + J d)‖` in this norm).
 ## Return value
 `(u, (; solved, status, stats, t))`, where `status` is
 - `:converged`: the residual norm satisfies the tolerance (`solved == true`)
+- `:small_step`: the Newton step satisfies the step tolerance `tol_step` (`solved == true`)
 - `:max_iterations`: `max_niter` Newton iterations were taken without convergence
 - `:krylov_failed`: the Krylov solver failed and `on_krylov_failure == :stop`
 - `:nonfinite`: the residual norm became `NaN` or `Inf`
@@ -728,6 +736,7 @@ function newton_krylov!(
         tol_rel = 1.0e-6,
         tol_abs = 1.0e-12, # Scipy uses 6e-6
         max_niter = 50,
+        tol_step = 0.0,
         forcing::Union{Forcing, Nothing} = EisenstatWalker(),
         linesearch!::AbstractLineSearch = NoLineSearch(),
         verbose = 0,
@@ -807,6 +816,7 @@ function newton_krylov!(
         end
 
         d = ws.krylov.x # Newton direction
+        small_step = krylov_solved && tol_step > 0 && LinearAlgebra.norm(d) <= tol_step * LinearAlgebra.norm(ws.u)
 
         # Perform line search to find an appropriate step size and update `u` and `res` in-place
         norm_res_prior = norm_res
@@ -819,6 +829,14 @@ function newton_krylov!(
         if !isfinite(norm_res)
             status = :nonfinite
             verbose > 0 && @info "Residual became non-finite" stats
+            break
+        end
+
+        if small_step && norm_res > tol
+            # The Newton step no longer changes `u`: the residual is at the level of its
+            # rounding errors
+            status = :small_step
+            verbose > 0 && @info "Newton step below the step tolerance" tol_step stats
             break
         end
 
@@ -837,7 +855,7 @@ function newton_krylov!(
         status = :converged
     end
     t = (time_ns() - t₀) / 1.0e9
-    return ws.u, (; solved = status === :converged, status, stats, t)
+    return ws.u, (; solved = status === :converged || status === :small_step, status, stats, t)
 end
 
 end # module Ariadne
