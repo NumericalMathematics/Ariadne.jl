@@ -82,13 +82,22 @@ end
 Safeguarded three-point parabolic model for the step length of a line search, as in
 [Kelley2022](@cite) (`parab3p` of SIAMFANLEquations.jl): minimize the parabola through the
 squared residual norms `ff0` at `λ = 0`, `ffc` at the current step length `λc`, and `ffm` at
-the previous step length `λm`, and clamp the result to `[σ₀ λc, σ₁ λc]`. If the parabola has
-no minimum (or a residual norm is not finite), return `σ₁ λc`.
+the previous step length `λm`, and clamp the result to `[σ₀ λc, σ₁ λc]`.
+
+The model is `p(λ) = ff0 + (c₁ λ + c₂ λ²) / d₁` with `d₁ = (λc - λm) λc λm < 0`, so it is
+convex if `c₂ < 0`, and its minimum is at `λ = -c₁ / (2 c₂)`. If the parabola has
+negative curvature, the model is not helpful and the smallest step length `σ₀ λc` is taken
+(the corrected behavior of `parab3p`, see the comments there). If a residual norm is not
+finite, e.g., because the trial state threw an exception, `λc` is halved (`σ₁ λc`).
+
+Adapted from <https://github.com/ctkelley/SIAMFANLEquations.jl/blob/e5603e177dd007b065265641fb232d54020c4282/src/Tools/armijo.jl#L57>
+(MIT license).
 """
 function parabolic_step(λc, λm, ff0, ffc, ffm; σ₀ = 0.1, σ₁ = 0.5)
     (isfinite(ffc) && isfinite(ffm)) || return σ₁ * λc
     c2 = λm * (ffc - ff0) - λc * (ffm - ff0)
-    c2 >= 0 && return σ₁ * λc
+    # Negative curvature
+    c2 >= 0 && return σ₀ * λc
     c1 = λc^2 * (ffm - ff0) - λm^2 * (ffc - ff0)
     λp = -c1 / (2 * c2)
     return clamp(λp, σ₀ * λc, σ₁ * λc)
@@ -108,16 +117,19 @@ end
 
 """
     BacktrackingLineSearch(; n_iter_max = 10, alpha = 1.0e-4,
-                           reject_exceptions = (DomainError,), parabolic = true)
+                           reject_exceptions = (DomainError,), parabolic = false)
 
 Armijo backtracking: the step length `λ`, starting from `1`, is reduced until
 `‖F(u + λ d)‖ <= (1 - alpha λ) ‖F(u)‖`, for at most `n_iter_max` trials. If no trial
 satisfies this condition, the last trial step is taken and the line search counts as
 failed (`stats.linesearch_failures` of [`newton_krylov!`](@ref)).
 
-The first reduction halves `λ`. Later reductions use the safeguarded three-point parabolic
-model of [Kelley2022](@cite) ([`Ariadne.LineSearches.parabolic_step`](@ref)), which reduces
-`λ` by a factor in `[0.1, 0.5]`, or halve `λ` if `parabolic = false`.
+By default, `λ` is halved in each reduction. With `parabolic = true`, the first reduction
+halves `λ` and later reductions use the safeguarded three-point parabolic model of
+[Kelley2022](@cite) ([`Ariadne.LineSearches.parabolic_step`](@ref)), which reduces `λ` by a
+factor in `[0.1, 0.5]`. The parabolic model fails the Armijo condition less often, but
+does not reduce the number of Newton iterations on, e.g., the generalized Rosenbrock
+problem.
 
 Trial states whose residual evaluation throws an exception of one of the types
 `reject_exceptions` (e.g., a `DomainError` from `sqrt` or `log` of a quantity that became
@@ -141,7 +153,7 @@ Base.@kwdef struct BacktrackingLineSearch <: AbstractLineSearch
     n_iter_max::Int = 10
     alpha::Float64 = 1.0e-4
     reject_exceptions::Tuple = (DomainError,)
-    parabolic::Bool = true
+    parabolic::Bool = false
 end
 
 function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d; verbose = 0)

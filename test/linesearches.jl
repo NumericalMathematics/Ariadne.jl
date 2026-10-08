@@ -113,8 +113,10 @@ end
     @test parabolic_step(0.5, 1.0, ff(0.0), ff(0.5), ff(1.0)) ≈ 0.25
     ff_low(λ) = (λ - 0.01)^2
     @test parabolic_step(1.0, 2.0, ff_low(0.0), ff_low(1.0), ff_low(2.0)) ≈ 0.1
-    # No minimum (concave model) or non-finite residuals: halve
-    @test parabolic_step(1.0, 2.0, 1.0, 2.0, 1.0) == 0.5
+    # Negative curvature (no minimum): the smallest step length 0.1 λc
+    @test parabolic_step(1.0, 2.0, 1.0, 2.0, 1.0) ≈ 0.1
+    @test parabolic_step(0.5, 1.0, 1.0, 2.0, 1.0) ≈ 0.05
+    # Non-finite residuals, e.g., from a trial state that threw: halve
     @test parabolic_step(1.0, 2.0, 1.0, Inf, 4.0) == 0.5
     @test parabolic_step(1.0, 2.0, 1.0, 4.0, Inf) == 0.5
 
