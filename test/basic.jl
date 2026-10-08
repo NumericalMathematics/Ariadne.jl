@@ -68,3 +68,20 @@ using Enzyme, LinearAlgebra
         # @test Out == collect(transpose(J))
     end
 end
+
+@testset "Jacobian of accumulating residual" begin
+    # The output buffer of the JVP is the shadow of `res`. A residual that
+    # accumulates into `res` must not pick up stale values from it.
+    A!(res, x, _) = (res .+= x .^ 2; nothing)
+    J = JacobianOperator(A!, zeros(2), [1.0, 2.0], nothing)
+    out = [100.0, 100.0]
+    mul!(out, J, [1.0, 0.0])
+    @test out == [2.0, 0.0]
+
+    if VERSION >= v"1.11.0"
+        J = BatchedJacobianOperator{2}(A!, zeros(2), [1.0, 2.0], nothing)
+        Out = fill(100.0, 2, 2)
+        mul!(Out, J, [1.0 0.0; 0.0 1.0])
+        @test Out == [2.0 0.0; 0.0 4.0]
+    end
+end
