@@ -301,12 +301,12 @@ function (F::EisenstatWalker)(η, tol, norm_res, norm_res_prior)
 end
 initial(F::EisenstatWalker) = F.η₀
 
-struct Stats
+struct Stats{T <: Real}
     outer_iterations::Int
     inner_iterations::Int
-    norm_res::Float64
+    norm_res::T
 end
-function update(stats::Stats, inner_iterations, norm_res::Float64)
+function update(stats::Stats, inner_iterations, norm_res)
     return Stats(
         stats.outer_iterations + 1,
         stats.inner_iterations + inner_iterations,
@@ -541,7 +541,10 @@ function newton_krylov!(
             # `rtol = η`.
             # Since the user-provided `kwargs` are appended at the end,
             # the user can override these settings.
-            kwargs = (; atol = zero(η), rtol = η, kwargs...)
+            # The forcing terms are `Float64`, but Krylov.jl requires
+            # tolerances of the real type of the state.
+            rtol = convert(real(eltype(ws.u)), η)
+            kwargs = (; atol = zero(rtol), rtol, kwargs...)
         end
 
         # Solve: J d = -res = -F(u)
