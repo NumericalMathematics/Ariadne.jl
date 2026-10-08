@@ -28,6 +28,34 @@ end
 """
 abstract type AbstractLineSearch end
 
+# Whether the exception `err` is of one of the `types`, also if it was thrown in tasks:
+# a `TaskFailedException` (e.g., from `fetch`) matches if the exception of its task matches,
+# a `CompositeException` (e.g., from a `Threads.@threads` loop in the residual) matches if
+# all of its exceptions match, and a `CapturedException` matches if its exception matches.
+function matches_exception(err, types::Tuple)
+    any(T -> err isa T, types) && return true
+    if err isa CompositeException
+        return !isempty(err.exceptions) && all(e -> matches_exception(e, types), err.exceptions)
+    elseif err isa TaskFailedException
+        return matches_exception(err.task.result, types)
+    elseif err isa CapturedException
+        return matches_exception(err.ex, types)
+    end
+    return false
+end
+
+# `evaluate!(ws)`, but `Inf` if an exception of one of the `types` is thrown, e.g., a
+# `DomainError` from `sqrt` or `log` of a negative quantity in a trial state
+function evaluate_or_inf!(ws, types::Tuple)
+    isempty(types) && return evaluate!(ws)
+    try
+        return evaluate!(ws)
+    catch err
+        matches_exception(err, types) || rethrow()
+        return Inf
+    end
+end
+
 """
     NoLineSearch()
 
@@ -41,7 +69,20 @@ function (::NoLineSearch)(ws, _, d)
 end
 
 """
-    BacktrackingLineSearch(; n_iter_max = 10)
+    BacktrackingLineSearch(; n_iter_max = 10, alpha = 1.0e-4,
+                           reject_exceptions = (DomainError,))
+
+Armijo backtracking: the step length is halved until
+`‖F(u + λ d)‖ <= (1 - alpha λ) ‖F(u)‖`, for at most `n_iter_max` trials, after which the
+last trial step is taken.
+
+Trial states whose residual evaluation throws an exception of one of the types
+`reject_exceptions` (e.g., a `DomainError` from `sqrt` or `log` of a quantity that became
+negative in a too long step) count as trial states with infinite residual norm, so the
+step length is reduced further. This also holds for such exceptions thrown in tasks, e.g.,
+in a `Threads.@threads` loop of the residual. Other exceptions are rethrown. If all trials
+throw, the line search returns `Inf` and [`newton_krylov!`](@ref) stops with status
+`:nonfinite`. Use `reject_exceptions = ()` to rethrow all exceptions.
 
 ## References
 
@@ -54,6 +95,7 @@ end
 Base.@kwdef struct BacktrackingLineSearch <: AbstractLineSearch
     n_iter_max::Int = 10
     alpha::Float64 = 1.0e-4
+    reject_exceptions::Tuple = (DomainError,)
 end
 
 function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d)
@@ -65,7 +107,7 @@ function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d)
 
     # Take the full Newton step (lambda = 1.0)
     ws.u .= muladd.(lambda, d, ws.u) # u = u + lambda * d
-    norm_res = evaluate!(ws)
+    norm_res = evaluate_or_inf!(ws, ls.reject_exceptions)
 
     for _ in 2:ls.n_iter_max
         # Armijo condition
@@ -80,7 +122,7 @@ function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d)
         s = new_lambda - lambda
         ws.u .= muladd.(s, d, ws.u) # u = u + (new_lambda - old_lambda) * d
         lambda = new_lambda
-        norm_res = evaluate!(ws)
+        norm_res = evaluate_or_inf!(ws, ls.reject_exceptions)
     end
     return norm_res
 end
