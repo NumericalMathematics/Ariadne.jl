@@ -72,6 +72,9 @@ Base.eltype(J::JacobianOperator) = eltype(J.u)
 Base.length(J::JacobianOperator) = prod(size(J))
 
 function mul!(out, J::JacobianOperator, v)
+    # `out` is the shadow of `res`. If `F!` accumulates into `res`
+    # instead of overwriting it, stale values in `out` would leak into the result.
+    fill!(out, 0)
     autodiff(
         Forward,
         maybe_duplicated(J.f, J.f′), Const,
@@ -166,6 +169,8 @@ if VERSION >= v"1.11.0"
         v = tuple_of_vectors(V, size(J.u))
 
         @assert N == length(out)
+        # See the non-batched forward `mul!`
+        fill!(Out, 0)
         autodiff(
             Forward,
             maybe_duplicated(J.f, J.f′, Val(N)), Const,
