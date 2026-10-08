@@ -204,27 +204,38 @@ if VERSION >= v"1.11.0"
 end # VERSION >= v"1.11.0"
 
 function Base.collect(JOp::Union{Adjoint{<:Any, <:AbstractJacobianOperator}, Transpose{<:Any, <:AbstractJacobianOperator}, AbstractJacobianOperator})
+    op = JOp isa AbstractJacobianOperator ? JOp : parent(JOp)
+    T = eltype(op)
     N, M = size(JOp)
-    if JOp isa JacobianOperator
-        v = zero(JOp.u)
-        out = zero(JOp.res)
+    # A batched operator is applied to `B` unit vectors at once
+    B = batch_size(op)
+    if op isa BatchedJacobianOperator
+        v = zeros(T, M, B)
+        out = zeros(T, N, B)
     else
-        v = zero(parent(JOp).res)
-        out = zero(parent(JOp).u)
+        v = zeros(T, M)
+        out = zeros(T, N)
     end
-    J = SparseMatrixCSC{eltype(v), Int}(undef, size(JOp)...)
-    for j in 1:M
-        out .= 0.0
-        v .= 0.0
-        v[j] = 1.0
+    Is = Int[]
+    Js = Int[]
+    Vs = T[]
+    for j₀ in 1:B:M
+        nb = min(B, M - j₀ + 1)
+        fill!(v, 0)
+        fill!(out, 0)
+        for k in 1:nb
+            v[j₀ + k - 1, k] = 1
+        end
         mul!(out, JOp, v)
-        for i in 1:N
-            if out[i] != 0
-                J[i, j] = out[i]
+        for k in 1:nb, i in 1:N
+            if out[i, k] != 0
+                push!(Is, i)
+                push!(Js, j₀ + k - 1)
+                push!(Vs, out[i, k])
             end
         end
     end
-    return J
+    return sparse(Is, Js, Vs, N, M)
 end
 
 ##

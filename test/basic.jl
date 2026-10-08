@@ -23,7 +23,7 @@ let x₀ = [3.0, 5.0]
 end
 
 import Ariadne: JacobianOperator, BatchedJacobianOperator
-using Enzyme, LinearAlgebra
+using Enzyme, LinearAlgebra, SparseArrays
 
 @testset "Jacobian" begin
     J_Enz = jacobian(Forward, x -> F(x, nothing), [3.0, 5.0]) |> only
@@ -65,6 +65,29 @@ using Enzyme, LinearAlgebra
 
         mul!(Out, transpose(J), V)
         @test Out == J_Enz'
-        # @test Out == collect(transpose(J))
+        @test collect(J) == J_Enz
+        @test collect(transpose(J)) == J_Enz'
+    end
+end
+
+@testset "collect" begin
+    # Non-square Jacobian whose number of columns is not a multiple of the batch size
+    G!(res, x, _) = (res[1] = x[1] * x[2]; res[2] = x[2] + x[3]^2; nothing)
+    x = [1.0, 2.0, 3.0]
+    J_ref = [2.0 1.0 0.0; 0.0 1.0 6.0]
+    J = JacobianOperator(G!, zeros(2), x, nothing)
+    @test size(J) == (2, 3)
+    @test collect(J) == J_ref
+    @test collect(transpose(J)) == J_ref'
+    @test collect(J) isa SparseMatrixCSC{Float64, Int}
+
+    J = JacobianOperator(G!, zeros(Float32, 2), Float32.(x), nothing)
+    @test collect(J) isa SparseMatrixCSC{Float32, Int}
+    @test collect(J) == J_ref
+
+    if VERSION >= v"1.11.0"
+        J = BatchedJacobianOperator{2}(G!, zeros(2), x, nothing)
+        @test collect(J) == J_ref
+        @test collect(transpose(J)) == J_ref'
     end
 end
