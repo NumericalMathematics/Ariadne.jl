@@ -348,7 +348,8 @@ are allocated during the Newton iteration.
 
 ## Constructor
 
-    NewtonKrylovWorkspace(F!, u, p, res, alg=Val(:gmres); assume_p_const = false)
+    NewtonKrylovWorkspace(F!, u, p, res, alg=Val(:gmres); assume_p_const = false,
+                          krylov_workspace_kwargs = (;))
 
 - `F!`: in-place residual function `F!(res, u, p)`
 - `u`: initial-guess array (used as template; the workspace holds a reference to it)
@@ -356,6 +357,9 @@ are allocated during the Newton iteration.
 - `res`: pre-allocated residual buffer
 - `algo`: Krylov algorithm symbol (e.g. `:gmres`, `:fgmres`) passed as a `Val`.
 - `assume_p_const`: passed through to [`JacobianOperator`](@ref)
+- `krylov_workspace_kwargs`: keyword arguments passed to `Krylov.krylov_workspace`,
+  e.g., `(; memory = 50)` for the size of the Krylov basis of GMRES and FGMRES
+  (the restart length with `krylov_kwargs = (; restart = true)`).
 
 ## Example
 
@@ -380,7 +384,7 @@ end
 
 function NewtonKrylovWorkspace(
         F!, u::AbstractArray, p, res::AbstractArray, ::Val{Algo} = Val(:gmres);
-        assume_p_const::Bool = false
+        assume_p_const::Bool = false, krylov_workspace_kwargs = (;)
     ) where {Algo}
     # res .= 0 might ignore ghost cells
     # memory allocated with similar might contain NaN/Inf
@@ -389,7 +393,7 @@ function NewtonKrylovWorkspace(
     Enzyme.make_zero!(neg_res)
     J = JacobianOperator(F!, res, u, p; assume_p_const)
     kc = KrylovConstructor(res)
-    krylov = krylov_workspace(Val(Algo), kc)
+    krylov = krylov_workspace(Val(Algo), kc; krylov_workspace_kwargs...)
     return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov)
 end
 
@@ -424,6 +428,8 @@ const KWARGS_DOCS = """
   - `M::Union{Nothing, Function}`: If provided, `M(ws.J)` is passed as a keyword argument to the Krylov solver.
   - `N::Union{Nothing, Function}`: If provided, `N(ws.J)` is passed as a keyword argument to the Krylov solver.
   - `krylov_kwargs`: Keyword arguments passed to the Krylov solver.
+  - `algo`, `assume_p_const`, `krylov_workspace_kwargs`: Only for the methods that create
+    a [`NewtonKrylovWorkspace`](@ref); see there.
   - `callback`: A function called after each Newton iteration with signature `callback(u, res, norm_res)`.
 """
 
@@ -458,9 +464,13 @@ Takes an in-place residual function `F!(res, u, p)`.
 
 $(KWARGS_DOCS)
 """
-function newton_krylov!(F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀); algo::Symbol = :gmres, assume_p_const::Bool = false, kwargs...)
+function newton_krylov!(
+        F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀);
+        algo::Symbol = :gmres, assume_p_const::Bool = false,
+        krylov_workspace_kwargs = (;), kwargs...
+    )
     res = similar(u₀, M)
-    ws = NewtonKrylovWorkspace(F!, u₀, p, res, Val(algo); assume_p_const)
+    ws = NewtonKrylovWorkspace(F!, u₀, p, res, Val(algo); assume_p_const, krylov_workspace_kwargs)
     return newton_krylov!(ws; kwargs...)
 end
 
@@ -481,9 +491,10 @@ function newton_krylov!(
         F!, u::AbstractArray, p, res::AbstractArray;
         algo::Symbol = :gmres,
         assume_p_const::Bool = false,
+        krylov_workspace_kwargs = (;),
         kwargs...,
     )
-    ws = NewtonKrylovWorkspace(F!, u, p, res, Val(algo); assume_p_const)
+    ws = NewtonKrylovWorkspace(F!, u, p, res, Val(algo); assume_p_const, krylov_workspace_kwargs)
     return newton_krylov!(ws; kwargs...)
 end
 

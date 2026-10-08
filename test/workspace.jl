@@ -108,3 +108,28 @@ end
     @test collect(J) ≈ J_ref
     @test collect(transpose(J)) ≈ J_ref'
 end
+
+@testset "krylov_workspace_kwargs" begin
+    # Krylov.jl caps `memory` at the system size, so use a larger system
+    C!(res, x, _) = (res .= x .^ 3 .+ x .- 2; nothing)
+    x₀ = collect(range(0.5, 3.0; length = 30))
+    ws = NewtonKrylovWorkspace(C!, copy(x₀), nothing, similar(x₀))
+    @test length(ws.krylov.V) == 20 # Krylov.jl default
+
+    ws = @inferred NewtonKrylovWorkspace(
+        C!, copy(x₀), nothing, similar(x₀), Val(:fgmres);
+        krylov_workspace_kwargs = (; memory = 5)
+    )
+    @test length(ws.krylov.V) == 5
+    x, stats = newton_krylov!(ws)
+    @test stats.solved
+    @test x ≈ ones(30)
+
+    # Restarted GMRES(2)
+    kw = (; krylov_workspace_kwargs = (; memory = 2), krylov_kwargs = (; restart = true))
+    x, stats = newton_krylov!(C!, copy(x₀); kw...)
+    @test stats.solved
+    @test x ≈ ones(30)
+    x, stats = newton_krylov!(C!, copy(x₀), nothing, similar(x₀); kw...)
+    @test stats.solved
+end
