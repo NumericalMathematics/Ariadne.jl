@@ -9,7 +9,7 @@ import ..evaluate!
 Line search updates `ws.u` in-place along the Newton direction `d` and calls
 `evaluate!(ws)` to refresh `ws.res` and obtain the new residual norm.
 A line search that does not find a step with sufficient decrease reports this with
-`Ariadne.LineSearches.set_linesearch_failed!(ws)`, which [`newton_krylov!`](@ref) counts in
+`Ariadne.LineSearches.set_linesearch_failed!(ws)`, which [`newton_krylov!`](@ref Ariadne.newton_krylov!) counts in
 `stats.linesearch_failures`.
 
 ## Implemented variants
@@ -122,7 +122,7 @@ end
 Armijo backtracking: the step length `λ`, starting from `1`, is reduced until
 `‖F(u + λ d)‖ <= (1 - alpha λ) ‖F(u)‖`, for at most `n_iter_max` trials. If no trial
 satisfies this condition, the last trial step is taken and the line search counts as
-failed (`stats.linesearch_failures` of [`newton_krylov!`](@ref)).
+failed (`stats.linesearch_failures` of [`newton_krylov!`](@ref Ariadne.newton_krylov!)).
 
 By default, `λ` is halved in each reduction. With `parabolic = true`, the first reduction
 halves `λ` and later reductions use the safeguarded three-point parabolic model of
