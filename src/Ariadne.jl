@@ -19,13 +19,37 @@ function init_cache(x)
     end
 end
 
+# The shadows `f′` and `p′` of `f` and `p` are not zeroed here, see `maybe_zero_shadows!`.
 function maybe_duplicated(x::T, x′::Union{Nothing, T}) where {T}
     if x′ === nothing
         return Const(x)
     else
-        Enzyme.remake_zero!(x′)
         return Duplicated(x, x′)
     end
+end
+
+# In reverse mode, the shadows `f′` and `p′` accumulate adjoints and must be zeroed
+# before each product.
+function zero_shadows!(J)
+    J.f′ === nothing || Enzyme.remake_zero!(J.f′)
+    J.p′ === nothing || Enzyme.remake_zero!(J.p′)
+    J.dirty[] = false
+    return nothing
+end
+
+# In forward mode, Enzyme writes the shadow of every location whose primal is written and
+# never writes the shadow of read-only memory. If `f!` writes every mutable location of
+# `f` and `p` before reading it (or never writes it), the shadows thus only need to be
+# zeroed if they are "dirty", i.e., after a reverse-mode product (`init_cache` creates zero
+# shadows). This is opt-in (`lazy_zero_shadows = true`), since a residual that reads a
+# location of `p` before writing it (e.g., `p.tmp .+= u`) would see the tangent of the
+# previous product. For a large `p` (e.g., the caches of a PDE discretization), zeroing
+# the shadows before every forward-mode product can cost as much as a residual evaluation.
+function maybe_zero_shadows!(J)
+    if !J.lazy_zero_shadows || J.dirty[]
+        zero_shadows!(J)
+    end
+    return nothing
 end
 
 abstract type AbstractJacobianOperator end
@@ -43,10 +67,17 @@ struct JacobianOperator{F, F′, A, P, P′} <: AbstractJacobianOperator
     u::A
     p::P
     p′::P′ # cache
+    # Zero the shadows `f′` and `p′` before a forward-mode product only if they are dirty
+    lazy_zero_shadows::Bool
+    # Whether the shadows `f′` and `p′` may be nonzero (after a reverse-mode product)
+    dirty::Base.RefValue{Bool}
+end
+function JacobianOperator(f, f′, res, u, p, p′; lazy_zero_shadows::Bool = false)
+    return JacobianOperator(f, f′, res, u, p, p′, lazy_zero_shadows, Ref(false))
 end
 
 """
-    JacobianOperator(f::F, res, u, p; assume_p_const::Bool = false)
+    JacobianOperator(f::F, res, u, p; assume_p_const::Bool = false, lazy_zero_shadows::Bool = false)
 
 Creates a Jacobian operator for `f!(res, u, p)` where `res` is the residual,
 `u` is the state variable, and `p` are the parameters.
@@ -54,15 +85,22 @@ Creates a Jacobian operator for `f!(res, u, p)` where `res` is the residual,
 If `assume_p_const` is `true`, the parameters `p` are assumed to be constant
 during the Jacobian computation, which can improve performance by not requiring the
 shadow for `p`.
+
+By default, the shadows of `f` and `p` are zeroed before every product. If
+`lazy_zero_shadows` is `true`, a forward-mode product (`J * v`) zeros them only after a
+reverse-mode product (`J' * v`). This can improve performance if `p` is large (e.g., the
+caches of a PDE discretization), but it is only correct if `f!` writes every mutable
+location of `f` and `p` before reading it, or never writes it. A scratch buffer that `f!`
+overwrites is fine, but one that it accumulates into (`p.tmp .+= ...`) is not.
 """
-function JacobianOperator(f::F, res, u, p; assume_p_const::Bool = false) where {F}
+function JacobianOperator(f::F, res, u, p; assume_p_const::Bool = false, lazy_zero_shadows::Bool = false) where {F}
     f′ = init_cache(f)
     if assume_p_const
         p′ = nothing
     else
         p′ = init_cache(p)
     end
-    return JacobianOperator(f, f′, res, u, p, p′)
+    return JacobianOperator(f, f′, res, u, p, p′; lazy_zero_shadows)
 end
 
 batch_size(::JacobianOperator) = 1
@@ -75,6 +113,7 @@ function mul!(out, J::JacobianOperator, v)
     # `out` is the shadow of `res`. If `F!` accumulates into `res`
     # instead of overwriting it, stale values in `out` would leak into the result.
     fill!(out, 0)
+    maybe_zero_shadows!(J)
     autodiff(
         Forward,
         maybe_duplicated(J.f, J.f′), Const,
@@ -97,6 +136,8 @@ function mul!(out, J′::Union{Adjoint{<:Any, <:JacobianOperator}, Transpose{<:A
     # Enzyme zeros input derivatives and that confuses the solvers.
     # If `out` is non-zero we might get spurious gradients
     fill!(out, 0)
+    zero_shadows!(J)
+    J.dirty[] = true # the shadows will hold adjoints
     autodiff(
         Reverse,
         maybe_duplicated(J.f, J.f′), Const,
@@ -116,11 +157,11 @@ function init_cache(x, ::Val{N}) where {N}
     end
 end
 
+# See `maybe_zero_shadows!`
 function maybe_duplicated(x::T, x′::Union{Nothing, NTuple{N, T}}, ::Val{N}) where {T, N}
     if x′ === nothing
         return Const(x)
     else
-        Enzyme.remake_zero!(x′)
         return BatchDuplicated(x, x′)
     end
 end
@@ -137,10 +178,12 @@ struct BatchedJacobianOperator{N, F, A, P} <: AbstractJacobianOperator
     u::A
     p::P
     p′::Union{Nothing, NTuple{N, P}} # cache
-    function BatchedJacobianOperator{N}(f::F, res, u, p) where {F, N}
+    lazy_zero_shadows::Bool # see `JacobianOperator`
+    dirty::Base.RefValue{Bool}
+    function BatchedJacobianOperator{N}(f::F, res, u, p; lazy_zero_shadows::Bool = false) where {F, N}
         f′ = init_cache(f, Val(N))
         p′ = init_cache(p, Val(N))
-        return new{N, F, typeof(u), typeof(p)}(f, f′, res, u, p, p′)
+        return new{N, F, typeof(u), typeof(p)}(f, f′, res, u, p, p′, lazy_zero_shadows, Ref(false))
     end
 end
 
@@ -171,6 +214,7 @@ if VERSION >= v"1.11.0"
         @assert N == length(out)
         # See the non-batched forward `mul!`
         fill!(Out, 0)
+        maybe_zero_shadows!(J)
         autodiff(
             Forward,
             maybe_duplicated(J.f, J.f′, Val(N)), Const,
@@ -197,6 +241,8 @@ if VERSION >= v"1.11.0"
 
         @assert N == length(out)
 
+        zero_shadows!(J)
+        J.dirty[] = true # the shadows will hold adjoints
         autodiff(
             Reverse,
             maybe_duplicated(J.f, J.f′, Val(N)), Const,
@@ -357,14 +403,14 @@ are allocated during the Newton iteration.
 ## Constructor
 
     NewtonKrylovWorkspace(F!, u, p, res, alg=Val(:gmres); assume_p_const = false,
-                          krylov_kwargs = (;))
+                          lazy_zero_shadows = false, krylov_kwargs = (;))
 
 - `F!`: in-place residual function `F!(res, u, p)`
 - `u`: initial-guess array (used as template; the workspace holds a reference to it)
 - `p`: parameters
 - `res`: pre-allocated residual buffer
 - `algo`: Krylov algorithm symbol (e.g. `:gmres`, `:fgmres`) passed as a `Val`.
-- `assume_p_const`: passed through to [`JacobianOperator`](@ref)
+- `assume_p_const`, `lazy_zero_shadows`: passed through to [`JacobianOperator`](@ref)
 - `krylov_kwargs`: the keyword arguments of the Krylov solver. The keys that configure the
   Krylov workspace (`memory` and `window`, e.g., `memory = 50` for the size of the Krylov
   basis of GMRES and FGMRES) are passed to `Krylov.krylov_workspace`, all other keys are
@@ -394,14 +440,14 @@ end
 
 function NewtonKrylovWorkspace(
         F!, u::AbstractArray, p, res::AbstractArray, ::Val{Algo} = Val(:gmres);
-        assume_p_const::Bool = false, krylov_kwargs = (;)
+        assume_p_const::Bool = false, lazy_zero_shadows::Bool = false, krylov_kwargs = (;)
     ) where {Algo}
     # res .= 0 might ignore ghost cells
     # memory allocated with similar might contain NaN/Inf
     Enzyme.make_zero!(res)
     neg_res = similar(res)
     Enzyme.make_zero!(neg_res)
-    J = JacobianOperator(F!, res, u, p; assume_p_const)
+    J = JacobianOperator(F!, res, u, p; assume_p_const, lazy_zero_shadows)
     kc = KrylovConstructor(res)
     krylov = krylov_workspace(Val(Algo), kc; krylov_workspace_kwargs(krylov_kwargs)...)
     return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov)
