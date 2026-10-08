@@ -213,8 +213,10 @@ function Base.collect(JOp::Union{Adjoint{<:Any, <:AbstractJacobianOperator}, Tra
         v = zeros(T, M, B)
         out = zeros(T, N, B)
     else
-        v = zeros(T, M)
-        out = zeros(T, N)
+        # Keep the array types of `u` and `res`, which the Enzyme shadows must match
+        is_adjoint = !(JOp isa AbstractJacobianOperator)
+        v = zero(is_adjoint ? op.res : op.u)
+        out = zero(is_adjoint ? op.u : op.res)
     end
     Is = Int[]
     Js = Int[]
@@ -224,14 +226,16 @@ function Base.collect(JOp::Union{Adjoint{<:Any, <:AbstractJacobianOperator}, Tra
         fill!(v, 0)
         fill!(out, 0)
         for k in 1:nb
-            v[j₀ + k - 1, k] = 1
+            # Linear indices for the non-batched case: `v` may not support `v[j, 1]`
+            v[(k - 1) * M + j₀ + k - 1] = 1
         end
         mul!(out, JOp, v)
         for k in 1:nb, i in 1:N
-            if out[i, k] != 0
+            val = out[(k - 1) * N + i]
+            if val != 0
                 push!(Is, i)
                 push!(Js, j₀ + k - 1)
-                push!(Vs, out[i, k])
+                push!(Vs, val)
             end
         end
     end
