@@ -34,6 +34,20 @@ end
     @test eltype(x) === Float32
 end
 
+@testset "verbose log" begin
+    logs, (x, result) = Test.collect_test_logs() do
+        newton_krylov!(F!, [2.0, 0.5]; verbose = 1)
+    end
+    @test result.solved
+    newton_logs = filter(l -> l.message == "Newton", logs)
+    @test length(newton_logs) == result.stats.outer_iterations
+    for (i, l) in enumerate(newton_logs)
+        @test l.kwargs[:iter] == i
+        @test l.kwargs[:norm_res] == l.kwargs[:stats].norm_res
+    end
+    @test last(newton_logs).kwargs[:norm_res] == result.stats.norm_res
+end
+
 import Ariadne: JacobianOperator, BatchedJacobianOperator
 using Enzyme, LinearAlgebra, SparseArrays
 
