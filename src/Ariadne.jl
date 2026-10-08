@@ -104,6 +104,111 @@ function mul!(out, J′::Union{Adjoint{<:Any, <:JacobianOperator}, Transpose{<:A
     return nothing
 end
 
+##
+# SplitJacobianOperator - Uses Enzyme's ForwardModeSplit for efficient Newton-Krylov
+##
+
+"""
+    SplitJacobianOperator
+
+Uses Enzyme's ForwardModeSplit to cache the primal computation and avoid
+re-running it on every Krylov iteration. The primal `f!(res, u, p)` is
+computed once during `prepare!` and the tape is reused for all JVP queries.
+"""
+struct SplitJacobianOperator{F, F′, A, P, P′, FwdThunk, DerivThunk} <: AbstractJacobianOperator
+    f::F         # f!(res, u, p)
+    f′::F′       # shadow for f (nothing if guaranteed_const)
+    res::A       # residual buffer (shared with workspace)
+    res′::A      # shadow for res during prepare! (zero tangent; allocated once)
+    u::A         # state
+    u′::A        # shadow for u during prepare! (zero tangent; allocated once)
+    p::P
+    p′::P′       # shadow for p (nothing if p is const)
+    fwd_thunk::FwdThunk
+    deriv_thunk::DerivThunk
+    tape::Base.RefValue{Any}   # tape stored after prepare!
+end
+
+"""
+    SplitJacobianOperator(f::F, res::A, u::A, p::P; assume_p_const=false)
+
+Creates a SplitJacobianOperator using Enzyme's ForwardModeSplit mode.
+Requires Enzyme with ForwardSplitNoPrimal support (PR #3024).
+"""
+function SplitJacobianOperator(f::F, res::A, u::A, p::P; assume_p_const = false) where {F, A, P}
+    f_const = Enzyme.Compiler.guaranteed_const(F)
+    p_const = assume_p_const || Enzyme.Compiler.guaranteed_const(P)
+
+    f′ = f_const ? nothing : Enzyme.make_zero(f)
+    p′ = p_const ? nothing : Enzyme.make_zero(p)
+    res′ = Enzyme.make_zero(res)
+    u′ = Enzyme.make_zero(u)
+
+    FA = f_const ? Const{F} : Duplicated{F}
+    PA = p_const ? Const{P} : Duplicated{P}
+
+    # Check if ForwardSplitNoPrimal is available
+    if !isdefined(Enzyme, :ForwardSplitNoPrimal)
+        error("SplitJacobianOperator requires Enzyme with ForwardSplitNoPrimal support (PR #3024)")
+    end
+
+    fwd_thunk, deriv_thunk = Enzyme.autodiff_thunk(
+        Enzyme.ForwardSplitNoPrimal, FA, Const,
+        Duplicated{A}, Duplicated{A}, PA
+    )
+
+    return SplitJacobianOperator(
+        f, f′, res, res′, u, u′, p, p′,
+        fwd_thunk, deriv_thunk, Ref{Any}(nothing)
+    )
+end
+
+"""
+    prepare!(J::SplitJacobianOperator)
+
+Runs the augmented forward pass to populate `J.res` with `f!(J.res, J.u, J.p)` 
+and stores the tape for subsequent derivative passes.
+"""
+function prepare!(J::SplitJacobianOperator)
+    # res′ and u′ stay zero → tangent for the augmented pass is zero
+    # (we only want the primal result in res and the tape; not a JVP)
+    result = J.fwd_thunk(
+        maybe_duplicated(J.f, J.f′),
+        Duplicated(J.res, J.res′),
+        Duplicated(J.u, J.u′),
+        maybe_duplicated(J.p, J.p′),
+    )
+    # Handle both (tape,) and tape return formats defensively
+    J.tape[] = result isa Tuple ? first(result) : result
+    return nothing
+end
+
+batch_size(::SplitJacobianOperator) = 1
+
+Base.size(J::SplitJacobianOperator) = (length(J.res), length(J.u))
+Base.eltype(J::SplitJacobianOperator) = eltype(J.u)
+Base.length(J::SplitJacobianOperator) = prod(size(J))
+
+function mul!(out, J::SplitJacobianOperator, v)
+    J.deriv_thunk(
+        maybe_duplicated(J.f, J.f′),
+        Duplicated(J.res, reshape(out, size(J.res))),
+        Duplicated(J.u, reshape(v, size(J.u))),
+        maybe_duplicated(J.p, J.p′),
+        J.tape[],
+    )
+    return nothing
+end
+
+LinearAlgebra.adjoint(J::SplitJacobianOperator) = Adjoint(J)
+LinearAlgebra.transpose(J::SplitJacobianOperator) = Transpose(J)
+
+# Note: Adjoint/transpose operations for SplitJacobianOperator would need reverse mode
+# which is not part of ForwardModeSplit. For now, these are not implemented.
+function mul!(out, J′::Union{Adjoint{<:Any, <:SplitJacobianOperator}, Transpose{<:Any, <:SplitJacobianOperator}}, v)
+    error("Adjoint/transpose operations not yet implemented for SplitJacobianOperator")
+end
+
 
 function init_cache(x, ::Val{N}) where {N}
     if !Enzyme.Compiler.guaranteed_const(typeof(x))
@@ -380,6 +485,17 @@ Evaluate `F!(ws.res, ws.u, ws.p)` in-place and return `norm(ws.res)`.
 """
 function evaluate!(ws::NewtonKrylovWorkspace)
     ws.f(ws.res, ws.u, ws.p)
+    return norm(ws.res)
+end
+
+"""
+    Ariadne.evaluate!(ws::NewtonKrylovWorkspace{<:Any,<:Any,<:Any,<:SplitJacobianOperator}) -> norm_res
+
+Specialized evaluate! for SplitJacobianOperator that calls `prepare!` instead of 
+evaluating the function directly. This both populates `ws.res` and caches the tape.
+"""
+function evaluate!(ws::NewtonKrylovWorkspace{<:Any, <:Any, <:Any, <:SplitJacobianOperator})
+    prepare!(ws.J)
     return norm(ws.res)
 end
 
