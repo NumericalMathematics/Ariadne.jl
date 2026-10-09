@@ -22,6 +22,7 @@ BacktrackingLineSearch
 
 ```@docs
 ScaledNorm
+Ariadne.krylov_scaling
 Ariadne.variable_residual_ratio
 Ariadne.Stats
 ```

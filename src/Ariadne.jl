@@ -432,7 +432,8 @@ are allocated during the Newton iteration.
   ignored. The same `krylov_kwargs` can therefore also be passed to
   [`newton_krylov!(ws)`](@ref), which ignores the workspace keys.
 - `norm`: norm of the residual used for the forcing term, the termination criteria,
-  and the line searches, e.g., a [`ScaledNorm`](@ref)
+  and the line searches, e.g., a [`ScaledNorm`](@ref). For a `ScaledNorm`, the Krylov
+  solves are scaled accordingly (see `scaled_krylov` of [`newton_krylov!`](@ref)).
 
 ## Example
 
@@ -445,7 +446,7 @@ are allocated during the Newton iteration.
 ```
 
 """
-struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW, N}
+struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW, N, SC}
     f::F
     u::A
     res::A
@@ -454,6 +455,9 @@ struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW, N}
     J::JOp
     krylov::KW
     norm::N
+    # `(; S, S⁻¹)` with a `Diagonal` `S` such that `norm(x) == LinearAlgebra.norm(S \ x)`,
+    # or `nothing` (see `krylov_scaling`)
+    scaling::SC
 end
 
 function NewtonKrylovWorkspace(
@@ -468,7 +472,8 @@ function NewtonKrylovWorkspace(
     J = JacobianOperator(F!, res, u, p; assume_p_const, lazy_zero_shadows)
     kc = KrylovConstructor(res)
     krylov = krylov_workspace(Val(Algo), kc; krylov_workspace_kwargs(krylov_kwargs)...)
-    return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov, norm)
+    scaling = krylov_scaling(norm, res)
+    return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov, norm, scaling)
 end
 
 """
@@ -502,6 +507,29 @@ function (n::ScaledNorm)(x::AbstractArray)
         m = length(scale)
         return sqrt(sum(i -> abs2(x[i] / scale[mod1(i, m)]), eachindex(x)))
     end
+end
+
+"""
+    Ariadne.krylov_scaling(norm, res)
+
+Diagonal scaling of the Krylov solves of [`newton_krylov!`](@ref) for residuals like `res`
+measured in `norm`: `(; S, S⁻¹)` with a `Diagonal` matrix `S` such that
+`norm(x) == LinearAlgebra.norm(S \\ x)`, or `nothing` if `norm` is not a weighted
+Euclidean norm (the default, e.g., for `LinearAlgebra.norm`).
+New norms can opt in by adding a method.
+"""
+krylov_scaling(norm, res) = nothing
+function krylov_scaling(n::ScaledNorm, res)
+    T = eltype(res)
+    scale = n.scale
+    s = similar(vec(res))
+    if scale isa AbstractArray && size(scale) == size(res)
+        copyto!(s, vec(scale))
+    else
+        m = length(scale)
+        copyto!(s, T[scale[mod1(i, m)] for i in 1:length(res)])
+    end
+    return (; S = Diagonal(s), S⁻¹ = Diagonal(inv.(s)))
 end
 
 """
@@ -559,7 +587,7 @@ const KWARGS_DOCS = """
   - `verbose::Int`: Verbosity level. If `verbose > 0`, progress is logged with `@info`.
   - `M::Union{Nothing, Function}`: If provided, `M(ws.J)` is passed as a keyword argument to the Krylov solver.
   - `N::Union{Nothing, Function}`: If provided, `N(ws.J)` is passed as a keyword argument to the Krylov solver.\
-  - `krylov_kwargs`: Keyword arguments passed to the Krylov solver, e.g.,
+- `krylov_kwargs`: Keyword arguments passed to the Krylov solver, e.g.,
     `(; restart = true, itmax = 100)`. The keys that configure the Krylov workspace
     (`memory` and `window`, e.g., `memory = 50` for the restart length of GMRES(k))
     only take effect when a [`NewtonKrylovWorkspace`](@ref) is created, i.e., in the
@@ -572,6 +600,14 @@ const KWARGS_DOCS = """
     `stats.krylov_failures`).
   - `callback`: A function called once for the initial guess and then after each Newton iteration,
                with signature `callback(u, res, norm_res)`.
+  - `scaled_krylov = true`: if the `norm` of the workspace is a weighted Euclidean norm
+    `‖S⁻¹x‖` (e.g., a [`ScaledNorm`](@ref), see [`Ariadne.krylov_scaling`](@ref)) and no
+    left preconditioner `M` is given, pass `S⁻¹` as left preconditioner to the Krylov
+    solver. Then the Krylov solver minimizes `‖S⁻¹(F′(u) d + F(u))‖`, so that the forcing
+    term (and the descent of the Newton direction in the norm of the line searches) refers
+    to the same norm as the termination criteria. Otherwise, the relative tolerance of the
+    Krylov solver refers to the Euclidean norm, which can ignore variables of small
+    magnitude completely.
 
 The norm of the residual is the `norm` of the workspace (keyword argument of
 [`NewtonKrylovWorkspace`](@ref) and of the convenience methods).
@@ -692,6 +728,7 @@ function newton_krylov!(
         N = nothing,
         krylov_kwargs = (;),
         on_krylov_failure::Symbol = :stop,
+        scaled_krylov::Bool = true,
         callback = (args...) -> nothing,
     )
     if !(on_krylov_failure in (:continue, :stop))
@@ -721,6 +758,11 @@ function newton_krylov!(
         end
         if M !== nothing
             kwargs = (; M = M(ws.J), kwargs...)
+        elseif scaled_krylov && ws.scaling !== nothing
+            # Left preconditioner S⁻¹ (applied as `M \ x` with `ldiv = true`, as `M * x`
+            # otherwise): the Krylov solver minimizes ‖S⁻¹(F′(u) d + F(u))‖
+            S = get(kwargs, :ldiv, false) ? ws.scaling.S : ws.scaling.S⁻¹
+            kwargs = (; M = S, kwargs...)
         end
         if forcing !== nothing
             # The termination criterion of the inner Krylov solver is

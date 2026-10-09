@@ -86,6 +86,27 @@ end
     @test abs(x_scaled[2] - 1.0e-6) <= 1.0e-3 * 1.0e-6 * sqrt(2)
     @test abs(x_scaled[1] - 1.0e6) <= 1.0e-3 * 1.0e6 * sqrt(2)
 
+    # The Krylov solves use the scaled norm: with a forcing term η, one Newton step of a
+    # linear problem reduces the residual in the scaled norm by η. In the Euclidean norm,
+    # the first GMRES iterate already meets the tolerance (the second variable is tiny),
+    # which leaves the scaled residual almost unchanged.
+    L!(res, x, _) = (res[1] = x[1] - 1.0; res[2] = 2 * x[2] - 2.0e-6; nothing)
+    n = ScaledNorm((1.0, 1.0e-6))
+    norm₀ = n([1.0, 2.0e-6])
+    kw = (; forcing = Ariadne.Fixed(0.1), max_niter = 1, tol_rel = 0.0, tol_abs = 0.0, norm = n)
+    for ldiv in (false, true)
+        _, result = newton_krylov!(L!, [0.0, 0.0]; krylov_kwargs = (; ldiv), kw...)
+        @test result.stats.norm_res <= 0.1 * norm₀
+        _, result = newton_krylov!(
+            L!, [0.0, 0.0]; krylov_kwargs = (; ldiv), scaled_krylov = false, kw...
+        )
+        @test result.stats.norm_res > 0.5 * norm₀
+    end
+    @test Ariadne.krylov_scaling(LinearAlgebra.norm, zeros(2)) === nothing
+    scaling = Ariadne.krylov_scaling(n, zeros(4))
+    @test scaling.S.diag == [1.0, 1.0e-6, 1.0, 1.0e-6]
+    @test norm(scaling.S \ [1.0, 2.0e-6, 0.0, 0.0]) ≈ n([1.0, 2.0e-6, 0.0, 0.0])
+
     # Per-variable residual reduction (median over variables, Lodares et al. 2022)
     res₀ = [1.0, 10.0, 100.0, 1.0, 10.0, 100.0]
     res = [0.5, 1.0, 100.0, 0.5, 1.0, 100.0]
