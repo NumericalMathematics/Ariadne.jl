@@ -30,4 +30,6 @@ sol = solve(
     # Trixi.jl stores intermediate values that depend on `u` in the cache of the semidiscretization `p`,
     # so the Jacobian has to differentiate through `p` as well.
     assume_p_const = false,
+    # `rhs!` overwrites the cache before reading it, so its shadow only has to be zeroed once.
+    lazy_zero_shadows = true,
 );
