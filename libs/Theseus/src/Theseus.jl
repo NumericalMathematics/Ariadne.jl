@@ -404,7 +404,10 @@ end
 function Base.resize!(integrator::NonLinearImplicit, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
-    return resize!(integrator.u_tmp, new_size)
+    resize!(integrator.u_tmp, new_size)
+    foreach(stage -> resize!(stage, new_size), integrator.stages)
+    resize!(integrator.res, new_size)
+    return nothing
 end
 
 ### Helper
