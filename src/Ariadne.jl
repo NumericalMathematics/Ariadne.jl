@@ -267,6 +267,8 @@ abstract type Forcing end
 
 """
     Fixed(η = 0.1)
+
+Constant forcing term: every inner Krylov solve uses the relative tolerance `η`.
 """
 @kwdef struct Fixed <: Forcing
     η::Float64 = 0.1
@@ -426,15 +428,18 @@ export NoLineSearch, BacktrackingLineSearch
 
 const KWARGS_DOCS = """
 ## Keyword Arguments
-  - `tol_rel`: Relative tolerance
+  - `tol_rel`: Relative tolerance. Newton stops when `‖F(u)‖ <= tol_rel * ‖F(u₀)‖ + tol_abs`.
   - `tol_abs`: Absolute tolerance
   - `max_niter`: Maximum number of Newton iterations
-  - `forcing`: Maximum forcing term for inexact Newton.
-             If `nothing` an exact Newton method is used.
-  - `linesearch!`: Line search strategy. Must be a subtype of `AbstractLineSearch`.
-  - `verbose::Int`: Verbosity level
+  - `forcing`: Forcing-term strategy for the inexact Newton method, a [`Forcing`](@ref Ariadne.Forcing)
+             such as [`EisenstatWalker()`](@ref Ariadne.EisenstatWalker) (default) or [`Fixed(η)`](@ref Ariadne.Fixed).
+             It sets `atol = 0` and `rtol = η` for each Krylov solve; `krylov_kwargs` can override both.
+             If `nothing`, Ariadne does not set `atol` or `rtol`, so the Krylov solver uses
+             its own default tolerances, or those given in `krylov_kwargs`.
+  - `linesearch!`: Line search strategy, an instance of a subtype of `AbstractLineSearch`.
+  - `verbose::Int`: Verbosity level. If `verbose > 0`, progress is logged with `@info`.
   - `M::Union{Nothing, Function}`: If provided, `M(ws.J)` is passed as a keyword argument to the Krylov solver.
-  - `N::Union{Nothing, Function}`: If provided, `N(ws.J)` is passed as a keyword argument to the Krylov solver.
+  - `N::Union{Nothing, Function}`: If provided, `N(ws.J)` is passed as a keyword argument to the Krylov solver.\
   - `krylov_kwargs`: Keyword arguments passed to the Krylov solver, e.g.,
     `(; restart = true, itmax = 100)`. The keys that configure the Krylov workspace
     (`memory` and `window`, e.g., `memory = 50` for the restart length of GMRES(k))
@@ -442,7 +447,8 @@ const KWARGS_DOCS = """
     methods that take a residual function, and are ignored by `newton_krylov!(ws)`.
   - `algo`, `assume_p_const`: Only for the methods that take a residual function;
     see [`NewtonKrylovWorkspace`](@ref).
-  - `callback`: A function called after each Newton iteration with signature `callback(u, res, norm_res)`.
+  - `callback`: A function called once for the initial guess and then after each Newton iteration,
+               with signature `callback(u, res, norm_res)`.
 """
 
 """
@@ -472,7 +478,7 @@ Takes an in-place residual function `F!(res, u, p)`.
   - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
   - `u₀`: Initial guess
   - `p`: Parameters
-  - `M`: Length of  the output of `F!`. Defaults to `length(u₀)`
+  - `M`: Length of the output of `F!`. Defaults to `length(u₀)`
 
 $(KWARGS_DOCS)
 """
@@ -516,7 +522,7 @@ end
 Updates `ws.u` with the initial guess `u` and then calls `newton_krylov!(ws; kwargs...)`.
 
 ## Arguments
-  - `F!`: `F!(res, u, p)` solves `res = F(u) = 0`
+  - `ws`: Pre-allocated [`NewtonKrylovWorkspace`](@ref)
   - `u`: Initial guess (must have the same shape as `ws.u`)
 
 $(KWARGS_DOCS)
@@ -621,7 +627,7 @@ function newton_krylov!(
         end
 
         stats = update(stats, ws.krylov.stats.niter, norm_res)
-        verbose > 0 && @info "Newton" iter = norm_res η stats
+        verbose > 0 && @info "Newton" iter = stats.outer_iterations norm_res η stats
     end
     t = (time_ns() - t₀) / 1.0e9
     return ws.u, (; solved = norm_res <= tol, stats, t)
