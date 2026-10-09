@@ -348,9 +348,10 @@ implicit pseudo-time steps. Each pseudo-time step solves
 G(u) = \\frac{u - u_n}{Δτ} - σ f(u, p) = 0
 ```
 by `newton_iterations` inexact Newton steps, i.e., implicit Euler for the pseudo-time ODE
-`du/dτ = σ f(u, p)`.
+`du/dτ = σ f(u, p)`. For a `SteadyStateProblem` (`du/dt = f(u, p, t)`) `σ = +1`, for a
+`NonlinearProblem` `σ = -1` (as in `PseudoTransient` of NonlinearSolve.jl).
 
-Use it with [`pseudo_transient!`](@ref).
+Use it with [`pseudo_transient!`](@ref) or `solve(prob, alg)` of SciMLBase.jl.
 
 ## Keyword arguments
 - `cfl = SER()`: CFL evolution strategy, see [`SER`](@ref) and [`LodaresSER`](@ref).

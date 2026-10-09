@@ -15,13 +15,18 @@ using SparseArrays
 using Printf
 using SparseMatrixColorings: SparseMatrixColorings, GreedyColoringAlgorithm
 import Enzyme
+import SciMLBase
+import SciMLBase: NonlinearProblem, SteadyStateProblem, ReturnCode, NLStats, solve, init, solve!, step!
+import SciMLBase.CommonSolve
 
 include("assembled_preconditioner.jl")
 include("steady_state.jl")
+include("sciml.jl")
 
 export PseudoTransientNewtonKrylov, pseudo_transient!, PseudoTransientWorkspace
 export ptc_start!, ptc_step!, ptc_reset_reference!
 export SER, LodaresSER, steady_jacobian, jacobian_assembler
 export AssembledJacobianPreconditioner, assembled_preconditioner, RowScaled
+export SteadyStateProblem, NonlinearProblem, solve, init, solve!, step!
 
 end # module Asterion

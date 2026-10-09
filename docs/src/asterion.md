@@ -25,6 +25,16 @@ ptc_reset_reference!
 Asterion.successful
 ```
 
+## SciMLBase.jl interface
+
+`solve(prob, alg)`, `init(prob, alg)`, `solve!(cache)`, and `step!(cache)` for
+`SteadyStateProblem`s (`σ = +1`, `f` at `t = Inf`) and `NonlinearProblem`s (`σ = -1`).
+
+```@docs
+Asterion.PseudoTransientCache
+Asterion.step!(::Asterion.PseudoTransientCache)
+```
+
 ## CFL strategies
 
 ```@docs
