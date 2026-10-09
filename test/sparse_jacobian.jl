@@ -62,6 +62,15 @@ end
         u2 = 0.2 * rand(n)
         @test assemble!(A, bratu2d!, u2, p) ≈ collect(Ariadne.JacobianOperator(bratu2d!, zeros(n), u2, p))
     end
+    # Parallel assembly over batches of colors with one parameter copy per task
+    for batchsize in (1, 4)
+        A = SparseJacobian(pattern; batchsize)
+        ps = PerTaskParameters([deepcopy(p) for _ in 1:3])
+        @test assemble!(A, bratu2d!, u, ps) ≈ J_dense
+        @test assemble!(A, bratu2d!, u, ps) ≈ J_dense # cached operators
+        @test A.n_assemblies == 2
+        @test A.missed_entries == 0
+    end
     # Colors from a function of the pattern
     A = SparseJacobian(pattern; colors = P -> greedy_column_coloring(P; order = :largest_first))
     @test assemble!(A, bratu2d!, u, p) ≈ J_dense
@@ -127,19 +136,20 @@ end
     # (except where i + 1 is already a neighbor)
     P_neg = Ariadne.jacobian_sparsity(bratu_branch!, u_neg, p; detector = TracerLocalSparsityDetector())
     @test (P_neg .!= 0) == pattern
-    for batchsize in (1, 4)
+    for parallel in (false, true), batchsize in (1, 4)
+        ps = parallel ? PerTaskParameters([deepcopy(p) for _ in 1:2]) : p
         A = SparseJacobian(P_neg; batchsize)
         J_dense = collect(Ariadne.JacobianOperator(bratu_branch!, zeros(n), u_neg, p))
-        @test assemble!(A, bratu_branch!, u_neg, p) ≈ J_dense
+        @test assemble!(A, bratu_branch!, u_neg, ps) ≈ J_dense
         @test A.missed_entries == 0
         J_dense = collect(Ariadne.JacobianOperator(bratu_branch!, zeros(n), u_pos, p))
-        J = @test_logs (:warn,) match_mode = :any assemble!(A, bratu_branch!, u_pos, p)
+        J = @test_logs (:warn,) match_mode = :any assemble!(A, bratu_branch!, u_pos, ps)
         @test A.missed_entries > 0
         @test A.missed_max ≈ 0.2
         @test !(J ≈ J_dense)
         # without the check
         A = SparseJacobian(P_neg; batchsize, check_pattern = false)
-        assemble!(A, bratu_branch!, u_pos, p)
+        assemble!(A, bratu_branch!, u_pos, ps)
         @test A.missed_entries == 0
     end
 end

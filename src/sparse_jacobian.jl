@@ -53,6 +53,7 @@ mutable struct SparseJacobian{T, BS}
     const covered::Vector{Int} # covered[i] == c: row `i` is covered by a column of color `c`
     const check_pattern::Bool
     operator::Any # cached (Batched)JacobianOperator for the last (f!, u, p)
+    parallel::Any # cached operators and buffers for the last (f!, u, ps), see `assemble!`
     n_assemblies::Int
     time::Float64
     missed_entries::Int
@@ -84,7 +85,7 @@ function SparseJacobian(
     end
     return SparseJacobian{T, N}(
         J, Vector{Int}(colors), ncolors, color_ptr, color_cols, zeros(T, n, N), zeros(T, m, N),
-        zeros(Int, m), check_pattern, nothing, 0, 0.0, 0, zero(T)
+        zeros(Int, m), check_pattern, nothing, nothing, 0, 0.0, 0, zero(T)
     )
 end
 
@@ -184,6 +185,73 @@ function assemble_batch!(A::SparseJacobian, op, seeds::AbstractMatrix{T}, compre
         end
     end
     return missed, missed_max
+end
+
+"""
+    PerTaskParameters(ps::AbstractVector)
+
+Independent copies `ps` of the parameters `p` of `f!(res, u, p)`, one per task, for the
+parallel [`assemble!`](@ref) over batches of colors.
+"""
+struct PerTaskParameters{V <: AbstractVector}
+    ps::V
+end
+Base.length(p::PerTaskParameters) = length(p.ps)
+
+function parallel_operators(A::SparseJacobian{T, BS}, f!, u, ps) where {T, BS}
+    cache = A.parallel
+    if cache === nothing || cache.f !== f! || cache.u !== u || cache.ps !== ps
+        ops = map(ps) do p
+            res = similar(u)
+            Enzyme.make_zero!(res)
+            BS == 1 ? JacobianOperator(f!, res, u, p) : BatchedJacobianOperator{BS}(f!, res, u, p)
+        end
+        m, n = size(A.J)
+        cache = (;
+            f = f!, u, ps, ops,
+            seeds = [zeros(T, n, BS) for _ in ps], compressed = [zeros(T, m, BS) for _ in ps],
+            covered = [zeros(Int, m) for _ in ps],
+        )
+        A.parallel = cache
+    end
+    return cache
+end
+
+"""
+    assemble!(A::SparseJacobian, f!, u, ps::PerTaskParameters)
+
+Parallel assembly: the batches of colors are distributed over tasks (`Threads.@threads`),
+and each task uses its own parameters `ps.ps[k]` (and its own Enzyme shadows). The elements
+of `ps` must not share mutable state that `f!` writes, e.g., independent copies of the caches
+of a discretization, and `f!` must be safe to call concurrently (for example, not itself use
+`Threads.@threads :static`). Use `length(ps) == Threads.nthreads()`.
+
+Compared with threading inside `f!`, this avoids the synchronization of every threaded loop
+of `f!` in every product, and Enzyme.jl does not need to differentiate threaded loops.
+"""
+function assemble!(A::SparseJacobian{T, BS}, f!::F, u, ps::PerTaskParameters) where {T, BS, F}
+    t₀ = time_ns()
+    (; ops, seeds, compressed, covered) = parallel_operators(A, f!, u, ps.ps)
+    pool = Channel{Int}(length(ops))
+    foreach(k -> put!(pool, k), eachindex(ops))
+    missed = Threads.Atomic{Int}(0)
+    missed_max = Ref(zero(T))
+    lk = ReentrantLock()
+    # Batches write to disjoint columns of `J`
+    Threads.@threads :dynamic for offset in 0:BS:(A.ncolors - 1)
+        k = take!(pool)
+        try
+            n, mx = assemble_batch!(A, ops[k], seeds[k], compressed[k], covered[k], offset)
+            if n > 0
+                Threads.atomic_add!(missed, n)
+                @lock lk missed_max[] = max(missed_max[], mx)
+            end
+        finally
+            put!(pool, k)
+        end
+    end
+    finish_assembly!(A, missed[], missed_max[], t₀)
+    return A.J
 end
 
 assemble!(A::SparseJacobian, J::JacobianOperator) = assemble!(A, J.f, J.u, J.p)
