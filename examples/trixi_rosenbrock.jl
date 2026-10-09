@@ -27,4 +27,7 @@ sol = solve(
     dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
     ode_default_options()..., callback = callbacks,
     krylov_algo = :gmres,
+    # Trixi.jl stores intermediate values that depend on `u` in the cache of the semidiscretization `p`,
+    # so the Jacobian has to differentiate through `p` as well.
+    assume_p_const = false,
 );
