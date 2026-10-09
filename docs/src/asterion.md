@@ -37,10 +37,20 @@ Asterion.cfl_too_small
 Asterion.limit_cycle!
 ```
 
+## Preconditioners from assembled Jacobians
+
+```@docs
+AssembledJacobianPreconditioner
+assembled_preconditioner
+Asterion.AssembledJacobianBuilder
+RowScaled
+```
+
 ## Internals and adjoints
 
 ```@docs
 Asterion.PseudoTransientResidual
 Asterion.PseudoTransientParameters
 steady_jacobian
+jacobian_assembler
 ```

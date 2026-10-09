@@ -6,5 +6,6 @@
 
 This package computes steady states `f(u, p) = 0` of large nonlinear systems, e.g., discretized PDEs, by pseudo-transient continuation (PTC).
 Each pseudo-time step is an implicit Euler step of `du/dτ = σ f(u, p)`, solved by a few inexact Newton-Krylov iterations with the Jacobian-free solvers of Ariadne.jl; the pseudo-time step is controlled by the switched evolution relaxation (SER) of the residual.
+Preconditioners can be built from sparse Jacobians assembled by colored forward-mode AD with Enzyme.jl.
 
 It is used with `pseudo_transient!`.

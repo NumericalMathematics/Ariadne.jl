@@ -369,7 +369,8 @@ Use it with [`pseudo_transient!`](@ref).
 - `preconditioner = nothing`: right preconditioner of the Krylov solver: `nothing`,
   an [`AbstractPreconditioner`](@ref Ariadne.AbstractPreconditioner) such as [`LaggedPreconditioner`](@ref Ariadne.LaggedPreconditioner) (reused
   across pseudo-time steps and solves; its builder gets the [`JacobianOperator`](@ref Ariadne.JacobianOperator)
-  of the pseudo-transient residual, see [`PseudoTransientParameters`](@ref)), or a function
+  of the pseudo-transient residual, see [`PseudoTransientParameters`](@ref)), an
+  [`AssembledJacobianPreconditioner`](@ref) (instantiated for each solve), or a function
   `J -> operator` called before each Krylov solve. Preconditioners are applied with
   `ldiv!` (`krylov_kwargs = (; ldiv = true)`).
 - `krylov = :gmres`: Krylov method.
@@ -406,6 +407,9 @@ Base.@kwdef struct PseudoTransientNewtonKrylov{CS, D, A, F, LS, P, K, N}
 end
 
 instantiate_preconditioner(P, f!, u, p) = P
+function instantiate_preconditioner(spec::AssembledJacobianPreconditioner, f!, u, p)
+    return assembled_preconditioner(f!, u, p, spec)
+end
 
 """
     PseudoTransientStats
@@ -424,7 +428,7 @@ Statistics of [`pseudo_transient!`](@ref):
   (see `cycle_window` of [`SER`](@ref))
 - `norm_res_initial`, `norm_res`: initial and final norm of the steady residual
 - `timings`: `Dict` of wall times in seconds (`:total`, `:newton` (including the
-  preconditioner), `:residual`)
+  preconditioner), `:residual`, `:preconditioner`, `:assembly`, `:factorization`)
 """
 Base.@kwdef mutable struct PseudoTransientStats
     steps::Int = 0
@@ -462,7 +466,7 @@ pseudo-time ODE `du/dτ = σ f(u, p)`. `u` is the initial guess and is updated i
   initial residual), `:terminated` (by the callback), or `:initialized`
 
 For adjoint and sensitivity computations at the converged state, see
-[`steady_jacobian`](@ref).
+[`steady_jacobian`](@ref) and [`jacobian_assembler`](@ref).
 """
 mutable struct PseudoTransientWorkspace{ALG, F, A, P, PP, NW, PC, C}
     const alg::ALG
@@ -526,6 +530,21 @@ function steady_jacobian(ws::PseudoTransientWorkspace; assume_p_const::Bool = fa
     res = similar(ws.res)
     Enzyme.make_zero!(res)
     return JacobianOperator(ws.f, res, ws.u, ws.p; assume_p_const)
+end
+
+"""
+    jacobian_assembler(ws::PseudoTransientWorkspace)
+
+The [`SparseJacobian`](@ref Ariadne.SparseJacobian) of an [`AssembledJacobianPreconditioner`](@ref), or `nothing`.
+`assemble!(jacobian_assembler(ws), ws.f, ws.u, ws.p)` assembles `∂f/∂u` at the current
+state, e.g., to factorize its transpose for an adjoint solve.
+"""
+function jacobian_assembler(ws::PseudoTransientWorkspace)
+    P = ws.preconditioner
+    if P isa LaggedPreconditioner && P.build isa AssembledJacobianBuilder
+        return P.build.jacobian
+    end
+    return nothing
 end
 
 function evaluate_steady!(ws::PseudoTransientWorkspace)
@@ -799,6 +818,12 @@ function ptc_finish!(ws::PseudoTransientWorkspace, builds₀, t₀; verbose = 0)
     (; stats, preconditioner) = ws
     timings = stats.timings
     stats.preconditioner_builds += preconditioner_builds(preconditioner) - builds₀
+    P = preconditioner
+    if P isa LaggedPreconditioner && P.build isa AssembledJacobianBuilder
+        timings[:assembly] = P.build.assembly_time
+        timings[:factorization] = P.build.factorization_time
+        timings[:preconditioner] = P.build.assembly_time + P.build.factorization_time
+    end
     timings[:total] = get(timings, :total, 0.0) + (time_ns() - t₀) / 1.0e9
     Int(verbose) > 0 && @printf(
         "PTC %s: %d steps (%d rejected), %d Newton, %d Krylov iterations, %d preconditioner builds, %.2f s\n",
