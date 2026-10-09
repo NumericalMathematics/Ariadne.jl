@@ -54,6 +54,7 @@ examples = [
     "Trixi IMEX SSP" => "trixi_imex_ssp",
     "Trixi IMEX ARS" => "trixi_imex_ars",
     "Trixi IMEX Von Karman street" => "trixi_imex_von_karman_street",
+    "Trixi Rosenbrock AMR" => "trixi_rosenbrock_amr",
 ]
 
 for (_, name) in examples
