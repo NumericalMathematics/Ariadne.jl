@@ -1,4 +1,6 @@
 [default.extend-words]
 gam = "gam"
 sur = "sur"
+# switched evolution relaxation
+ser = "ser"
 
