@@ -731,4 +731,12 @@ function newton_krylov!(
     return ws.u, (; solved = status === :converged, status, stats, t)
 end
 
+##
+# Sparse Jacobians
+##
+
+include("coloring.jl")
+include("sparse_jacobian.jl")
+export SparseJacobian, assemble!, greedy_column_coloring, is_column_coloring
+
 end # module Ariadne
