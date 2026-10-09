@@ -1,5 +1,6 @@
 using Ariadne
 using Theseus
+using Asterion
 using Documenter
 import Documenter.Remotes: GitHub
 using Literate
@@ -30,6 +31,7 @@ end
 
 DocMeta.setdocmeta!(Ariadne, :DocTestSetup, :(using Ariadne); recursive = true)
 DocMeta.setdocmeta!(Theseus, :DocTestSetup, :(using Theseus); recursive = true)
+DocMeta.setdocmeta!(Asterion, :DocTestSetup, :(using Asterion); recursive = true)
 
 
 ##
@@ -66,7 +68,7 @@ examples = [title => joinpath("generated", string(name, ".md")) for (title, name
 bib = CitationBibliography(joinpath(@__DIR__, "src", "refs.bib"))
 
 makedocs(;
-    modules = [Ariadne, Theseus],
+    modules = [Ariadne, Theseus, Asterion],
     authors = "Valentin Churavy",
     repo = GitHub("vchuravy", "Ariadne.jl"),
     sitename = "Ariadne.jl",
@@ -82,6 +84,7 @@ makedocs(;
     pages = [
         "Ariadne.jl" => "index.md",
         "Theseus.jl" => "theseus.md",
+        "Asterion.jl" => "asterion.md",
         "Examples" => examples,
         "Notebooks" => [
             "Heat 2D" => "notebooks/heat_2d.md",

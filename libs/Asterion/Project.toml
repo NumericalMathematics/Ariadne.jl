@@ -1,0 +1,14 @@
+name = "Asterion"
+uuid = "5b2a3392-8281-4935-872a-f587f56b339c"
+authors = ["Valentin Churavy <v.churavy@gmail.com>"]
+version = "0.1.0-DEV"
+
+[deps]
+Ariadne = "0be81120-40bf-4f8b-adf0-26103efb66f1"
+
+[sources]
+Ariadne = {path = "../.."}
+
+[compat]
+Ariadne = "0.1"
+julia = "1.10"
