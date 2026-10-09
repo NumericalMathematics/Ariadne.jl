@@ -287,8 +287,8 @@ Class labels for [`quotient_coloring`](@ref) of the columns of a block-structure
 with consecutive blocks of `block_size` columns (e.g., the degrees of freedom of the
 elements of a discontinuous Galerkin discretization): column `j` in block `e` at local
 index `ℓ` gets the label of the pair `(ℓ, block_labels[e])`. For example, for elements on a
-Cartesian grid, `block_labels[e] = 1 + mod(ix, a) + a * mod(iy, b)` with the element
-indices `(ix, iy)` uses a periodic cell of `a × b` elements.
+Cartesian grid, `block_labels[e] = 1 + mod(i, a) + a * mod(j, b)` with the element
+indices `(i, j)` uses a periodic cell of `a × b` elements.
 """
 function block_classes(block_size::Integer, block_labels::AbstractVector{<:Integer})
     index = Dict(c => k for (k, c) in enumerate(unique(block_labels)))
