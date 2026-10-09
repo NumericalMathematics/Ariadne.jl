@@ -25,6 +25,10 @@ function (ls::CustomLineSearch)(ws, norm_res_prior, d)
     return evaluate!(ws)
 end
 ```
+
+A line search can also accept the keyword argument `verbose`: with
+`Ariadne.LineSearches.accepts_verbose(::CustomLineSearch) = true`,
+[`newton_krylov!`](@ref Ariadne.newton_krylov!) passes its verbosity level.
 """
 abstract type AbstractLineSearch end
 
@@ -45,14 +49,33 @@ function matches_exception(err, types::Tuple)
 end
 
 # `evaluate!(ws)`, but `Inf` if an exception of one of the `types` is thrown, e.g., a
-# `DomainError` from `sqrt` or `log` of a negative quantity in a trial state
-function evaluate_or_inf!(ws, types::Tuple)
+# `DomainError` from `sqrt` or `log` of a negative quantity in a trial state. The exception
+# is logged with `@info` if `verbose > 0`, and with `@debug` otherwise.
+function evaluate_or_inf!(ws, types::Tuple; verbose = 0)
     isempty(types) && return evaluate!(ws)
     try
         return evaluate!(ws)
     catch err
         matches_exception(err, types) || rethrow()
+        msg = "Line search: the residual of the trial state threw an exception, treating it as an infinite residual"
+        if verbose > 0
+            @info msg exception = (err, catch_backtrace())
+        else
+            @debug msg exception = (err, catch_backtrace())
+        end
         return Inf
+    end
+end
+
+# Whether the line search `ls` accepts the keyword argument `verbose`
+accepts_verbose(ls) = false
+
+# Call the line search `ls`, passing `verbose` if it accepts it
+function call_linesearch(ls, ws, norm_res_prior, d, verbose)
+    if accepts_verbose(ls)
+        return ls(ws, norm_res_prior, d; verbose)
+    else
+        return ls(ws, norm_res_prior, d)
     end
 end
 
@@ -80,7 +103,9 @@ Trial states whose residual evaluation throws an exception of one of the types
 `reject_exceptions` (e.g., a `DomainError` from `sqrt` or `log` of a quantity that became
 negative in a too long step) count as trial states with infinite residual norm, so the
 step length is reduced further. This also holds for such exceptions thrown in tasks, e.g.,
-in a `Threads.@threads` loop of the residual. Other exceptions are rethrown. If all trials
+in a `Threads.@threads` loop of the residual. The caught exceptions are logged with
+`@info` if [`newton_krylov!`](@ref Ariadne.newton_krylov!) is called with `verbose > 0`, and with `@debug`
+otherwise. Other exceptions are rethrown. If all trials
 throw, the line search returns `Inf` and [`newton_krylov!`](@ref Ariadne.newton_krylov!) stops with status
 `:nonfinite`. Use `reject_exceptions = ()` to rethrow all exceptions.
 
@@ -98,7 +123,9 @@ Base.@kwdef struct BacktrackingLineSearch <: AbstractLineSearch
     reject_exceptions::Tuple = (DomainError,)
 end
 
-function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d)
+accepts_verbose(::BacktrackingLineSearch) = true
+
+function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d; verbose = 0)
     alpha = ls.alpha
     lambda = 1.0
 
@@ -107,7 +134,7 @@ function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d)
 
     # Take the full Newton step (lambda = 1.0)
     ws.u .= muladd.(lambda, d, ws.u) # u = u + lambda * d
-    norm_res = evaluate_or_inf!(ws, ls.reject_exceptions)
+    norm_res = evaluate_or_inf!(ws, ls.reject_exceptions; verbose)
 
     for _ in 2:ls.n_iter_max
         # Armijo condition
@@ -122,7 +149,7 @@ function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d)
         s = new_lambda - lambda
         ws.u .= muladd.(s, d, ws.u) # u = u + (new_lambda - old_lambda) * d
         lambda = new_lambda
-        norm_res = evaluate_or_inf!(ws, ls.reject_exceptions)
+        norm_res = evaluate_or_inf!(ws, ls.reject_exceptions; verbose)
     end
     return norm_res
 end

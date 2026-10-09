@@ -74,6 +74,20 @@ end
     @test result.solved
     @test x ≈ [1, 1]
 
+    # The caught exceptions are logged: with `@info` if verbose, with `@debug` otherwise
+    @test_logs (:info, r"threw an exception") match_mode = :any newton_krylov!(
+        L!, [3.0]; linesearch! = BacktrackingLineSearch(), verbose = 1
+    )
+    @test_logs (:debug, r"threw an exception") min_level = Base.CoreLogging.Debug match_mode = :any newton_krylov!(
+        L!, [3.0]; linesearch! = BacktrackingLineSearch()
+    )
+    @test_logs min_level = Base.CoreLogging.Info newton_krylov!(L!, [3.0]; linesearch! = BacktrackingLineSearch())
+    # Custom line searches without the `verbose` keyword still work
+    struct FullStep <: Ariadne.LineSearches.AbstractLineSearch end
+    (::FullStep)(ws, _, d) = (ws.u .+= d; Ariadne.evaluate!(ws))
+    _, result = newton_krylov!((res, x, _) -> (res .= x .- 1; nothing), [3.0]; linesearch! = FullStep(), verbose = 1)
+    @test result.solved
+
     # Other exceptions are rethrown
     E!(res, x, _) = (x[1] < 0 && throw(ArgumentError("negative")); res[1] = log(abs(x[1])); nothing)
     @test_throws ArgumentError newton_krylov!(E!, [3.0]; linesearch! = BacktrackingLineSearch())
