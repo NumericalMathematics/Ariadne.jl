@@ -11,3 +11,34 @@ It is developed in `libs/Asterion` of the Ariadne.jl repository.
 ```@docs
 Asterion
 ```
+
+## Solvers
+
+```@docs
+PseudoTransientNewtonKrylov
+pseudo_transient!
+PseudoTransientWorkspace
+Asterion.PseudoTransientStats
+ptc_start!
+ptc_step!
+ptc_reset_reference!
+Asterion.successful
+```
+
+## CFL strategies
+
+```@docs
+Asterion.AbstractCFLStrategy
+SER
+Asterion.update_cfl
+Asterion.reject_cfl
+Asterion.cfl_too_small
+```
+
+## Internals and adjoints
+
+```@docs
+Asterion.PseudoTransientResidual
+Asterion.PseudoTransientParameters
+steady_jacobian
+```
