@@ -40,6 +40,9 @@ assemble!
 PerTaskParameters
 Ariadne.jacobian_sparsity
 greedy_column_coloring
+column_coloring
+quotient_coloring
+block_classes
 is_column_coloring
 Ariadne.column_coloring_lower_bound
 ```

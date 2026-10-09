@@ -74,6 +74,10 @@ end
     # Colors from a function of the pattern
     A = SparseJacobian(pattern; colors = P -> greedy_column_coloring(P; order = :largest_first))
     @test assemble!(A, bratu2d!, u, p) ≈ J_dense
+    A = SparseJacobian(pattern; colors = column_coloring)
+    @test assemble!(A, bratu2d!, u, p) ≈ J_dense
+    A = SparseJacobian(pattern; colors = quotient_coloring(pattern, [1 + mod(i, 3) + 3 * mod(j, 3) for j in 0:(m - 1) for i in 0:(m - 1)]))
+    @test assemble!(A, bratu2d!, u, p) ≈ J_dense
     # The diagonal is always part of the pattern
     A = SparseJacobian(spzeros(Bool, n, n))
     @test nnz(A.J) == n
@@ -102,7 +106,10 @@ end
             @test is_column_coloring(pattern, colors)
             @test maximum(colors; init = 0) >= lb
         end
-        colors = greedy_column_coloring(pattern)
+        natural = maximum(greedy_column_coloring(pattern); init = 0)
+        colors = column_coloring(pattern; recolor_iterations = 10)
+        @test is_column_coloring(pattern, colors)
+        @test lb <= maximum(colors; init = 0) <= natural
         ptr, cols = Ariadne.color_groups(colors)
         @test sort(cols) == 1:n
         @test all(colors[cols[ptr[c]:(ptr[c + 1] - 1)]] == fill(c, ptr[c + 1] - ptr[c]) for c in 1:(length(ptr) - 1))
@@ -111,6 +118,22 @@ end
     @test is_column_coloring(pattern, ones(Int, 64)) == false
     @test is_column_coloring(pattern, collect(1:63)) == false
     @test_throws ArgumentError greedy_column_coloring(pattern; order = :unknown)
+
+    # Quotient coloring with a periodic cell of a × a grid points
+    m = 12
+    pattern = laplace_pattern(m)
+    cell(a) = [1 + mod(i, a) + a * mod(j, a) for j in 0:(m - 1) for i in 0:(m - 1)]
+    for a in (3, 4)
+        colors = quotient_coloring(pattern, cell(a))
+        @test is_column_coloring(pattern, colors)
+        @test 5 <= maximum(colors) <= a^2
+        @test all(colors[j] == colors[k] for j in 1:(m^2), k in 1:(m^2) if cell(a)[j] == cell(a)[k])
+    end
+    @test_throws ArgumentError quotient_coloring(pattern, cell(2))
+    @test_throws ArgumentError quotient_coloring(pattern, cell(3)[1:10])
+    @test maximum(quotient_coloring(pattern, 1:(m^2))) <= maximum(greedy_column_coloring(pattern))
+    # Block classes: blocks of 2 columns with labels 7, 3, 7
+    @test block_classes(2, [7, 3, 7]) == [1, 2, 3, 4, 1, 2]
 end
 
 # Bratu with a branch: the coupling to the right neighbor only exists for u[i] > 0

@@ -27,8 +27,8 @@ possible nonzeros of the Jacobian). The columns are grouped by the column `color
 `batchsize = 1` one [`JacobianOperator`](@ref) product per color is used).
 
 `colors` is a vector with the color of each column, a function `pattern -> colors`, or
-`nothing` for [`greedy_column_coloring`](@ref). See SparseMatrixColorings.jl for
-colorings with fewer colors. The coloring is computed once and reused for all assemblies.
+`nothing` for [`greedy_column_coloring`](@ref). See [`column_coloring`](@ref),
+[`quotient_coloring`](@ref), and SparseMatrixColorings.jl for colorings with fewer colors. The coloring is computed once and reused for all assemblies.
 
 The diagonal is always included in the pattern of square Jacobians, so that
 `Diagonal(d) - J` has the same pattern.

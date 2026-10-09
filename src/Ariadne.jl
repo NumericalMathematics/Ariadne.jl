@@ -5,6 +5,8 @@ export newton_krylov, newton_krylov!, NewtonKrylovWorkspace
 using Krylov
 using LinearAlgebra, SparseArrays
 using Enzyme
+import Random
+using Random: randperm
 
 ##
 # JacobianOperator
@@ -738,5 +740,6 @@ end
 include("coloring.jl")
 include("sparse_jacobian.jl")
 export SparseJacobian, PerTaskParameters, assemble!, greedy_column_coloring, is_column_coloring
+export column_coloring, quotient_coloring, block_classes
 
 end # module Ariadne
