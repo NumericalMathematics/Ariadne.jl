@@ -376,6 +376,9 @@ Use it with [`pseudo_transient!`](@ref).
 - `krylov_kwargs = (; ldiv = true, itmax = 100)`: keyword arguments of the Krylov solver.
 - `reject_krylov_failure = true`: reject pseudo-time steps in which the Krylov solver
   does not reach its tolerance.
+- `retry_krylov_failure = false`: if the Krylov solver failed with a preconditioner that
+  was built for an earlier step (e.g., a lagged [`LaggedPreconditioner`](@ref Ariadne.LaggedPreconditioner)), first
+  retry the step with a rebuilt preconditioner before reducing the CFL number.
 - `max_residual_growth = Inf`: reject pseudo-time steps that increase the steady residual
   norm by more than this factor.
 - `norm = LinearAlgebra.norm`: norm of the steady residual for the termination criteria
@@ -396,6 +399,7 @@ Base.@kwdef struct PseudoTransientNewtonKrylov{CS, D, A, F, LS, P, K, N}
     krylov::Symbol = :gmres
     krylov_kwargs::K = (; ldiv = true, itmax = 100)
     reject_krylov_failure::Bool = true
+    retry_krylov_failure::Bool = false
     max_residual_growth::Float64 = Inf
     norm::N = LinearAlgebra.norm
     assume_p_const::Bool = false
@@ -412,6 +416,7 @@ Statistics of [`pseudo_transient!`](@ref):
 - `newton_iterations`: Newton iterations (including those of rejected steps)
 - `krylov_iterations`: Krylov iterations (including those of rejected steps)
 - `krylov_failures`: Krylov solves that did not reach their tolerance
+- `krylov_retries`: steps retried with a rebuilt preconditioner (`retry_krylov_failure`)
 - `residual_evaluations`: evaluations of `f!` (without line search trials and
   Jacobian-vector products)
 - `preconditioner_builds`: builds of a [`LaggedPreconditioner`](@ref Ariadne.LaggedPreconditioner)
@@ -427,6 +432,7 @@ Base.@kwdef mutable struct PseudoTransientStats
     newton_iterations::Int = 0
     krylov_iterations::Int = 0
     krylov_failures::Int = 0
+    krylov_retries::Int = 0
     residual_evaluations::Int = 0
     preconditioner_builds::Int = 0
     cfl_ceilings::Int = 0
@@ -680,6 +686,7 @@ function ptc_step!(ws::PseudoTransientWorkspace; verbose = 0)
     set_dtau!(ws)
     while true
         params.u_n .= u
+        builds_before = preconditioner_builds(preconditioner)
         t_newton = @elapsed begin
             _, result = newton_krylov!(
                 newton; max_niter = alg.newton_iterations,
@@ -715,6 +722,16 @@ function ptc_step!(ws::PseudoTransientWorkspace; verbose = 0)
         reason === :accepted && break
 
         u .= params.u_n
+        if reason === :krylov_failed && alg.retry_krylov_failure &&
+                preconditioner isa LaggedPreconditioner &&
+                preconditioner_builds(preconditioner) == builds_before
+            # The preconditioner was not built for this step: retry with a new one
+            stats.krylov_retries += 1
+            verbose > 1 && @printf("    Krylov solver failed, retrying with a new preconditioner\n")
+            refresh_preconditioner!(preconditioner)
+            continue
+        end
+
         # Reject the step, reduce the CFL number, and refresh the preconditioner
         rejections += 1
         stats.rejected_steps += 1
