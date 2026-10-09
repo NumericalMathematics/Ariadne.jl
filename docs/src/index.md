@@ -44,6 +44,18 @@ Ariadne.Fixed
 Ariadne.EisenstatWalker
 ```
 
+### Sparse Jacobians
+
+```@docs
+SparseJacobian
+assemble!
+PerTaskParameters
+Ariadne.jacobian_sparsity
+greedy_column_coloring
+is_column_coloring
+Ariadne.column_coloring_lower_bound
+```
+
 ### Internal
 
 ```@docs
