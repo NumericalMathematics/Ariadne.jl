@@ -11,3 +11,9 @@ It is developed in `libs/Asterion` of the Ariadne.jl repository.
 ```@docs
 Asterion
 ```
+
+## Line search
+
+```@docs
+AdmissibleBacktrackingLineSearch
+```

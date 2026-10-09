@@ -8,4 +8,8 @@ module Asterion
 
 using Ariadne
 
+include("linesearch.jl")
+
+export AdmissibleBacktrackingLineSearch
+
 end # module Asterion
