@@ -404,20 +404,32 @@ end
 function Base.resize!(integrator::NonLinearImplicit, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
-    return resize!(integrator.u_tmp, new_size)
+    resize!(integrator.u_tmp, new_size)
+    foreach(stage -> resize!(stage, new_size), integrator.stages)
+    resize!(integrator.res, new_size)
+    return nothing
 end
 
 ### Helper
-jacobian(G!, ode::ODEProblem, Δt) = jacobian(G!, ode.f, ode.u0, ode.p, Δt, first(ode.tspan))
+"""
+    Theseus.jacobian(alg::NonLinearImplicitAlgorithm, ode::ODEProblem, Δt; stage = 1)
+    Theseus.jacobian(alg::NonLinearImplicitAlgorithm, f!, uₙ, p, Δt, t; stage = 1)
 
-function jacobian(G!, f!, uₙ, p, Δt, t)
+Assemble the Jacobian of the nonlinear system of stage `stage` of `alg` for one time
+step of size `Δt` from `uₙ` at time `t`, evaluated at `u = uₙ`, as a sparse matrix.
+The previous stages are set to `uₙ`.
+"""
+jacobian(alg, ode::ODEProblem, Δt; kwargs...) = jacobian(alg, ode.f, ode.u0, ode.p, Δt, first(ode.tspan); kwargs...)
+
+function jacobian(alg::NonLinearImplicitAlgorithm, f!, uₙ, p, Δt, t; stage = 1)
     u = copy(uₙ)
     du = zero(uₙ)
     res = zero(uₙ)
+    stages_ = ntuple(_ -> copy(uₙ), Val(stages(alg)))
 
-    F! = nonlinear_problem(G!, f!)
+    F! = nonlinear_problem(alg, f!)
 
-    J = Ariadne.JacobianOperator(F!, res, u, (uₙ, Δt, du, p, t))
+    J = JacobianOperator(F!, res, u, (uₙ, Δt, du, p, t, stages_, stage))
     return collect(J)
 end
 

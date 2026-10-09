@@ -77,3 +77,9 @@ They accept an `ODEProblem`.
 Theseus.SSPKnoth
 Theseus.ROS2
 ```
+
+## Utilities
+
+```@docs
+Theseus.jacobian
+```
