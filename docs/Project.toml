@@ -1,5 +1,6 @@
 [deps]
 Ariadne = "0be81120-40bf-4f8b-adf0-26103efb66f1"
+Asterion = "5b2a3392-8281-4935-872a-f587f56b339c"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DifferentiationInterface = "a0c0ee7d-e4b9-4e03-894e-1c5f64a51d63"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
@@ -21,6 +22,7 @@ Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 
 [sources]
 Ariadne = {path = ".."}
+Asterion = {path = "../libs/Asterion"}
 Theseus = {path = "../libs/Theseus"}
 
 [compat]

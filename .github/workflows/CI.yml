@@ -89,3 +89,46 @@ jobs:
         with:
           files: lcov.info
 
+  Asterion:
+    name: Test Asterion - Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.version == 'nightly' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - "1.10"
+          - "1.11"
+          # - "nightly"
+        os:
+          - ubuntu-latest
+          - windows-latest
+        arch:
+          - x64
+        include:
+          - version: "1.10"
+            os: macos-latest
+            arch: aarch64
+    steps:
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v3
+      - if: ${{ matrix.version == '1.10' }}
+        run: |
+          julia --project="libs/Asterion" -e 'using Pkg; Pkg.develop([PackageSpec(path=".")])'
+      - uses: julia-actions/julia-buildpkg@v1
+        with:
+          project: "libs/Asterion"
+      - uses: julia-actions/julia-runtest@v1
+        with:
+          project: "libs/Asterion"
+      - uses: julia-actions/julia-processcoverage@v1
+        with:
+          directories: 'libs/Asterion/src'
+      - uses: codecov/codecov-action@v6
+        with:
+          files: lcov.info
+

@@ -5,7 +5,7 @@
 [![Build Status](https://github.com/NumericalMathematics/Ariadne.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/NumericalMathematics/Ariadne.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 
-Solving equations of the form `F(u) = 0` (Ariadne.jl) and `u'(t) = f(t, u(t))` (the sub-package Theseus.jl developed in `libs/Theseus`).
+Solving equations of the form `F(u) = 0` (Ariadne.jl) and `u'(t) = f(t, u(t))` (the sub-package Theseus.jl developed in `libs/Theseus`), and steady states `f(u, p) = 0` by pseudo-transient continuation (the sub-package Asterion.jl developed in `libs/Asterion`).
 
 Right now, please consider using NonlinearSolve.jl or the OrdinaryDiffEq.jl ecosystem.
 This package is in development.
