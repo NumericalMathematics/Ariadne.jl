@@ -463,8 +463,9 @@ const KWARGS_DOCS = """
   - `algo`, `assume_p_const`: Only for the methods that take a residual function;
     see [`NewtonKrylovWorkspace`](@ref).
   - `on_krylov_failure`: What to do if the Krylov solver does not reach its tolerance:
-    `:continue` (default) takes the Newton step anyway, `:stop` returns with status
-    `:krylov_failed` without updating `u`.
+    `:stop` (default) returns with status `:krylov_failed` without updating `u`,
+    `:continue` takes the Newton step anyway (and counts the failure in
+    `stats.krylov_failures`).
   - `callback`: A function called once for the initial guess and then after each Newton iteration,
                with signature `callback(u, res, norm_res)`.
 
@@ -582,10 +583,12 @@ function newton_krylov!(
         M = nothing,
         N = nothing,
         krylov_kwargs = (;),
-        on_krylov_failure::Symbol = :continue,
+        on_krylov_failure::Symbol = :stop,
         callback = (args...) -> nothing,
     )
-    @assert on_krylov_failure in (:continue, :stop) "on_krylov_failure must be :continue or :stop"
+    if !(on_krylov_failure in (:continue, :stop))
+        throw(ArgumentError("on_krylov_failure must be :continue or :stop, got :$on_krylov_failure"))
+    end
     t₀ = time_ns()
     norm_res = evaluate!(ws)
     callback(ws.u, ws.res, norm_res)
