@@ -416,7 +416,7 @@ const KWARGS_DOCS = """
 ## Keyword Arguments
   - `tol_rel`: Relative tolerance
   - `tol_abs`: Absolute tolerance
-  - `max_niter`: Maximum number of iterations
+  - `max_niter`: Maximum number of Newton iterations
   - `forcing`: Maximum forcing term for inexact Newton.
              If `nothing` an exact Newton method is used.
   - `linesearch!`: Line search strategy. Must be a subtype of `AbstractLineSearch`.
@@ -543,7 +543,7 @@ function newton_krylov!(
     verbose > 0 && @info "Jacobian-Free Newton-Krylov" res₀ = norm_res tol tol_rel tol_abs η
 
     stats = Stats(0, 0, norm_res)
-    while norm_res > tol && stats.outer_iterations <= max_niter
+    while norm_res > tol && stats.outer_iterations < max_niter
         # Handle kwargs for Preconditioners
         kwargs = krylov_kwargs
         if N !== nothing
