@@ -323,16 +323,31 @@ function (F::EisenstatWalker)(η, tol, norm_res, norm_res_prior)
 end
 initial(F::EisenstatWalker) = F.η₀
 
+"""
+    Stats
+
+Statistics of a [`newton_krylov!`](@ref) solve.
+
+- `outer_iterations`: number of Newton iterations
+- `inner_iterations`: total number of Krylov iterations
+- `norm_res`: norm of the final residual
+- `krylov_failures`: number of Newton iterations in which the Krylov solver did not
+  reach its tolerance
+"""
 struct Stats{T <: Real}
     outer_iterations::Int
     inner_iterations::Int
     norm_res::T
+    krylov_failures::Int
 end
-function update(stats::Stats, inner_iterations, norm_res)
+Stats(outer_iterations, inner_iterations, norm_res) = Stats(outer_iterations, inner_iterations, norm_res, 0)
+
+function update(stats::Stats, inner_iterations, norm_res, krylov_solved::Bool)
     return Stats(
         stats.outer_iterations + 1,
         stats.inner_iterations + inner_iterations,
-        norm_res
+        norm_res,
+        stats.krylov_failures + !krylov_solved
     )
 end
 
@@ -447,8 +462,21 @@ const KWARGS_DOCS = """
     methods that take a residual function, and are ignored by `newton_krylov!(ws)`.
   - `algo`, `assume_p_const`: Only for the methods that take a residual function;
     see [`NewtonKrylovWorkspace`](@ref).
+  - `on_krylov_failure`: What to do if the Krylov solver does not reach its tolerance:
+    `:stop` (default) returns with status `:krylov_failed` without updating `u`,
+    `:continue` takes the Newton step anyway (and counts the failure in
+    `stats.krylov_failures`).
   - `callback`: A function called once for the initial guess and then after each Newton iteration,
                with signature `callback(u, res, norm_res)`.
+
+## Return value
+`(u, (; solved, status, stats, t))`, where `status` is
+- `:converged`: the residual norm satisfies the tolerance (`solved == true`)
+- `:max_iterations`: `max_niter` Newton iterations were taken without convergence
+- `:krylov_failed`: the Krylov solver failed and `on_krylov_failure == :stop`
+- `:nonfinite`: the residual norm became `NaN` or `Inf`
+
+and `stats` are the [`Ariadne.Stats`](@ref).
 """
 
 """
@@ -555,8 +583,12 @@ function newton_krylov!(
         M = nothing,
         N = nothing,
         krylov_kwargs = (;),
+        on_krylov_failure::Symbol = :stop,
         callback = (args...) -> nothing,
     )
+    if !(on_krylov_failure in (:continue, :stop))
+        throw(ArgumentError("on_krylov_failure must be :continue or :stop, got :$on_krylov_failure"))
+    end
     t₀ = time_ns()
     norm_res = evaluate!(ws)
     callback(ws.u, ws.res, norm_res)
@@ -572,7 +604,8 @@ function newton_krylov!(
     verbose > 0 && @info "Jacobian-Free Newton-Krylov" res₀ = norm_res tol tol_rel tol_abs η
 
     stats = Stats(0, 0, norm_res)
-    while norm_res > tol && stats.outer_iterations < max_niter
+    status = isfinite(norm_res) ? :max_iterations : :nonfinite
+    while isfinite(norm_res) && norm_res > tol && stats.outer_iterations < max_niter
         # Handle kwargs for Preconditioners
         kwargs = krylov_solve_kwargs(krylov_kwargs)
         if N !== nothing
@@ -603,6 +636,20 @@ function newton_krylov!(
         (; neg_res, res) = ws
         @. neg_res = -res
         krylov_solve!(ws.krylov, ws.J, neg_res; kwargs...)
+        krylov_stats = ws.krylov.stats
+        krylov_solved = krylov_stats.solved
+
+        if !krylov_solved && on_krylov_failure === :stop
+            # `ws.res` was overwritten by the Jacobian-vector products
+            evaluate!(ws)
+            stats = Stats(
+                stats.outer_iterations, stats.inner_iterations + krylov_stats.niter,
+                norm_res, stats.krylov_failures + 1
+            )
+            status = :krylov_failed
+            verbose > 0 && @info "Krylov solver failed" krylov_stats.status
+            break
+        end
 
         d = ws.krylov.x # Newton direction
 
@@ -612,8 +659,11 @@ function newton_krylov!(
 
         callback(ws.u, ws.res, norm_res)
 
-        if isinf(norm_res) || isnan(norm_res)
-            @error "Inner solver blew up" stats
+        stats = update(stats, krylov_stats.niter, norm_res, krylov_solved)
+
+        if !isfinite(norm_res)
+            status = :nonfinite
+            verbose > 0 && @info "Residual became non-finite" stats
             break
         end
 
@@ -622,15 +672,17 @@ function newton_krylov!(
         end
 
         # This is almost to be expected for implicit time-stepping
-        if verbose > 0 && ws.krylov.stats.niter == 0 && forcing !== nothing
+        if verbose > 0 && krylov_stats.niter == 0 && forcing !== nothing
             @info "Inexact Newton thinks our step is good enough " η stats
         end
 
-        stats = update(stats, ws.krylov.stats.niter, norm_res)
         verbose > 0 && @info "Newton" iter = stats.outer_iterations norm_res η stats
     end
+    if isfinite(norm_res) && norm_res <= tol
+        status = :converged
+    end
     t = (time_ns() - t₀) / 1.0e9
-    return ws.u, (; solved = norm_res <= tol, stats, t)
+    return ws.u, (; solved = status === :converged, status, stats, t)
 end
 
 end # module Ariadne

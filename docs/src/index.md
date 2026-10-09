@@ -18,6 +18,12 @@ NoLineSearch
 BacktrackingLineSearch
 ```
 
+### Statistics
+
+```@docs
+Ariadne.Stats
+```
+
 ### Parameters
 
 ```@docs
