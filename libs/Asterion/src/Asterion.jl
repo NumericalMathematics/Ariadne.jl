@@ -18,6 +18,6 @@ include("steady_state.jl")
 
 export PseudoTransientNewtonKrylov, pseudo_transient!, PseudoTransientWorkspace
 export ptc_start!, ptc_step!, ptc_reset_reference!
-export SER, steady_jacobian
+export SER, LodaresSER, steady_jacobian
 
 end # module Asterion

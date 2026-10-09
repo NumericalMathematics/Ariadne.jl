@@ -30,9 +30,11 @@ Asterion.successful
 ```@docs
 Asterion.AbstractCFLStrategy
 SER
+LodaresSER
 Asterion.update_cfl
 Asterion.reject_cfl
 Asterion.cfl_too_small
+Asterion.limit_cycle!
 ```
 
 ## Internals and adjoints
