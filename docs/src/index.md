@@ -24,6 +24,20 @@ BacktrackingLineSearch
 Ariadne.Stats
 ```
 
+### Adjoints and implicit functions
+
+```@docs
+adjoint_solve
+adjoint_gradient
+TransposedOperator
+TransposedPreconditioner
+transpose_ldiv!
+parameter_vjp
+parameter_vjp!
+ImplicitFunction
+implicit_solve!
+```
+
 ### Parameters
 
 ```@docs

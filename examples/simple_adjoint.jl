@@ -1,88 +1,70 @@
-## Simple 2D example from (Kelley2003)[@cite]
+# # Adjoint of a nonlinear solve
+#
+# The simple 2D example from [Kelley2003](@cite) with parameters `p`. We compute the gradient
+# of a loss function `g(x(p), p)` of the solution `x(p)` of `F(x, p) = 0` with respect to `p`
+# by the discrete adjoint method (see, e.g., the
+# [notes on adjoint methods by S. G. Johnson](https://math.mit.edu/~stevenj/18.336/adjoint.pdf)),
+# instead of differentiating through the Newton-Krylov solver:
+# ```math
+# \frac{dg}{dp} = \frac{\partial g}{\partial p} - \lambda^T \frac{\partial F}{\partial p},
+# \qquad \left(\frac{\partial F}{\partial x}\right)^T \lambda = \left(\frac{\partial g}{\partial x}\right)^T.
+# ```
 
-using NewtonKrylov, LinearAlgebra
-using CairoMakie
+using Ariadne, LinearAlgebra
+using Enzyme
 
 function F!(res, x, p)
     res[1] = p[1] * x[1]^2 + p[2] * x[2]^2 - 2
-    return res[2] = exp(p[1] * x[1] - 1) + p[2] * x[2]^2 - 2
-    # return nothing
+    res[2] = exp(p[1] * x[1] - 1) + p[2] * x[2]^2 - 2
+    return nothing
 end
 
-function F(x, p)
-    res = similar(x)
-    F!(res, x, p)
-    return res
+p = [1.0, 1.3]
+x, result = newton_krylov!(F!, [2.0, 0.5], p; tol_rel = 1.0e-12)
+@assert result.solved
+
+# The loss function measures the distance of the solution to a target `x̂`.
+
+const x̂ = [1.0, 1.0]
+g(x, p) = sum(abs2, x .- x̂)
+
+# ## Adjoint gradient
+#
+# [`adjoint_gradient`](@ref) computes `∂g/∂x` and `∂g/∂p` with Enzyme.jl, solves the adjoint
+# system with GMRES (with products by `(∂F/∂x)ᵀ` from Enzyme.jl reverse mode), and computes
+# the vector-Jacobian product `λᵀ ∂F/∂p`.
+
+r = adjoint_gradient(g, F!, x, p)
+@assert r.stats.solved
+r.dp
+
+# We compare with central finite differences of the loss of the solution.
+
+function loss(p)
+    x, result = newton_krylov!(F!, [2.0, 0.5], p; tol_rel = 1.0e-12)
+    return g(x, p)
 end
 
-p = [1.0, 1.3, 1.0]
+h = 1.0e-6
+dp_fd = [(loss(p .+ h .* e) - loss(p .- h .* e)) / 2h for e in ([1.0, 0.0], [0.0, 1.0])]
+@assert isapprox(r.dp, dp_fd; rtol = 1.0e-5)
+dp_fd
 
-xs = LinRange(-3, 8, 1000)
-ys = LinRange(-15, 10, 1000)
+# ## Differentiating through a solve with Enzyme.jl
+#
+# An [`ImplicitFunction`](@ref) wraps the solver. Differentiating a function that calls
+# [`implicit_solve!`](@ref) with Enzyme.jl applies the implicit function theorem at the
+# solution instead of differentiating the Newton iterations.
 
-levels = [0.1, 0.25, 0.5:2:10..., 10.0:10:200..., 200:100:4000...]
+solve!(x, p) = (newton_krylov!(F!, x, p; tol_rel = 1.0e-12); x)
+implicit = ImplicitFunction(F!, solve!)
 
-fig, ax = contour(xs, ys, (x, y) -> norm(F([x, y], p)); levels)
-
-
-x₀ = [2.0, 0.5]
-x, stats = newton_krylov!((res, u) -> F!(res, u, p), x₀)
-@assert stats.solved
-
-# ## Adjoint setup
-# Define x̂ to be a solution we would like discover the parameter of.
-
-const x̂ = [1.0000001797004159, 1.0000001140397106]
-
-# `g` is our target function measuring the distance
-function g(x, p)
-    return sum(abs2, x .- x̂)
+function objective(x, p)
+    implicit_solve!(implicit, x, p)
+    return g(x, p)
 end
 
-using Enzyme
-using Krylov
-
-# function adjoint_with_primal(F!, G, u₀, p; kwargs...)
-#     res = similar(u₀)
-#     u, stats = newton_krylov!(F!, u₀, res; kwargs...)
-#     # @assert stats.solved
-
-#     return (; u, loss = G(u, p), dp = adjoint_nl!(F!, G, res, u, p))
-# end
-
-"""
-    adjoint_nl!(F!, G, res, u, p)
-
-# Arguments
-- `F!` -> F!(res, u, p) solves F(u; p) = 0
-- `G`  -> "Target function"/ "Loss function" G(u, p) = scalar
-"""
-function adjoint_nl!(F!, G, res, u, p)
-    # Calculate gₚ and gₓ
-    gₚ = Enzyme.make_zero(p)
-    gₓ = Enzyme.make_zero(u)
-    Enzyme.autodiff(Enzyme.Reverse, G, Duplicated(u, gₓ), Duplicated(p, gₚ))
-
-    # Solve adjoint equation for λ
-    J = NewtonKrylov.JacobianOperator((res, u) -> F!(res, u, p), res, u)
-    λ, stats = gmres(transpose(J), gₓ)
-    @assert stats.solved
-
-    # Now do vJp for λᵀ*fₚ
-    dp = Enzyme.make_zero(p)
-    Enzyme.autodiff(
-        Enzyme.Reverse, F!, Const,
-        Duplicated(res, λ),
-        Const(u),
-        Duplicated(p, dp)
-    )
-
-    # TODO:
-    # Use recursive_map to implement this subtraction https://github.com/EnzymeAD/Enzyme.jl/pull/1852
-    return gₚ - dp
-end
-
-adjoint_with_primal(F!, g, x₀, p)
-
-# ## TODO:
-# Use Optimizer.jl to find `p`
+dp = zero(p)
+autodiff(Reverse, objective, Active, Duplicated([2.0, 0.5], zeros(2)), Duplicated(p, dp))
+@assert dp ≈ r.dp
+dp
