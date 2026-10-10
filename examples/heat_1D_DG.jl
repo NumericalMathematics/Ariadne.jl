@@ -68,9 +68,15 @@ end
 
 # ## Problem plotting
 
-function plot_1D(xs, ts, hist)
+# Drawing every one of the 5000 time steps as its own line takes about a minute
+# per plot and does not show more, so we draw at most `nlines` of them. The
+# steps are spaced logarithmically, since the solution changes fastest at the
+# beginning.
+
+function plot_1D(xs, ts, hist; nlines = 100)
+    steps = unique(round.(Int, exp.(range(0, log(length(hist)); length = nlines))))
     fig, ax = lines(xs, hist[1])
-    for i in 2:length(hist)
+    for i in steps[2:end]
         lines!(ax, xs, hist[i])
     end
     return fig
