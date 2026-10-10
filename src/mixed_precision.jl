@@ -1,0 +1,369 @@
+##
+# Mixed-precision Newton steps
+#
+# - C. T. Kelley (2022). Newton's method in mixed precision. SIAM Review 64(1), 191-211.
+# - C. T. Kelley (2024). Newton's method in three precisions.
+#   Pacific Journal of Optimization 20, 461-474. arXiv:2307.16051.
+##
+
+"""
+    lu_in_precision!(A::AbstractMatrix{T}; threaded = true) -> LU{T}
+
+LU factorization with partial pivoting of `A` in place, where every operation is
+rounded to `T`. Uses LAPACK for BLAS floats. Otherwise the factorization performs
+exactly the operations of `LinearAlgebra.generic_lufact!` in the same order per
+entry, so the result does not depend on `threaded`; the trailing update is split
+over columns with `Threads.@threads` if `threaded` is `true`.
+
+Types whose arithmetic uses global state (for example the random number generator
+of StochasticRounding.jl) must be factored with `threaded = false`.
+"""
+function lu_in_precision!(A::AbstractMatrix{T}; threaded::Bool = true) where {T}
+    if T <: LinearAlgebra.BlasFloat
+        return lu!(A; check = false)
+    end
+    m, n = size(A)
+    minmn = min(m, n)
+    info = 0
+    ipiv = Vector{LinearAlgebra.BlasInt}(undef, minmn)
+    @inbounds for k in 1:minmn
+        kp = k
+        if k < m
+            amax = abs(A[k, k])
+            for i in (k + 1):m
+                absi = abs(A[i, k])
+                if absi > amax
+                    kp = i
+                    amax = absi
+                end
+            end
+        end
+        ipiv[k] = kp
+        if !iszero(A[kp, k])
+            if k != kp
+                for i in 1:n
+                    A[k, i], A[kp, i] = A[kp, i], A[k, i]
+                end
+            end
+            Akkinv = inv(A[k, k])
+            for i in (k + 1):m
+                A[i, k] *= Akkinv
+            end
+        elseif info == 0
+            info = k
+        end
+        if threaded && n - k > 64
+            Threads.@threads :static for j in (k + 1):n
+                _lu_column_update!(A, k, j, m)
+            end
+        else
+            for j in (k + 1):n
+                _lu_column_update!(A, k, j, m)
+            end
+        end
+    end
+    return LU{T, typeof(A), typeof(ipiv)}(A, ipiv, LinearAlgebra.BlasInt(info))
+end
+
+@inline function _lu_column_update!(A, k, j, m)
+    Akj = A[k, j]
+    @inbounds @simd for i in (k + 1):m
+        A[i, j] -= A[i, k] * Akj
+    end
+    return nothing
+end
+
+"""
+    Ariadne.round_to(T, x)
+
+Rounds `x` to the precision `T`. Defaults to `T(x)`; add methods for number types
+without a direct conversion.
+"""
+round_to(::Type{T}, x) where {T} = T(x)
+
+"""
+    MixedPrecisionLU(A; factor_precision = eltype(A), solve_precision = factor_precision,
+                     threaded = true)
+
+The Jacobian `A` stored in the precision `eltype(A)` together with an LU
+factorization of `A` rounded to `factor_precision`.
+
+`ldiv!(y, P, x)` solves `A y ≈ x` with the triangular solves in `solve_precision`:
+
+- If `eltype(x) == solve_precision`, the solve uses `x` directly ("on the fly"
+  interprecision transfer in Kelley's terminology when the factors are of lower
+  precision).
+- Otherwise `x` is scaled by `‖x‖∞`, rounded to `solve_precision`, solved and
+  scaled back (Kelley 2024, Eqs. (2.17)-(2.18)). Scaling avoids underflow in
+  half precision.
+
+If `solve_precision != factor_precision`, the factors are converted once to
+`solve_precision` after the factorization (Kelley's "heavy" `MPHArray`), so the
+triangular solves see the values of the low-precision factors but compute in
+`solve_precision`. GMRES-IR needs this.
+
+`A` is kept as the operator for iterative refinement (see [`IterativeRefinement`](@ref)
+and [`GMRESIR`](@ref)).
+"""
+struct MixedPrecisionLU{TA, TF, TS, MA <: AbstractMatrix{TA}, LF, LS, V}
+    A::MA
+    factors::LF # LU in TF
+    solver::LS # LU in TS
+    buffer::V # Vector{TS}
+end
+
+function MixedPrecisionLU(
+        A::AbstractMatrix{TA}; factor_precision::Type = TA,
+        solve_precision::Type = factor_precision, threaded::Bool = true,
+    ) where {TA}
+    TF = factor_precision
+    TS = solve_precision
+    F = lu_in_precision!(Matrix{TF}(A); threaded)
+    if TS === TF
+        S = F
+    else
+        S = LU{TS, Matrix{TS}, typeof(F.ipiv)}(Matrix{TS}(F.factors), F.ipiv, F.info)
+    end
+    buffer = Vector{TS}(undef, size(A, 1))
+    return MixedPrecisionLU{TA, TF, TS, typeof(A), typeof(F), typeof(S), typeof(buffer)}(A, F, S, buffer)
+end
+
+Base.size(P::MixedPrecisionLU, args...) = size(P.A, args...)
+Base.eltype(::MixedPrecisionLU{TA}) where {TA} = TA
+factor_precision(::MixedPrecisionLU{TA, TF}) where {TA, TF} = TF
+solve_precision(::MixedPrecisionLU{TA, TF, TS}) where {TA, TF, TS} = TS
+LinearAlgebra.issuccess(P::MixedPrecisionLU) = issuccess(P.factors)
+
+function LinearAlgebra.ldiv!(y::AbstractVector, P::MixedPrecisionLU, x::AbstractVector)
+    TS = solve_precision(P)
+    if eltype(x) === TS
+        y === x || copyto!(y, x)
+        ldiv!(P.solver, y)
+        return y
+    end
+    s = norm(x, Inf)
+    if iszero(s) || !isfinite(s)
+        y .= s .* x
+        return y
+    end
+    b = P.buffer
+    b .= round_to.(TS, x ./ s)
+    ldiv!(P.solver, b)
+    y .= s .* b
+    return y
+end
+LinearAlgebra.ldiv!(P::MixedPrecisionLU, x::AbstractVector) = ldiv!(x, P, x)
+Base.:\(P::MixedPrecisionLU, x::AbstractVector) = ldiv!(similar(x), P, x)
+LinearAlgebra.mul!(y, P::MixedPrecisionLU, x) = mul!(y, P.A, x)
+
+# The stored Jacobian of a preconditioner, used as operator of iterative refinement
+stored_jacobian(P::MixedPrecisionLU) = P.A
+stored_jacobian(P::LaggedPreconditioner) = stored_jacobian(P.operator)
+stored_jacobian(P) = throw(ArgumentError("$(typeof(P)) does not store a Jacobian; use `operator = :jacobian`"))
+
+##
+# Workspaces for the Newton step other than Krylov methods.
+# They behave like Krylov.jl workspaces (fields `x` and `stats`, `krylov_solve!`), so they
+# can be the `krylov` workspace of a `NewtonKrylovWorkspace`. They use the preconditioner
+# `N` (or `M`) passed to `krylov_solve!` as factorization, usually a `LaggedPreconditioner`
+# that builds a `MixedPrecisionLU`.
+##
+
+"""
+    AbstractStepWorkspace
+
+Workspace for the Newton step `J d = -F(u)` that replaces the Krylov workspace of a
+[`NewtonKrylovWorkspace`](@ref). Like a Krylov.jl workspace it has the fields `x` (the
+solution) and `stats` (with `solved`, `niter`, `status`) and implements
+`Krylov.krylov_solve!(ws, A, b; N, M, kwargs...)`. The factorization is the preconditioner
+`N` (or `M`) of [`newton_krylov!`](@ref). The tolerances `atol` and `rtol` that
+`newton_krylov!` derives from the forcing term are ignored; each workspace has its own
+stopping rule.
+
+Implemented: [`DirectSolveWorkspace`](@ref), [`IterativeRefinementWorkspace`](@ref),
+[`GMRESIRWorkspace`](@ref).
+"""
+abstract type AbstractStepWorkspace end
+
+"""
+    StepStats
+
+Statistics of an [`AbstractStepWorkspace`](@ref) solve: `solved`, `niter` (refinement
+steps for IR, total GMRES iterations for GMRES-IR), `status`, and the `history` of the
+refinement residual norms.
+"""
+struct StepStats
+    solved::Bool
+    niter::Int
+    status::String
+    history::Vector{Float64}
+end
+StepStats() = StepStats(false, 0, "unknown", Float64[])
+
+"""
+    DirectSolveWorkspace(b)
+
+Newton step `d = P⁻¹(-F(u))` with the (possibly low-precision) factorization `P`.
+With a [`MixedPrecisionLU`](@ref) this is Newton's method in two precisions
+(Kelley 2022). `b` is a template vector of the residual type.
+
+    ws = NewtonKrylovWorkspace(F!, u, p, res, DirectSolveWorkspace(res))
+    newton_krylov!(ws; N = LaggedPreconditioner(J -> MixedPrecisionLU(A32(J))), forcing = nothing)
+"""
+mutable struct DirectSolveWorkspace{V} <: AbstractStepWorkspace
+    const x::V
+    stats::StepStats
+end
+DirectSolveWorkspace(b::AbstractVector) = DirectSolveWorkspace(zero(b), StepStats())
+
+"""
+    IterativeRefinementWorkspace(b; operator = :stored, rtol = nothing, maxiter = 50,
+                                 decrease = 0.9, p = Inf)
+
+Solve for the Newton step with iterative refinement preconditioned by the
+factorization `P` (Kelley 2024, Algorithm 2.1 IR):
+
+    r = b - A x;  x ← x + P⁻¹ r
+
+- `operator = :stored`: `A` is the Jacobian stored in `P` (see [`MixedPrecisionLU`](@ref))
+  and the iteration runs in `eltype(A)`, e.g., single precision.
+- `operator = :jacobian`: `A` is the operator passed to `krylov_solve!`, i.e., the
+  matrix-free [`JacobianOperator`](@ref) (Enzyme JVPs), and the iteration runs in the
+  precision of `b`.
+
+Stops when `‖r‖ₚ ≤ rtol ‖b‖ₚ` (default `rtol = 10 eps(T)`, `p = Inf` as in Kelley's
+`mpgeslir`), when `‖r‖ₚ` decreases by less than the factor `decrease`, or after `maxiter`
+iterations. As in Kelley's code, the last iterate is returned.
+"""
+mutable struct IterativeRefinementWorkspace{V} <: AbstractStepWorkspace
+    const x::V
+    stats::StepStats
+    const operator::Symbol
+    const rtol::Union{Nothing, Float64}
+    const maxiter::Int
+    const decrease::Float64
+    const p::Float64
+end
+function IterativeRefinementWorkspace(
+        b::AbstractVector; operator::Symbol = :stored, rtol = nothing,
+        maxiter::Integer = 50, decrease::Real = 0.9, p::Real = Inf
+    )
+    check_operator(operator)
+    return IterativeRefinementWorkspace(zero(b), StepStats(), operator, rtol, Int(maxiter), Float64(decrease), Float64(p))
+end
+
+"""
+    GMRESIRWorkspace(b; operator = :stored, rtol = nothing, memory = 10, maxiter = 50,
+                     decrease = 0.99, p = 2)
+
+GMRES-IR (Carson & Higham 2017, 2018; Kelley 2024 §2.2): iterative refinement where
+the correction solves `P⁻¹ A d = P⁻¹ r` with left-preconditioned GMRES (no restarts,
+at most `memory` iterations, relative tolerance `rtol`, default `10 eps(T)`).
+`P` must solve in the working precision (`solve_precision` of a [`MixedPrecisionLU`](@ref)
+equal to the working precision, i.e., the "on the fly" interprecision transfer).
+See [`IterativeRefinementWorkspace`](@ref) for `operator` and the stopping rule
+(`p = 2` as in Kelley's `mpgmir`).
+"""
+mutable struct GMRESIRWorkspace{V} <: AbstractStepWorkspace
+    const x::V
+    stats::StepStats
+    const operator::Symbol
+    const rtol::Union{Nothing, Float64}
+    const memory::Int
+    const maxiter::Int
+    const decrease::Float64
+    const p::Float64
+end
+function GMRESIRWorkspace(
+        b::AbstractVector; operator::Symbol = :stored, rtol = nothing, memory::Integer = 10,
+        maxiter::Integer = 50, decrease::Real = 0.99, p::Real = 2
+    )
+    check_operator(operator)
+    return GMRESIRWorkspace(zero(b), StepStats(), operator, rtol, Int(memory), Int(maxiter), Float64(decrease), Float64(p))
+end
+
+check_operator(op) = op in (:stored, :jacobian) || throw(ArgumentError("operator must be :stored or :jacobian"))
+
+function step_factorization(M, N)
+    P = N === nothing ? M : N
+    P === nothing && throw(ArgumentError("$(@__MODULE__) step workspaces need a factorization as preconditioner `N`"))
+    return P
+end
+
+function Krylov.krylov_solve!(ws::DirectSolveWorkspace, A, b; M = nothing, N = nothing, kwargs...)
+    ldiv!(ws.x, step_factorization(M, N), b)
+    ws.stats = StepStats(all(isfinite, ws.x), 1, "direct", Float64[])
+    return ws
+end
+
+function refinement_operator(ws, A, b, P)
+    if ws.operator === :stored
+        As = stored_jacobian(P)
+        return As, eltype(As)
+    else
+        return A, eltype(b)
+    end
+end
+
+function Krylov.krylov_solve!(
+        ws::Union{IterativeRefinementWorkspace, GMRESIRWorkspace}, A, rhs;
+        M = nothing, N = nothing, kwargs...
+    )
+    P = step_factorization(M, N)
+    Aop, T = refinement_operator(ws, A, rhs, P)
+    rtol = ws.rtol === nothing ? 10 * eps(T) : T(ws.rtol)
+    d = ws.x
+    # Kelley scales the right-hand side by its norm before rounding to the working precision
+    s = norm(rhs, Inf)
+    if iszero(s)
+        fill!(d, 0)
+        ws.stats = StepStats(true, 0, "zero rhs", Float64[])
+        return ws
+    end
+    b = round_to.(T, rhs ./ s)
+    x = zero(b)
+    r = copy(b)
+    c = similar(b)
+    tol = rtol * norm(b, ws.p)
+    rnrm = norm(r, ws.p)
+    rprev = 2 * rnrm
+    history = Float64[Float64(rnrm)]
+    niter = 0
+    k = 0
+    if ws isa GMRESIRWorkspace
+        gws = GmresWorkspace(KrylovConstructor(b); memory = ws.memory)
+    end
+    while rnrm > tol && rnrm <= ws.decrease * rprev && k < ws.maxiter
+        if ws isa IterativeRefinementWorkspace
+            ldiv!(c, P, r)
+            niter += 1
+        else
+            r ./= rnrm
+            krylov_solve!(
+                gws, Aop, r; M = P, ldiv = true, restart = false,
+                itmax = ws.memory, atol = zero(rtol), rtol = rtol
+            )
+            c .= rnrm .* gws.x
+            niter += gws.stats.niter
+        end
+        x .+= c
+        mul!(r, Aop, x)
+        r .= b .- r
+        rprev = rnrm
+        rnrm = norm(r, ws.p)
+        push!(history, Float64(rnrm))
+        k += 1
+    end
+    d .= s .* x
+    solved = rnrm <= tol
+    status = solved ? "converged" : (k >= ws.maxiter ? "maxiter" : "stagnated")
+    ws.stats = StepStats(solved, niter, status, history)
+    return ws
+end
+
+# Workspace for the Newton step from the `algo` symbol of `newton_krylov!`
+newton_step_workspace(::Val{Algo}, res, krylov_kwargs) where {Algo} =
+    krylov_workspace(Val(Algo), KrylovConstructor(res); krylov_workspace_kwargs(krylov_kwargs)...)
+newton_step_workspace(::Val{:direct}, res, krylov_kwargs) = DirectSolveWorkspace(res)
+newton_step_workspace(::Val{:ir}, res, krylov_kwargs) = IterativeRefinementWorkspace(res)
+newton_step_workspace(::Val{:gmresir}, res, krylov_kwargs) = GMRESIRWorkspace(res)
