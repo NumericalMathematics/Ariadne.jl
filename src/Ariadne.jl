@@ -391,7 +391,7 @@ struct Stats{T <: Real}
 end
 Stats(outer_iterations, inner_iterations, norm_res) = Stats(outer_iterations, inner_iterations, norm_res, 0, 0)
 
-function update(stats::Stats, inner_iterations, norm_res, krylov_solved::Bool, linesearch_failed::Bool = false)
+function update(stats::Stats, inner_iterations, norm_res, krylov_solved::Bool, linesearch_failed::Bool)
     return Stats(
         stats.outer_iterations + 1,
         stats.inner_iterations + inner_iterations,
