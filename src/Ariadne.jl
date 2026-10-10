@@ -742,6 +742,6 @@ end
 ##
 
 include("sparse_jacobian.jl")
-export SparseJacobian, assemble!
+export SparseJacobian, PerTaskParameters, assemble!
 
 end # module Ariadne

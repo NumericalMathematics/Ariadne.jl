@@ -20,6 +20,7 @@ function jacobian_sparsity end
     SparseJacobian(f!, res, u, p, pattern; coloring = GreedyColoringAlgorithm(),
                    structure = :nonsymmetric, partition = :column, batchsize = 8,
                    check_pattern = true)
+    SparseJacobian(f!, res, u, ps::PerTaskParameters, pattern; kwargs...)
 
 Workspace for the assembly of the sparse Jacobian `∂f/∂u` of the in-place function
 `f!(res, u, p)` at the state `u` with the sparsity `pattern` (any matrix whose structural
@@ -64,6 +65,9 @@ Jacobian (e.g., a pattern detected at a different state for a function with bran
 These entries are dropped from `A.J`; their number and largest magnitude in the last
 assembly are `A.missed_entries` and `A.missed_max`.
 
+With [`PerTaskParameters`](@ref) `ps` instead of `p`, [`assemble!`](@ref) distributes the
+batches of colors over tasks, each with its own copy of the parameters.
+
 The Jacobian is stored in `A.J`.
 
 !!! note
@@ -71,18 +75,38 @@ The Jacobian is stored in `A.J`.
 """
 mutable struct SparseJacobian{T, BS, Op <: AbstractJacobianOperator, R}
     const J::SparseMatrixCSC{T, Int}
-    const operator::Op # (Batched)JacobianOperator of `f!` at `u` and `p`
+    # (Batched)JacobianOperators of `f!` at `u`, one per task (for the parameters of each
+    # task, see `PerTaskParameters`), with their buffers
+    const operators::Vector{Op}
     const coloring::R # column or row coloring of SparseMatrixColorings.jl
     const pattern::SparseMatrixCSC{Bool, Int} # pattern with the seeded dimension as columns
-    const seeds::Matrix{T}
-    const compressed::Matrix{T}
-    const covered::Vector{Int} # covered[i] == c: entry `i` of a product is covered by color `c`
+    const seeds::Vector{Matrix{T}}
+    const compressed::Vector{Matrix{T}}
+    const covered::Vector{Vector{Int}} # covered[k][i] == c: entry `i` of a product of task `k` is covered by color `c`
     const check_pattern::Bool
     n_assemblies::Int
     time::Float64
     missed_entries::Int
     missed_max::T
 end
+
+"""
+    PerTaskParameters(ps::AbstractVector)
+
+Independent copies `ps` of the parameters `p` of `f!(res, u, p)`, one per task, for a
+[`SparseJacobian`](@ref) whose [`assemble!`](@ref) distributes the batches of colors over
+tasks (`Threads.@threads`). Each task uses its own parameters (and its own Enzyme shadows).
+The elements of `ps` must not share mutable state that `f!` writes, e.g., independent copies
+of the caches of a discretization, and `f!` must be safe to call concurrently (for example,
+not itself use `Threads.@threads :static`). Use `length(ps) == Threads.nthreads()`.
+
+Compared with threading inside `f!`, this avoids the synchronization of every threaded loop
+of `f!` in every product, and Enzyme.jl does not need to differentiate threaded loops.
+"""
+struct PerTaskParameters{V <: AbstractVector}
+    ps::V
+end
+Base.length(p::PerTaskParameters) = length(p.ps)
 
 Base.size(A::SparseJacobian) = size(A.J)
 batch_size(::SparseJacobian{T, BS}) where {T, BS} = BS
@@ -96,7 +120,8 @@ function num_colors end
     assemble!(A::SparseJacobian) -> A.J
 
 Assemble the sparse Jacobian `∂f/∂u` of `f!(res, u, p)` at the current state `u` (and
-parameters `p`) of `A` into `A.J` by colored AD.
+parameters `p`) of `A` into `A.J` by colored AD. With [`PerTaskParameters`](@ref), the
+batches of colors are distributed over tasks.
 """
 function assemble! end
 
