@@ -44,6 +44,7 @@ examples = [
     "Bratu -- 1D" => "bratu",
     "Bratu -- KernelAbstractions" => "bratu_ka",
     "Simple" => "simple",
+    "Simple -- Adjoint" => "simple_adjoint",
     "BVP" => "bvp",
     "Implicit" => "implicit",
     "Implicit -- Spring" => "spring",

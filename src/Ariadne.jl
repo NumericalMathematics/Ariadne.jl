@@ -731,4 +731,8 @@ function newton_krylov!(
     return ws.u, (; solved = status === :converged, status, stats, t)
 end
 
+include("adjoint.jl")
+export adjoint_solve, adjoint_gradient, parameter_vjp, parameter_vjp!
+export ImplicitFunction, ImplicitFunctionWorkspace, implicit_solve!
+
 end # module Ariadne
