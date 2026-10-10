@@ -43,7 +43,8 @@ dense_jacobian(f!, u, p) = collect(Ariadne.JacobianOperator(f!, zeros(length(u))
     J_dense = dense_jacobian(bratu2d!, u, p)
     for batchsize in (1, 4, 8)
         A = SparseJacobian(bratu2d!, zeros(n), u, p, pattern; batchsize)
-        @test A.operator isa Ariadne.AbstractJacobianOperator
+        @test A.operators isa Vector{<:Ariadne.AbstractJacobianOperator}
+        @test isconcretetype(eltype(A.operators))
         @test 5 <= ncolors(A.coloring) <= 8 # optimal: 5
         J = assemble!(A)
         @test J ≈ J_dense
@@ -56,6 +57,23 @@ dense_jacobian(f!, u, p) = collect(Ariadne.JacobianOperator(f!, zeros(length(u))
         @test assemble!(A) ≈ dense_jacobian(bratu2d!, u, p)
         u .= 0.1 .* rand.()
         J_dense = dense_jacobian(bratu2d!, u, p)
+    end
+    # Parallel assembly over batches of colors with one parameter copy per task
+    for batchsize in (1, 4)
+        ps = PerTaskParameters([deepcopy(p) for _ in 1:3])
+        A = SparseJacobian(bratu2d!, zeros(n), u, ps, pattern; batchsize)
+        @test length(A.operators) == 3
+        @test isconcretetype(eltype(A.operators))
+        @test assemble!(A) ≈ J_dense
+        @test assemble!(A) ≈ J_dense
+        @test A.n_assemblies == 2
+        @test A.missed_entries == 0
+        # with row and symmetric (star) coloring
+        for kw in ((; partition = :row), (; structure = :symmetric))
+            A = SparseJacobian(bratu2d!, zeros(n), u, ps, pattern; batchsize, kw...)
+            @test assemble!(A) ≈ J_dense
+            @test A.missed_entries == 0
+        end
     end
     # Coloring algorithms of SparseMatrixColorings.jl and given colors
     A = SparseJacobian(bratu2d!, zeros(n), u, p, pattern; coloring = GreedyColoringAlgorithm(LargestFirst()))
@@ -173,9 +191,10 @@ end
     # (except where i + 1 is already a neighbor)
     P_neg = Ariadne.jacobian_sparsity(bratu_branch!, fill(-0.1, n), p; detector = TracerLocalSparsityDetector())
     @test (P_neg .!= 0) == pattern
-    for batchsize in (1, 4)
+    for parallel in (false, true), batchsize in (1, 4)
         u = fill(-0.1, n)
-        A = SparseJacobian(bratu_branch!, zeros(n), u, p, P_neg; batchsize)
+        q = parallel ? PerTaskParameters([deepcopy(p) for _ in 1:2]) : p
+        A = SparseJacobian(bratu_branch!, zeros(n), u, q, P_neg; batchsize)
         @test assemble!(A) ≈ dense_jacobian(bratu_branch!, u, p)
         @test A.missed_entries == 0
         u .= 0.1
@@ -184,7 +203,7 @@ end
         @test A.missed_max ≈ 0.2
         @test !(J ≈ dense_jacobian(bratu_branch!, u, p))
         # without the check
-        A = SparseJacobian(bratu_branch!, zeros(n), u, p, P_neg; batchsize, check_pattern = false)
+        A = SparseJacobian(bratu_branch!, zeros(n), u, q, P_neg; batchsize, check_pattern = false)
         assemble!(A)
         @test A.missed_entries == 0
     end
