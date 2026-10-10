@@ -433,10 +433,10 @@ are allocated during the Newton iteration.
   [`newton_krylov!(ws)`](@ref), which ignores the workspace keys.
 - `norm`: norm of the residual used for the forcing term, the termination criteria,
   the line searches, and the Krylov solves, e.g., a [`ScaledNorm`](@ref). For a
-  `ScaledNorm` `‖S⁻¹ x‖` (with the diagonal matrix `S` of the scales) and no left
-  preconditioner `M`, the Krylov solver is left-preconditioned with `S⁻¹`, so that it
-  minimizes the linear residual in the same norm and the inexact Newton condition
-  `‖F + J d‖ <= η ‖F‖` holds in it.
+  `ScaledNorm` `‖S⁻¹ x‖` (with the diagonal matrix `S` of the scales) and the Krylov
+  methods `:gmres` and `:fgmres`, the inner product `W = S⁻²` is passed to the Krylov
+  solver, so that it minimizes the linear residual in the same norm and the inexact
+  Newton condition `‖F + J d‖ <= η ‖F‖` holds in it.
 
 ## Example
 
@@ -449,7 +449,7 @@ are allocated during the Newton iteration.
 ```
 
 """
-struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW, N, S}
+struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW, N, W}
     f::F
     u::A
     res::A
@@ -458,8 +458,8 @@ struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW, N, S}
     J::JOp
     krylov::KW
     norm::N
-    # `nothing`, or `(; S, S⁻¹)` with the diagonal scaling of the norm, see `norm_scaling`
-    scaling::S
+    # `nothing`, or the inner product `W` of the Krylov solver, see `krylov_inner_product`
+    W::W
 end
 
 function NewtonKrylovWorkspace(
@@ -474,7 +474,9 @@ function NewtonKrylovWorkspace(
     J = JacobianOperator(F!, res, u, p; assume_p_const, lazy_zero_shadows)
     kc = KrylovConstructor(res)
     krylov = krylov_workspace(Val(Algo), kc; krylov_workspace_kwargs(krylov_kwargs)...)
-    return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov, norm, norm_scaling(norm, res))
+    norm = bind_norm(norm, res)
+    W = krylov_inner_product(Val(Algo), norm)
+    return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov, norm, W)
 end
 
 """
@@ -495,34 +497,51 @@ as `x` or a tuple/vector of `n` scales that is applied cyclically, i.e., `x[i]` 
 by `scale[mod1(i, n)]`. The latter fits state vectors whose variables are stored
 interleaved, e.g., `[ρ₁, ρu₁, ρE₁, ρ₂, ρu₂, ρE₂, …]`, and allows to weight variables of
 very different magnitude equally in the Newton termination criteria.
+
+A [`NewtonKrylovWorkspace`](@ref) expands the scales once to an array of the type of the
+residual and evaluates the norm with broadcasting and `LinearAlgebra.norm`, so that array
+types that implement these (e.g., distributed or GPU arrays) compute it without scalar
+indexing. A cyclic `scale` assumes that the residual is a single interleaved array; for
+other layouts, pass an array of scales of the same size and type as the residual.
 """
 struct ScaledNorm{S}
     scale::S
 end
 
-function (n::ScaledNorm)(x::AbstractArray)
-    scale = n.scale
-    if scale isa AbstractArray && size(scale) == size(x)
-        return sqrt(sum(i -> abs2(x[i] / scale[i]), eachindex(x, scale)))
-    else
-        m = length(scale)
-        return sqrt(sum(i -> abs2(x[i] / scale[mod1(i, m)]), eachindex(x)))
-    end
+(n::ScaledNorm)(x::AbstractArray) = bind_norm(n, x)(x)
+
+# A `ScaledNorm` whose scales are expanded to an array `inv_scale = 1 ./ scale` of the
+# type and size of the residual. The norm only uses broadcasting and `LinearAlgebra.norm`
+# of that array type, so that, e.g., distributed arrays perform their own reduction.
+struct BoundScaledNorm{A}
+    inv_scale::A
+    buffer::A
 end
 
-# Diagonal scaling `S` (and its inverse) of a norm with `norm(x) == LinearAlgebra.norm(S \ x)`,
-# used to left-precondition the Krylov solver, or `nothing`
-norm_scaling(_, res) = nothing
-function norm_scaling(n::ScaledNorm, res)
+function (n::BoundScaledNorm)(x::AbstractArray)
+    n.buffer .= x .* n.inv_scale
+    return LinearAlgebra.norm(n.buffer)
+end
+
+# Prepare a norm for residuals like `res`
+bind_norm(n, res) = n
+function bind_norm(n::ScaledNorm, res)
     scale = n.scale
-    s = similar(vec(res))
+    inv_scale = similar(res)
     if scale isa AbstractArray && size(scale) == size(res)
-        copyto!(s, vec(scale))
+        inv_scale .= inv.(scale)
     else
         m = length(scale)
-        copyto!(s, [scale[mod1(i, m)] for i in 1:length(res)])
+        copyto!(inv_scale, [inv(scale[mod1(i, m)]) for i in 1:length(res)])
     end
-    return (; S = Diagonal(s), S⁻¹ = Diagonal(inv.(s)))
+    return BoundScaledNorm(inv_scale, similar(res))
+end
+
+# The inner product `W` with `norm(x) == sqrt(x' * W * x)` that is passed to the Krylov
+# solver, or `nothing` if the norm or the Krylov method has none
+krylov_inner_product(algo, norm) = nothing
+function krylov_inner_product(::Union{Val{:gmres}, Val{:fgmres}}, n::BoundScaledNorm)
+    return Diagonal(vec(n.inv_scale .^ 2))
 end
 
 """
@@ -596,8 +615,9 @@ const KWARGS_DOCS = """
 
 The norm of the residual is the `norm` of the workspace (keyword argument of
 [`NewtonKrylovWorkspace`](@ref) and of the convenience methods). It is also used by the
-line searches and, for a [`ScaledNorm`](@ref) without a left preconditioner `M`, by the
-Krylov solver (left preconditioning with the scaling).
+line searches and, for a [`ScaledNorm`](@ref) and the Krylov methods `:gmres` and
+`:fgmres`, by the Krylov solver (as the inner product `W`; with a left preconditioner `M`,
+the Krylov solver minimizes `‖M (F + J d)‖` in this norm).
 
 ## Return value
 `(u, (; solved, status, stats, t))`, where `status` is
@@ -744,11 +764,10 @@ function newton_krylov!(
         end
         if M !== nothing
             kwargs = (; M = M(ws.J), kwargs...)
-        elseif ws.scaling !== nothing
-            # Minimize the linear residual in the norm of the workspace: left preconditioning
-            # with S⁻¹, applied with `mul!` or (for `ldiv = true`) with `ldiv!` and `S`
-            ldiv = get(kwargs, :ldiv, false)
-            kwargs = (; M = ldiv ? ws.scaling.S : ws.scaling.S⁻¹, kwargs...)
+        end
+        if ws.W !== nothing
+            # Minimize the linear residual in the norm of the workspace
+            kwargs = (; W = ws.W, kwargs...)
         end
         if forcing !== nothing
             # The termination criterion of the inner Krylov solver is

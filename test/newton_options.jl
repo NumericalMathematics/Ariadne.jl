@@ -91,17 +91,26 @@ end
     # Without the scaling, GMRES stops after one iteration, which solves the large
     # variable but leaves the residual of the small one unchanged.
     L!(res, x, _) = (res[1] = x[1] - 1.0e6; res[2] = 2 * x[2] - 1.0e-6; nothing)
-    for ldiv in (false, true)
+    # This holds with and without a preconditioner, which stays free for the user.
+    for algo in (:gmres, :fgmres), M in (nothing, J -> I)
         _, result = newton_krylov!(
-            L!, [0.0, 0.0]; norm = n, forcing = Ariadne.Fixed(0.5), max_niter = 1,
-            krylov_kwargs = (; ldiv)
+            L!, [0.0, 0.0]; norm = n, forcing = Ariadne.Fixed(0.5), max_niter = 1, algo, M
         )
         @test result.stats.norm_res <= 0.5 * sqrt(2)
     end
+    # The inner product `W = S⁻²` of the Krylov solver
     ws = NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2); norm = n)
-    @test ws.scaling.S⁻¹ * [1.0e6, 1.0e-6] ≈ [1, 1]
-    @test NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2)).scaling === nothing
-    @test NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2); norm = ScaledNorm([2.0, 4.0])).scaling.S == Diagonal([2.0, 4.0])
+    @test ws.W ≈ Diagonal([1.0e-12, 1.0e12])
+    @test NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2)).W === nothing
+    @test NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2); norm = ScaledNorm([2.0, 4.0])).W ≈ Diagonal([1 / 4, 1 / 16])
+    # Krylov methods without an inner product use the Euclidean norm
+    @test NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2), Val(:bicgstab); norm = n).W === nothing
+    # The norm of the workspace is evaluated without allocations
+    res = [1.0e6, 1.0e-6]
+    allocated(norm, res) = @allocated norm(res)
+    allocated(ws.norm, res)
+    @test allocated(ws.norm, res) == 0
+    @test ws.norm(res) ≈ sqrt(2)
     # The line searches measure the residual in the norm of the workspace
     _, result = newton_krylov!(S!, [0.0, 0.0]; norm = n, linesearch! = BacktrackingLineSearch())
     @test result.solved
