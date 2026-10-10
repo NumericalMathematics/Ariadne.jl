@@ -322,33 +322,76 @@ function IterativeRefinementWorkspace(
 end
 
 """
-    GMRESIRWorkspace(b; operator = :stored, rtol = nothing, memory = 10, maxiter = 50,
-                     decrease = 0.99, p = 2)
+    GMRESIRWorkspace(b; operator = :stored, gmres_precision = nothing, rtol = nothing,
+                     memory = 10, maxiter = 50, decrease = 0.99, p = 2)
 
 GMRES-IR (Carson & Higham 2017, 2018; Kelley 2024 §2.2): iterative refinement where
 the correction solves `P⁻¹ A d = P⁻¹ r` with left-preconditioned GMRES (no restarts,
 at most `memory` iterations, relative tolerance `rtol`, default `10 eps(T)`).
-`P` must solve in the working precision (`solve_precision` of a [`MixedPrecisionLU`](@ref)
-equal to the working precision, i.e., the "on the fly" interprecision transfer).
 See [`IterativeRefinementWorkspace`](@ref) for `operator` and the stopping rule
 (`p = 2` as in Kelley's `mpgmir`).
+
+`gmres_precision` is the precision of the inner GMRES iteration: its Krylov basis, its
+arithmetic, and the vectors passed to `A` and `P` (default: the working precision `T`).
+The products with `A` are computed in `T` and rounded to `gmres_precision`. With the
+precisions of the factorization and of the application of `P` (`factor_precision` and
+`solve_precision` of a [`MixedPrecisionLU`](@ref)), of the working precision and of the
+residual (`operator`), these are the five precisions of Amestoy, Buttari, Higham,
+L'Excellent, Mary and Vieublé, *Five-precision GMRES-based iterative refinement*,
+SIAM J. Matrix Anal. Appl. (2024). A lower `gmres_precision` halves the memory of the
+Krylov basis for `Float32`.
+
+For the best accuracy, `P` solves in `gmres_precision` (the "on the fly" interprecision
+transfer, `solve_precision` of a `MixedPrecisionLU` equal to `gmres_precision`).
 """
 mutable struct GMRESIRWorkspace{V} <: AbstractStepWorkspace
     const x::V
     stats::StepStats
     const operator::Symbol
+    const gmres_precision::Union{Nothing, Type}
     const rtol::Union{Nothing, Float64}
     const memory::Int
     const maxiter::Int
     const decrease::Float64
     const p::Float64
+    gmres::Any # GMRES workspace of the inner iteration, kept between solves
 end
 function GMRESIRWorkspace(
-        b::AbstractVector; operator::Symbol = :stored, rtol = nothing, memory::Integer = 10,
-        maxiter::Integer = 50, decrease::Real = 0.99, p::Real = 2
+        b::AbstractVector; operator::Symbol = :stored, gmres_precision = nothing,
+        rtol = nothing, memory::Integer = 10, maxiter::Integer = 50, decrease::Real = 0.99,
+        p::Real = 2
     )
     check_operator(operator)
-    return GMRESIRWorkspace(zero(b), StepStats(), operator, rtol, Int(memory), Int(maxiter), Float64(decrease), Float64(p))
+    return GMRESIRWorkspace(
+        zero(b), StepStats(), operator, gmres_precision, rtol, Int(memory), Int(maxiter),
+        Float64(decrease), Float64(p), nothing
+    )
+end
+
+# The operator `A` applied to vectors of precision `TG`: the product is computed in the
+# precision `T` of `A` and rounded to `TG`.
+struct PrecisionConvertedOperator{TG, OP, V}
+    A::OP
+    x::V
+    y::V
+end
+PrecisionConvertedOperator{TG}(A, b) where {TG} =
+    PrecisionConvertedOperator{TG, typeof(A), typeof(b)}(A, similar(b), similar(b))
+Base.size(op::PrecisionConvertedOperator, args...) = size(op.A, args...)
+Base.eltype(::PrecisionConvertedOperator{TG}) where {TG} = TG
+function LinearAlgebra.mul!(y, op::PrecisionConvertedOperator{TG}, x) where {TG}
+    op.x .= x
+    mul!(op.y, op.A, op.x)
+    y .= round_to.(TG, op.y)
+    return y
+end
+
+function inner_gmres_workspace(ws::GMRESIRWorkspace, bG)
+    G = ws.gmres
+    if G === nothing || length(G.x) != length(bG) || eltype(G.x) != eltype(bG)
+        G = ws.gmres = GmresWorkspace(KrylovConstructor(bG); memory = ws.memory)
+    end
+    return G
 end
 
 check_operator(op) = op in (:stored, :jacobian) || throw(ArgumentError("operator must be :stored or :jacobian"))
@@ -400,17 +443,22 @@ function Krylov.krylov_solve!(
     niter = 0
     k = 0
     if ws isa GMRESIRWorkspace
-        gws = GmresWorkspace(KrylovConstructor(b); memory = ws.memory)
+        TG = ws.gmres_precision === nothing ? T : ws.gmres_precision
+        rG = similar(b, TG)
+        gws = inner_gmres_workspace(ws, rG)
+        AG = TG === T ? Aop : PrecisionConvertedOperator{TG}(Aop, b)
+        # GMRES in TG cannot reduce the residual below its roundoff
+        rtolG = TG(max(rtol, 10 * eps(TG)))
     end
     while rnrm > tol && rnrm <= ws.decrease * rprev && k < ws.maxiter
         if ws isa IterativeRefinementWorkspace
             ldiv!(c, P, r)
             niter += 1
         else
-            r ./= rnrm
+            rG .= round_to.(TG, r ./ rnrm)
             krylov_solve!(
-                gws, Aop, r; M = P, ldiv = true, restart = false,
-                itmax = ws.memory, atol = zero(rtol), rtol = rtol
+                gws, AG, rG; M = P, ldiv = true, restart = false,
+                itmax = ws.memory, atol = zero(rtolG), rtol = rtolG
             )
             c .= rnrm .* gws.x
             niter += gws.stats.niter

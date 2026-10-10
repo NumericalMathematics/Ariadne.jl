@@ -112,6 +112,18 @@ end
     rgm, hgm = solve(Float32, Float16, Float32, :gmresir)
     @test rgm.stats.outer_iterations == 5
     @test hgm[1:4] ≈ h64[1:4] rtol = 1.0e-3
+    # Five precisions: GMRES-IR with the inner GMRES (basis and arithmetic) in Float32 for a
+    # Float64 working precision, Float16 factors applied in Float32
+    r5, h5 = solve(Float64, Float16, Float32, res -> GMRESIRWorkspace(res; gmres_precision = Float32))
+    @test r5.stats.outer_iterations == 5
+    @test h5[1:4] ≈ h64[1:4] rtol = 1.0e-3
+    ws5 = GMRESIRWorkspace(zeros(N); gmres_precision = Float32)
+    _, _ = solve(Float64, Float16, Float32, res -> ws5)
+    @test eltype(ws5.gmres.x) == Float32
+    # The same with the matrix-free Enzyme JVP as operator
+    rj5, hj5 = solve(Float64, Float16, Float32, res -> GMRESIRWorkspace(res; operator = :jacobian, gmres_precision = Float32))
+    @test rj5.solved
+    @test hj5[1:4] ≈ h64[1:4] rtol = 1.0e-3
     # IR with the matrix-free Enzyme JVP as operator
     rj, hj = solve(Float64, Float16, Float32, res -> IterativeRefinementWorkspace(res; operator = :jacobian))
     @test rj.solved
