@@ -486,9 +486,19 @@ end
 # LineSearches
 ##
 
+"""
+    Ariadne.user_parameters(p)
+
+The parameters of the user inside the parameters `p` of the residual of a
+[`NewtonKrylovWorkspace`](@ref), which are passed to the hooks of
+[`AdmissibleLineSearch`](@ref). Solvers that wrap the parameters of the user (e.g., in the
+residual of pseudo-transient continuation) extend it; by default, `p` itself.
+"""
+user_parameters(p) = p
+
 include("linesearches.jl")
-import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch
-export NoLineSearch, BacktrackingLineSearch
+import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch, AdmissibleLineSearch
+export NoLineSearch, BacktrackingLineSearch, AdmissibleLineSearch
 
 
 const KWARGS_DOCS = """
