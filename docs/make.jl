@@ -86,6 +86,7 @@ makedocs(;
         "Notebooks" => [
             "Heat 2D" => "notebooks/heat_2d.md",
             "Heat 1D DG" => "notebooks/heat_1D_DG.md",
+            "Stochastic rounding in three-precision Newton" => "notebooks/mixed_precision_newton.md",
         ],
     ],
     doctest = true,
