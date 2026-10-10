@@ -245,11 +245,13 @@ In batched mode (`BatchDuplicated` with width `N > 1`, Julia 1.11 or later), the
 supports `ldiv!`, e.g., the LU factorization of an assembled Jacobian) or `nothing`.
 In reverse mode, it is applied transposed (see [`adjoint_solve`](@ref)). `adjoint_kwargs` are
 passed to `Krylov.gmres` (or `Krylov.block_gmres`). If `warm_start` is `true`, an adjoint
-solve starts from the solution `λ` of the previous one (if it has the same size), which saves
-iterations, e.g., in an optimization loop.
+(tangent) solve starts from the solution `λ` (`u̇`) of the previous adjoint (tangent) solve if
+it has the same size, which saves iterations, e.g., in an optimization loop. Krylov.jl
+measures `rtol` relative to the initial residual, so this pays off with an absolute
+tolerance `atol` in `adjoint_kwargs`.
 
-The statistics of the last adjoint (or tangent) solve are stored in `last_stats[]`, and the
-last adjoint solution in `last_λ[]`.
+The statistics of the last adjoint (or tangent) solve are stored in `last_stats[]`, the
+last adjoint solution in `last_λ[]`, and the last tangent solution in `last_u̇[]`.
 """
 struct ImplicitFunction{F, S, P, K}
     f!::F
@@ -259,6 +261,7 @@ struct ImplicitFunction{F, S, P, K}
     warm_start::Bool
     last_stats::Base.RefValue{Any}
     last_λ::Base.RefValue{Any}
+    last_u̇::Base.RefValue{Any}
 end
 
 function ImplicitFunction(
@@ -267,8 +270,14 @@ function ImplicitFunction(
     )
     return ImplicitFunction(
         f!, solve!, preconditioner, adjoint_kwargs, warm_start,
-        Ref{Any}(nothing), Ref{Any}(nothing)
+        Ref{Any}(nothing), Ref{Any}(nothing), Ref{Any}(nothing)
     )
+end
+
+# The previous solution in `last[]` as an initial guess for a solve with right-hand side `b`
+function initial_guess(F::ImplicitFunction, last, b)
+    x0 = last[]
+    return F.warm_start && x0 isa typeof(b) && size(x0) == size(b) ? x0 : nothing
 end
 
 """
@@ -343,18 +352,17 @@ function EnzymeRules.reverse(
         u_star = tape
         res = similar(u_star)
         P = F.preconditioner(u_star, p.val)
-        λ0 = F.warm_start ? F.last_λ[] : nothing
         if N == 1
             J = JacobianOperator(F.f!, res, u_star, p.val)
             g = vec(only(ū))
-            λ0 isa typeof(g) && size(λ0) == size(g) || (λ0 = nothing)
+            λ0 = initial_guess(F, F.last_λ, g)
             λ, stats = adjoint_solve(J, g; preconditioner = P, λ0, F.adjoint_kwargs...)
             # p̄ -= (∂f/∂p)ᵀ λ
             parameter_vjp!(only(shadows(p)), F.f!, res, u_star, p.val, -λ)
         else
             J = BatchedJacobianOperator{N}(F.f!, res, u_star, p.val)
             G = stack(vec, ū)
-            λ0 isa typeof(G) && size(λ0) == size(G) || (λ0 = nothing)
+            λ0 = initial_guess(F, F.last_λ, G)
             λ, stats = adjoint_solve(J, G; preconditioner = P, λ0, F.adjoint_kwargs...)
             # p̄[i] -= (∂f/∂p)ᵀ λ[:, i]
             parameter_vjp!(shadows(p), F.f!, res, u_star, p.val, tuple_of_vectors(-λ, size(res)))
@@ -396,7 +404,9 @@ function EnzymeRules.forward(
         )
         rhs .*= -1
         J = JacobianOperator(F.f!, res, copy(u.val), p.val)
-        u̇, stats = tangent_solve(J, vec(rhs); preconditioner = P, F.adjoint_kwargs...)
+        rhs = vec(rhs)
+        u̇0 = initial_guess(F, F.last_u̇, rhs)
+        u̇, stats = tangent_solve(J, rhs; preconditioner = P, u̇0, F.adjoint_kwargs...)
         copyto!(only(tangents(u)), u̇)
     else
         RHS = zeros(eltype(u.val), length(u.val), N)
@@ -408,10 +418,12 @@ function EnzymeRules.forward(
         )
         RHS .*= -1
         J = BatchedJacobianOperator{N}(F.f!, res, copy(u.val), p.val)
-        U̇, stats = tangent_solve(J, RHS; preconditioner = P, F.adjoint_kwargs...)
-        foreach((u̇, i) -> copyto!(u̇, view(U̇, :, i)), tangents(u), 1:N)
+        u̇0 = initial_guess(F, F.last_u̇, RHS)
+        u̇, stats = tangent_solve(J, RHS; preconditioner = P, u̇0, F.adjoint_kwargs...)
+        foreach((ẋ, i) -> copyto!(ẋ, view(u̇, :, i)), tangents(u), 1:N)
     end
     F.last_stats[] = stats
+    F.last_u̇[] = u̇
     warn_unsolved("implicit_solve!", stats)
     return nothing
 end

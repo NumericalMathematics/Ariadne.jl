@@ -184,6 +184,22 @@ end
         @test dot(g, du) ≈ dθ_ref[1]
     end
 
+    @testset "implicit_solve! (forward, warm start)" begin
+        F = ImplicitFunction(
+            f!, newton_solve!; warm_start = true,
+            adjoint_kwargs = (; atol = 1.0e-10, rtol = 0.0)
+        )
+        ṗ = (; params = Params(1.0, 0.0))
+        du = zeros(n)
+        autodiff(Forward, implicit_solve!, Const(F), Duplicated(zeros(n), du), Duplicated(p, ṗ))
+        niter_cold = F.last_stats[].niter
+        @test F.last_u̇[] ≈ Ju \ b
+        du = zeros(n)
+        autodiff(Forward, implicit_solve!, Const(F), Duplicated(zeros(n), du), Duplicated(p, ṗ))
+        @test F.last_stats[].niter < niter_cold
+        @test du ≈ Ju \ b
+    end
+
     if VERSION >= v"1.11.0"
         # A second functional that depends on the parameters explicitly
         functional2(u, p) = p.params.θ1 * sum(u)
@@ -293,6 +309,37 @@ end
             @test u0 ≈ u
             @test du[1] ≈ Ju \ b
             @test du[2] ≈ Ju \ c
+        end
+
+        @testset "implicit_solve! (batched, warm start)" begin
+            F = ImplicitFunction(
+                f!, newton_solve!; warm_start = true,
+                adjoint_kwargs = (; atol = 1.0e-10, rtol = 0.0)
+            )
+            ṗs = ((; params = Params(1.0, 0.0)), (; params = Params(0.0, 1.0)))
+            for _ in 1:2
+                autodiff(
+                    Forward, implicit_solve!, Const(F),
+                    BatchDuplicated(zeros(n), (zeros(n), zeros(n))), BatchDuplicated(p, ṗs)
+                )
+            end
+            # The second solve starts from the solution of the first one
+            @test F.last_stats[].niter == 0
+            @test F.last_u̇[] ≈ Ju \ [b c]
+            function obj!(out, u, p)
+                implicit_solve!(F, u, p)
+                functionals!(out, u, p)
+                return nothing
+            end
+            for _ in 1:2
+                autodiff(
+                    Reverse, Const(obj!), Const, BatchDuplicated(zeros(2), ([1.0, 0.0], [0.0, 1.0])),
+                    BatchDuplicated(zeros(n), (zeros(n), zeros(n))),
+                    BatchDuplicated(p, (Enzyme.make_zero(p), Enzyme.make_zero(p)))
+                )
+            end
+            @test F.last_stats[].niter == 0
+            @test F.last_λ[] ≈ [λ λ2]
         end
     end
 end
