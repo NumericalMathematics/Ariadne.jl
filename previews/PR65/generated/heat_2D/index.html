@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Implicit – Heat 2D · Ariadne.jl</title><meta name="title" content="Implicit – Heat 2D · Ariadne.jl"/><meta property="og:title" content="Implicit – Heat 2D · Ariadne.jl"/><meta property="twitter:title" content="Implicit – Heat 2D · Ariadne.jl"/><meta name="description" content="Documentation for Ariadne.jl."/><meta property="og:description" content="Documentation for Ariadne.jl."/><meta property="twitter:description" content="Documentation for Ariadne.jl."/><meta property="og:url" content="https://numericalmathematics.github.io/Ariadne.jl/generated/heat_2D/"/><meta property="twitter:url" content="https://numericalmathematics.github.io/Ariadne.jl/generated/heat_2D/"/><link rel="canonical" href="https://numericalmathematics.github.io/Ariadne.jl/generated/heat_2D/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/citations.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Ariadne.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../bratu/">Bratu – 1D</a></li><li><a class="tocitem" href="../bratu_ka/">Bratu – KernelAbstractions</a></li><li><a class="tocitem" href="../simple/">Simple</a></li><li><a class="tocitem" href="../bvp/">BVP</a></li><li><a class="tocitem" href="../implicit/">Implicit</a></li><li><a class="tocitem" href="../spring/">Implicit – Spring</a></li><li><a class="tocitem" href="../heat_1D/">Implicit – Heat 1D</a></li><li><a class="tocitem" href="../heat_1D_DG/">Implicit – Heat 1D DG</a></li><li class="is-active"><a class="tocitem" href>Implicit – Heat 2D</a><ul class="internal"><li><a class="tocitem" href="#Necessary-packages"><span>Necessary packages</span></a></li><li><a class="tocitem" href="#Diffusion-2D"><span>Diffusion 2D</span></a></li></ul></li><li><a class="tocitem" href="../trixi/">Trixi</a></li><li><a class="tocitem" href="../trixi_imex_ssp/">Trixi IMEX SSP</a></li><li><a class="tocitem" href="../trixi_imex_ars/">Trixi IMEX ARS</a></li><li><a class="tocitem" href="../trixi_imex_von_karman_street/">Trixi IMEX Von Karman street</a></li></ul></li><li><span class="tocitem">Notebooks</span><ul><li><a class="tocitem" href="../../notebooks/heat_2d/">Heat 2D</a></li><li><a class="tocitem" href="../../notebooks/heat_1D_DG/">Heat 1D DG</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Implicit – Heat 2D</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Implicit – Heat 2D</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/vchuravy/Ariadne.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/vchuravy/Ariadne.jl/blob/main/examples/heat_2D.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Implicit-time-integration"><a class="docs-heading-anchor" href="#Implicit-time-integration">Implicit time-integration</a><a id="Implicit-time-integration-1"></a><a class="docs-heading-anchor-permalink" href="#Implicit-time-integration" title="Permalink"></a></h1><h2 id="Necessary-packages"><a class="docs-heading-anchor" href="#Necessary-packages">Necessary packages</a><a id="Necessary-packages-1"></a><a class="docs-heading-anchor-permalink" href="#Necessary-packages" title="Permalink"></a></h2><pre><code class="language-julia hljs">using Ariadne
+using CairoMakie
+using OffsetArrays
+
+include(joinpath(dirname(pathof(Ariadne)), &quot;..&quot;, &quot;examples&quot;, &quot;implicit.jl&quot;))
+include(joinpath(dirname(pathof(Ariadne)), &quot;..&quot;, &quot;examples&quot;, &quot;halovector.jl&quot;))</code></pre><h2 id="Diffusion-2D"><a class="docs-heading-anchor" href="#Diffusion-2D">Diffusion 2D</a><a id="Diffusion-2D-1"></a><a class="docs-heading-anchor-permalink" href="#Diffusion-2D" title="Permalink"></a></h2><h3 id="Boundary"><a class="docs-heading-anchor" href="#Boundary">Boundary</a><a id="Boundary-1"></a><a class="docs-heading-anchor-permalink" href="#Boundary" title="Permalink"></a></h3><pre><code class="language-julia hljs">function bc_periodic!(u)
+    N, M = size(u)
+    N = N - 2
+    M = M - 2
+
+    # (wrap around)
+    u[0, :] .= u[N, :]
+    u[N + 1, :] .= u[1, :]
+    u[:, 0] .= u[:, N]
+    u[:, N + 1] .= u[:, 1]
+    return nothing
+end
+
+function bc_zero!(u)
+    N, M = size(u)
+    N = N - 2
+    M = M - 2
+
+    u[0, :] .= 0
+    u[N + 1, :] .= 0
+    u[:, 0] .= 0
+    u[:, N + 1] .= 0
+    return nothing
+end
+
+
+function diffusion!(du::HaloVector, u::HaloVector, p, t)
+    return diffusion!(du.data, u.data, p, t)
+end
+
+function diffusion!(du, u, (a, Δx, Δy, bc!), _)
+    N, M = size(u)
+    N = N - 2
+    M = M - 2
+
+    # Enforce boundary conditions
+    bc!(u)
+
+    for i in 1:N
+        for j in 1:M
+            du[i, j] = a * (
+                (u[i + 1, j] - 2 * u[i, j] + u[i - 1, j]) / Δx^2 +
+                    (u[i, j + 1] - 2 * u[i, j] + u[i, j - 1]) / Δy^2
+            )
+        end
+    end
+    return
+end
+
+a = 0.01
+
+N = M = 40
+
+Δx = 1 / (N + 1)  # x-grid spacing
+Δy = 1 / (M + 1)  # y-grid spacing
+
+# TODO: This is a time-step from explicit
+Δt = Δx^2 * Δy^2 / (2.0 * a * (Δx^2 + Δy^2)) # Largest stable time step
+
+let
+    N = M = 12
+    u₀ = HaloVector(OffsetArray(zeros(N + 2, M + 2), 0:(N + 1), 0:(M + 1)))
+    jacobian(G_Euler!, diffusion!, u₀, (a, Δx, Δy, bc_zero!), Δt, 0.0)
+end
+
+xs = 0.0:Δx:1.0
+ys = 0.0:Δy:1.0
+
+function f(x, y)
+    return sin(π * x) .* sin(π * y)
+end
+
+u₀ = let
+    _u₀ = zeros(N + 2, M + 2)
+    _u₀ .= f.(xs, ys&#39;)
+    HaloVector(OffsetArray(_u₀, 0:(N + 1), 0:(M + 1)))
+end
+
+function plot_state(t, u, xs, ys)
+    data = @lift $u.data.parent
+
+    xs_line = @lift @view $data[:, M ÷ 2]
+    ys_line = @lift @view $data[N ÷ 2, :]
+
+    fig = Figure()
+
+    ax = Axis(fig[1, 1])
+    heatmap!(ax, xs, ys, data)
+
+    ax1 = Axis(fig[2, 1])
+    lines!(ax1, xs, xs_line)
+
+    ax2 = Axis(fig[2, 2])
+    lines!(ax2, ys, ys_line)
+
+    fig[0, :] = Label(fig, @lift(&quot;t = $($t)&quot;))
+
+    return fig
+end
+
+fig = plot_state(Observable(0.0), Observable(u₀), xs, ys)
+
+function create_video_implicit(filename, G!, f!, xs, ys, u, p, Δt, t_stop, frame_kwargs)
+    ts = 0.0:Δt:t_stop
+    _u = Observable(u)
+    _t = Observable(first(ts))
+
+    fig = plot_state(_t, _u, xs, ys)
+    return record(fig, filename; frame_kwargs...) do io
+        function callback(__u)
+            _u[] = u
+            _t[] += Δt
+            # autolimits!(ax) # update limits
+            recordframe!(io)
+            return yield()
+        end
+        solve(G!, f!, u, p, Δt, ts; callback, verbose = 1, krylov_kwargs = (; verbose = 1, reorthogonalization = true))
+    end
+end
+
+create_video_implicit(
+    joinpath(@__DIR__, &quot;implicit_euler.mp4&quot;),
+    G_Euler!, diffusion!, xs, ys, copy(u₀), (a, Δx, Δy, bc_zero!), Δt, 10.0, (; framerate = 30)
+)
+
+create_video_implicit(
+    joinpath(@__DIR__, &quot;implicit_midpoint.mp4&quot;),
+    G_Midpoint!, diffusion!, xs, ys, copy(u₀), (a, Δx, Δy, bc_zero!), Δt, 10.0, (; framerate = 30)
+)
+
+create_video_implicit(
+    joinpath(@__DIR__, &quot;implicit_trapezoid.mp4&quot;),
+    G_Trapezoid!, diffusion!, xs, ys, copy(u₀), (a, Δx, Δy, bc_zero!), Δt, 10.0, (; framerate = 30)
+)
+
+# TODO:
+create_video_implicit(
+    joinpath(@__DIR__, &quot;implicit_euler_periodic.mp4&quot;),
+    G_Trapezoid!, diffusion!, xs, ys, copy(u₀), (a, Δx, Δy, bc_periodic!), Δt, 2 * Δt, (; framerate = 30)
+)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">&quot;/home/runner/work/Ariadne.jl/Ariadne.jl/docs/build/generated/implicit_euler_periodic.mp4&quot;</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_1D_DG/">« Implicit – Heat 1D DG</a><a class="docs-footer-nextpage" href="../trixi/">Trixi »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.0 on <span class="colophon-date" title="Wednesday 19 November 2025 17:15">Wednesday 19 November 2025</span>. Using Julia version 1.11.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

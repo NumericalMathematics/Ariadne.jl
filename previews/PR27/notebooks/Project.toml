@@ -1,0 +1,12 @@
+[deps]
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+Krylov = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
+NewtonKrylov = "0be81120-40bf-4f8b-adf0-26103efb66f1"
+OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
+Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
+PlutoLinks = "0ff47ea0-7a50-410d-8455-4348d5de0420"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+SummationByPartsOperators = "9f78cca6-572e-554e-b819-917d2f1cf240"
+
+[sources]
+NewtonKrylov = {path = "../../.."}
