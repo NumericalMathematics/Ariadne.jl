@@ -4,6 +4,7 @@ using Asterion
 using LinearAlgebra
 using SparseArrays
 using SparseConnectivityTracer
+using SparseMatrixColorings
 
 # Steady state of the 2D Bratu problem du/dt = Δu + λ exp(u) on an m × m grid
 function bratu2d!(du, u, p)
@@ -59,6 +60,20 @@ end
     @test b.jacobian.n_assemblies == 3 # including the one with the old pattern
     @test b.assembly_time > 0
     @test b.matrix ≈ collect(J)
+    # Fixed colors that are invalid for the new nonzeros: recolored greedily
+    u .= -0.1
+    initial = local_pattern(bratu_branch!, u, p) .!= 0
+    colors = column_colors(coloring(initial, ColoringProblem(), GreedyColoringAlgorithm()))
+    for fixed in (colors, ConstantColoringAlgorithm(initial, colors))
+        u .= -0.1
+        P = assembled_preconditioner(bratu_branch!, u, p, AssembledJacobianPreconditioner(; sparsity = local_pattern, coloring = fixed))
+        u .= 0.1
+        P.build(J)
+        @test P.build.n_pattern_updates == 1
+        @test P.build.jacobian.coloring isa SparseMatrixColorings.AbstractColoringResult
+        @test P.build.jacobian.missed_entries == 0
+        @test P.build.matrix ≈ collect(J)
+    end
     # no update for missed entries below the relative tolerance
     u .= -0.1
     P = assembled_preconditioner(bratu_branch!, u, p, AssembledJacobianPreconditioner(; sparsity = local_pattern, pattern_update_rtol = 1.0))

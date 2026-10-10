@@ -55,7 +55,9 @@ sparse Jacobian assembled by colored forward-mode AD with Enzyme.jl
   `n_pattern_updates` of the builder). This matters for local sparsity patterns of
   functions with branches, which can change along the solution path.
 - `coloring`: column coloring algorithm of SparseMatrixColorings.jl, or a vector of column
-  colors (only used for the initial pattern), see [`SparseJacobian`](@ref Ariadne.SparseJacobian).
+  colors, see [`SparseJacobian`](@ref Ariadne.SparseJacobian). After a pattern update, the
+  merged pattern is colored with the same algorithm, or greedily for a vector of colors or
+  if the algorithm gives a coloring that is invalid for the new nonzeros.
 - `batchsize`: number of colors computed by one batched forward-mode pass.
 - `factorize`: function `A -> F` with `ldiv!(y, F, x)`, e.g., `lu`,
   `A -> IncompleteLU.ilu(A; τ = 1e-3)`, or [`RowScaled`](@ref)`(…)`.
@@ -166,17 +168,29 @@ function assemble_and_update!(b::AssembledJacobianBuilder, u)
         p = params isa PerTaskParameters ? first(params.ps) : params
         pattern = old .| (sparse(b.sparsity(f!, u, p)) .!= 0)
         b.previous_assembly_time += A.time
-        b.jacobian = SparseJacobian(
-            f!, res, u, params, pattern;
-            coloring = b.coloring isa AbstractVector ? GreedyColoringAlgorithm() : b.coloring,
-            batchsize = Ariadne.batch_size(A), A.check_pattern
-        )
+        b.jacobian = recolored_jacobian(b, A, f!, res, u, params, pattern)
         b.jacobian.n_assemblies = A.n_assemblies
         b.matrix, b.diagonal_indices = factorization_matrix(b.jacobian)
         b.n_pattern_updates += 1
         Jf = assemble!(b.jacobian)
     end
     return Jf
+end
+
+# The `SparseJacobian` for the merged `pattern`, colored with the coloring of the builder.
+# Given colors (a vector, or an algorithm such as `ConstantColoringAlgorithm` that returns
+# fixed colors) can be invalid for the new nonzeros, so fall back to a greedy coloring.
+function recolored_jacobian(b::AssembledJacobianBuilder, A, f!, res, u, params, pattern)
+    batchsize = Ariadne.batch_size(A)
+    if !(b.coloring isa AbstractVector)
+        try
+            return SparseJacobian(f!, res, u, params, pattern; b.coloring, batchsize, A.check_pattern)
+        catch err
+            err isa SparseMatrixColorings.InvalidColoringError || rethrow()
+            @warn "Assembled preconditioner: the coloring is invalid for the updated sparsity pattern; using a greedy coloring" maxlog = 1
+        end
+    end
+    return SparseJacobian(f!, res, u, params, pattern; coloring = GreedyColoringAlgorithm(), batchsize, A.check_pattern)
 end
 
 function (b::AssembledJacobianBuilder)(J::JacobianOperator)

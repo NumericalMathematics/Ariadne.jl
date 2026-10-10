@@ -13,7 +13,7 @@ using Ariadne: JacobianOperator, NewtonKrylovWorkspace, newton_krylov!, LaggedPr
 using LinearAlgebra
 using SparseArrays
 using Printf
-using SparseMatrixColorings: GreedyColoringAlgorithm
+using SparseMatrixColorings: SparseMatrixColorings, GreedyColoringAlgorithm
 import Enzyme
 
 include("assembled_preconditioner.jl")
