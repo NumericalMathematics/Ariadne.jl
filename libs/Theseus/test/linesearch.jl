@@ -36,13 +36,12 @@ end
     )
 
     # Weight the rows of the residual by their stiffness, in the norm of the termination
-    # criterion and (as left preconditioner) in GMRES
+    # criterion and (as its inner product) in GMRES
     scale = 1 / epsilon
-    W = Diagonal([1.0, 1 / scale])
     for dt in (0.02, 0.01), linesearch! in (NoLineSearch(), BacktrackingLineSearch())
         sol = solve(
             ode, Theseus.ARS443(); dt,
-            newton_kwargs = (; norm = ScaledNorm((1.0, scale)), M = J -> W, linesearch!)
+            newton_kwargs = (; norm = ScaledNorm((1.0, scale)), linesearch!)
         )
         u1, u2 = sol.u[end]
         @test isapprox(u1, 1.5 * exp(-1); rtol = 1.0e-2)
