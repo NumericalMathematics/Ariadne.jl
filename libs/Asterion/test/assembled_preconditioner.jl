@@ -43,16 +43,15 @@ end
     m = 8
     n = m^2
     p = (; λ = 2.0, m)
-    u_neg = fill(-0.1, n)
-    u_pos = fill(0.1, n)
+    u = fill(-0.1, n) # the state, mutated in place
     local_pattern(f!, u, p) = Ariadne.jacobian_sparsity(f!, u, p; detector = TracerLocalSparsityDetector())
     # The assembled preconditioner detects the pattern again and recolors
-    P = assembled_preconditioner(bratu_branch!, u_neg, p, AssembledJacobianPreconditioner(; sparsity = local_pattern, batchsize = 4))
+    P = assembled_preconditioner(bratu_branch!, u, p, AssembledJacobianPreconditioner(; sparsity = local_pattern, batchsize = 4))
     b = P.build
-    J = Ariadne.JacobianOperator(bratu_branch!, zeros(n), u_neg, p)
+    J = Ariadne.JacobianOperator(bratu_branch!, zeros(n), u, p)
     b(J)
     @test b.n_pattern_updates == 0
-    J = Ariadne.JacobianOperator(bratu_branch!, zeros(n), u_pos, p)
+    u .= 0.1
     @test_logs (:warn,) match_mode = :any b(J)
     @test b.n_pattern_updates == 1
     @test b.jacobian.missed_entries == 0
@@ -61,10 +60,14 @@ end
     @test b.assembly_time > 0
     @test b.matrix ≈ collect(J)
     # no update for missed entries below the relative tolerance
-    P = assembled_preconditioner(bratu_branch!, u_neg, p, AssembledJacobianPreconditioner(; sparsity = local_pattern, pattern_update_rtol = 1.0))
+    u .= -0.1
+    P = assembled_preconditioner(bratu_branch!, u, p, AssembledJacobianPreconditioner(; sparsity = local_pattern, pattern_update_rtol = 1.0))
+    u .= 0.1
     @test_logs (:warn,) match_mode = :any P.build(J)
     @test P.build.n_pattern_updates == 0
     @test P.build.jacobian.missed_entries > 0
+    # The Jacobian operator must be at the state of the preconditioner
+    @test_throws ArgumentError P.build(Ariadne.JacobianOperator(bratu_branch!, zeros(n), copy(u), p))
 end
 
 @testset "Assembled preconditioner" begin
@@ -75,9 +78,10 @@ end
 
     # Newton-Krylov with the assembled preconditioner
     _, plain = newton_krylov!(bratu2d!, zeros(n), p; forcing = Ariadne.Fixed(1.0e-6))
-    P = assembled_preconditioner(pattern; refresh_interval = 100)
+    u = zeros(n)
+    P = assembled_preconditioner(bratu2d!, u, p, pattern; refresh_interval = 100)
     _, prec = newton_krylov!(
-        bratu2d!, zeros(n), p; forcing = Ariadne.Fixed(1.0e-6), N = P,
+        bratu2d!, u, p; forcing = Ariadne.Fixed(1.0e-6), N = P,
         krylov_kwargs = (; ldiv = true)
     )
     @test plain.solved && prec.solved
@@ -114,7 +118,7 @@ end
     u, ws = pseudo_transient!(bratu2d!, copy(u₀), p, alg; reltol = 1.0e-10)
     @test ws.status === :converged
     @test u ≈ u_ref rtol = 1.0e-6
-    @test ws.preconditioner.build.task_parameters_cache !== nothing
+    @test length(ws.preconditioner.build.jacobian.operators) == 2
 
     # Sparsity detection by a function at initialization
     spec = AssembledJacobianPreconditioner(; sparsity = Ariadne.jacobian_sparsity, refresh_interval = 5)
@@ -125,7 +129,7 @@ end
     # Converged Jacobian for an adjoint solve
     A = jacobian_assembler(ws)
     @test A isa SparseJacobian
-    J_sparse = copy(assemble!(A, ws.f, ws.u, ws.p))
+    J_sparse = copy(assemble!(A))
     Jop = steady_jacobian(ws)
     x = rand(n)
     y = similar(x)

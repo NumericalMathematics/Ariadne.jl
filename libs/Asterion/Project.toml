@@ -9,6 +9,7 @@ Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+SparseMatrixColorings = "0a514795-09f3-496d-8182-132a7b665d35"
 
 [sources]
 Ariadne = {path = "../.."}
@@ -19,4 +20,5 @@ Enzyme = "0.13.50"
 LinearAlgebra = "1.10"
 Printf = "1.10"
 SparseArrays = "1.10"
+SparseMatrixColorings = "0.4.9"
 julia = "1.10"

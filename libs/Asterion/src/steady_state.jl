@@ -536,7 +536,7 @@ end
     jacobian_assembler(ws::PseudoTransientWorkspace)
 
 The [`SparseJacobian`](@ref Ariadne.SparseJacobian) of an [`AssembledJacobianPreconditioner`](@ref), or `nothing`.
-`assemble!(jacobian_assembler(ws), ws.f, ws.u, ws.p)` assembles `∂f/∂u` at the current
+`assemble!(jacobian_assembler(ws))` assembles `∂f/∂u` at the current
 state, e.g., to factorize its transpose for an adjoint solve.
 """
 function jacobian_assembler(ws::PseudoTransientWorkspace)

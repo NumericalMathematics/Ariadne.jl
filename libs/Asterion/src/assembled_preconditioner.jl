@@ -35,8 +35,8 @@ end
 ##
 
 """
-    AssembledJacobianPreconditioner(; sparsity, colors = nothing, batchsize = 8,
-                                      factorize = lu, refresh_interval = 1,
+    AssembledJacobianPreconditioner(; sparsity, coloring = GreedyColoringAlgorithm(),
+                                      batchsize = 8, factorize = lu, refresh_interval = 1,
                                       refresh_iterations = typemax(Int),
                                       check_pattern = true, pattern_update_rtol = sqrt(eps()),
                                       task_parameters = nothing)
@@ -54,8 +54,8 @@ sparse Jacobian assembled by colored forward-mode AD with Enzyme.jl
   the previous one, the coloring is recomputed, and the Jacobian is assembled again (see
   `n_pattern_updates` of the builder). This matters for local sparsity patterns of
   functions with branches, which can change along the solution path.
-- `colors`: column colors, a function `pattern -> colors`, or `nothing` for
-  [`greedy_column_coloring`](@ref Ariadne.greedy_column_coloring).
+- `coloring`: column coloring algorithm of SparseMatrixColorings.jl, or a vector of column
+  colors (only used for the initial pattern), see [`SparseJacobian`](@ref Ariadne.SparseJacobian).
 - `batchsize`: number of colors computed by one batched forward-mode pass.
 - `factorize`: function `A -> F` with `ldiv!(y, F, x)`, e.g., `lu`,
   `A -> IncompleteLU.ilu(A; τ = 1e-3)`, or [`RowScaled`](@ref)`(…)`.
@@ -63,8 +63,8 @@ sparse Jacobian assembled by colored forward-mode AD with Enzyme.jl
   [`LaggedPreconditioner`](@ref Ariadne.LaggedPreconditioner).
 - `check_pattern`: check each assembly for nonzeros outside the pattern.
 - `task_parameters`: `nothing`, or a function `p -> ps` returning independent copies of the
-  parameters, one per task, for the parallel [`assemble!`](@ref Ariadne.assemble!) over batches of colors
-  (see [`PerTaskParameters`](@ref Ariadne.PerTaskParameters)). It is called again when `p` is a different object.
+  parameters, one per task, for the parallel assembly over batches of colors
+  (see [`PerTaskParameters`](@ref Ariadne.PerTaskParameters)), called once at initialization.
 
 In pseudo-transient continuation, the factorized matrix is `Diagonal(1 ./ Δτ) - σ ∂f/∂u`
 with the pseudo-time steps `Δτ` of the PTC step in which the preconditioner is rebuilt
@@ -73,7 +73,7 @@ solve, it is `∂f/∂u`.
 """
 Base.@kwdef struct AssembledJacobianPreconditioner{S, C, F, TP}
     sparsity::S
-    colors::C = nothing
+    coloring::C = GreedyColoringAlgorithm()
     batchsize::Int = 8
     factorize::F = lu
     refresh_interval::Int = 1
@@ -85,40 +85,39 @@ end
 
 """
     AssembledJacobianBuilder(jacobian::SparseJacobian, factorize = lu;
-                             sparsity = nothing, colors = nothing, task_parameters = nothing,
+                             sparsity = nothing, coloring = GreedyColoringAlgorithm(),
                              pattern_update_rtol = sqrt(eps()))
 
 Callable `J -> factorization` used as `build` of a [`LaggedPreconditioner`](@ref Ariadne.LaggedPreconditioner): assembles
-the Jacobian of the residual of the [`JacobianOperator`](@ref Ariadne.JacobianOperator) `J` with `jacobian` and
-factorizes it. For the pseudo-transient residual of [`PseudoTransientNewtonKrylov`](@ref),
+the Jacobian with `jacobian` (whose operators alias the state `u` and the parameters `p`)
+and factorizes it. `J` is the [`JacobianOperator`](@ref Ariadne.JacobianOperator) of the Newton-Krylov solve, at
+the same state `u`. For the pseudo-transient residual of [`PseudoTransientNewtonKrylov`](@ref),
 it assembles `∂f/∂u` of the steady residual `f!` and factorizes
 `Diagonal(1 ./ Δτ) - σ ∂f/∂u`. Timings are accumulated in the fields
 `assembly_time` and `factorization_time`. See [`AssembledJacobianPreconditioner`](@ref) for
 the keyword arguments.
 """
-mutable struct AssembledJacobianBuilder{SJ <: SparseJacobian, F, M, S, C, TP}
+mutable struct AssembledJacobianBuilder{SJ <: SparseJacobian, F, M, S, C}
     jacobian::SJ
     const factorize::F
     matrix::M # matrix that is factorized
     diagonal_indices::Vector{Int}
     factorization_time::Float64
     const sparsity::S # `nothing` or `(f!, u, p) -> pattern` to update the pattern
-    const colors::C
-    const task_parameters::TP
+    const coloring::C
     const pattern_update_rtol::Float64
-    task_parameters_cache::Any # (p, PerTaskParameters)
     n_pattern_updates::Int
     previous_assembly_time::Float64 # of the replaced `SparseJacobian`s
 end
 
 function AssembledJacobianBuilder(
-        jacobian::SparseJacobian, factorize = lu; sparsity = nothing, colors = nothing,
-        task_parameters = nothing, pattern_update_rtol = sqrt(eps())
+        jacobian::SparseJacobian, factorize = lu; sparsity = nothing,
+        coloring = GreedyColoringAlgorithm(), pattern_update_rtol = sqrt(eps())
     )
     matrix, diagonal_indices = factorization_matrix(jacobian)
     return AssembledJacobianBuilder(
-        jacobian, factorize, matrix, diagonal_indices, 0.0, sparsity, colors, task_parameters,
-        Float64(pattern_update_rtol), nothing, 0, 0.0
+        jacobian, factorize, matrix, diagonal_indices, 0.0, sparsity, coloring,
+        Float64(pattern_update_rtol), 0, 0.0
     )
 end
 
@@ -144,46 +143,46 @@ function Base.getproperty(b::AssembledJacobianBuilder, s::Symbol)
     end
 end
 
-function assemble_jacobian!(b::AssembledJacobianBuilder, f!, u, p)
-    if b.task_parameters === nothing
-        return assemble!(b.jacobian, f!, u, p)
-    end
-    cache = b.task_parameters_cache
-    if cache === nothing || cache[1] !== p
-        cache = (p, PerTaskParameters(b.task_parameters(p)))
-        b.task_parameters_cache = cache
-    end
-    return assemble!(b.jacobian, f!, u, cache[2])
+# The function, state, and parameters (or `PerTaskParameters`) of a `SparseJacobian`
+function jacobian_arguments(A::SparseJacobian)
+    ops = A.operators
+    op = first(ops)
+    params = length(ops) == 1 ? op.p : PerTaskParameters(map(o -> o.p, ops))
+    return op.f, op.res, op.u, params
 end
 
-# Assemble ∂f/∂u and, if the pattern misses nonzeros larger than `pattern_update_rtol`
-# times the largest entry and can be detected again, merge the pattern at `u` into the
-# pattern, recolor, and assemble again
-function assemble_and_update!(b::AssembledJacobianBuilder, f!, u, p)
-    Jf = assemble_jacobian!(b, f!, u, p)
+# Assemble ∂f/∂u at `u` and, if the pattern misses nonzeros larger than
+# `pattern_update_rtol` times the largest entry and can be detected again, merge the
+# pattern at `u` into the pattern, recolor, and assemble again
+function assemble_and_update!(b::AssembledJacobianBuilder, u)
     A = b.jacobian
+    f!, res, u_A, params = jacobian_arguments(A)
+    u === u_A || throw(ArgumentError("the assembled preconditioner was created for another state array `u`; create it with the state of the solve"))
+    Jf = assemble!(A)
     if A.missed_entries > 0 && b.sparsity !== nothing &&
             A.missed_max > b.pattern_update_rtol * maximum(abs, nonzeros(Jf); init = zero(A.missed_max))
         J = A.J
         old = SparseMatrixCSC(size(J)..., copy(SparseArrays.getcolptr(J)), copy(rowvals(J)), fill(true, nnz(J)))
-        pattern = old .| Ariadne.bool_pattern(b.sparsity(f!, u, p))
+        p = params isa PerTaskParameters ? first(params.ps) : params
+        pattern = old .| (sparse(b.sparsity(f!, u, p)) .!= 0)
         b.previous_assembly_time += A.time
         b.jacobian = SparseJacobian(
-            pattern; colors = b.colors isa AbstractVector ? nothing : b.colors, batchsize = Ariadne.batch_size(A), eltype = eltype(J),
-            A.check_pattern
+            f!, res, u, params, pattern;
+            coloring = b.coloring isa AbstractVector ? GreedyColoringAlgorithm() : b.coloring,
+            batchsize = Ariadne.batch_size(A), A.check_pattern
         )
         b.jacobian.n_assemblies = A.n_assemblies
         b.matrix, b.diagonal_indices = factorization_matrix(b.jacobian)
         b.n_pattern_updates += 1
-        Jf = assemble_jacobian!(b, f!, u, p)
+        Jf = assemble!(b.jacobian)
     end
     return Jf
 end
 
 function (b::AssembledJacobianBuilder)(J::JacobianOperator)
+    Jf = assemble_and_update!(b, J.u)
+    A = b.matrix
     if J.f isa PseudoTransientResidual
-        Jf = assemble_and_update!(b, J.f.f, J.u, J.p.p)
-        A = b.matrix
         σ = J.f.σ
         vals = nonzeros(A)
         @. vals = -σ * $nonzeros(Jf)
@@ -192,8 +191,6 @@ function (b::AssembledJacobianBuilder)(J::JacobianOperator)
             vals[idx] += inv_dtau[j]
         end
     else
-        Jf = assemble_and_update!(b, J.f, J.u, J.p)
-        A = b.matrix
         copyto!(nonzeros(A), nonzeros(Jf))
     end
     t₀ = time_ns()
@@ -204,10 +201,11 @@ end
 
 """
     assembled_preconditioner(f!, u, p, spec::AssembledJacobianPreconditioner)
-    assembled_preconditioner(pattern; kwargs...)
+    assembled_preconditioner(f!, u, p, pattern::AbstractMatrix; kwargs...)
 
 Create the [`LaggedPreconditioner`](@ref Ariadne.LaggedPreconditioner) described by `spec` for the residual
-`f!(res, u, p)`, for use with [`newton_krylov!`](@ref Ariadne.newton_krylov!) (`N = P`,
+`f!(res, u, p)` at the state `u` (which the Jacobian operators alias, so pass the state of
+the solve), for use with [`newton_krylov!`](@ref Ariadne.newton_krylov!) (`N = P`,
 `krylov_kwargs = (; ldiv = true)`). The second form takes the sparsity pattern and the
 keyword arguments of [`AssembledJacobianPreconditioner`](@ref).
 """
@@ -220,18 +218,22 @@ function assembled_preconditioner(f!, u, p, spec::AssembledJacobianPreconditione
         sparsity = spec.sparsity
     end
     return assembled_preconditioner(
-        pattern; spec.colors, spec.batchsize, spec.factorize, spec.refresh_interval,
-        spec.refresh_iterations, spec.check_pattern, spec.task_parameters, sparsity,
-        spec.pattern_update_rtol
+        f!, u, p, pattern; spec.coloring, spec.batchsize, spec.factorize,
+        spec.refresh_interval, spec.refresh_iterations, spec.check_pattern,
+        spec.task_parameters, sparsity, spec.pattern_update_rtol
     )
 end
 
 function assembled_preconditioner(
-        pattern::AbstractMatrix; colors = nothing, batchsize = 8, factorize = lu,
-        refresh_interval = 1, refresh_iterations = typemax(Int), check_pattern = true,
-        task_parameters = nothing, sparsity = nothing, pattern_update_rtol = sqrt(eps())
+        f!, u, p, pattern::AbstractMatrix; coloring = GreedyColoringAlgorithm(), batchsize = 8,
+        factorize = lu, refresh_interval = 1, refresh_iterations = typemax(Int),
+        check_pattern = true, task_parameters = nothing, sparsity = nothing,
+        pattern_update_rtol = sqrt(eps())
     )
-    jacobian = SparseJacobian(pattern; colors, batchsize, check_pattern)
-    builder = AssembledJacobianBuilder(jacobian, factorize; sparsity, colors, task_parameters, pattern_update_rtol)
+    params = task_parameters === nothing ? p : PerTaskParameters(task_parameters(p))
+    res = similar(u)
+    Enzyme.make_zero!(res)
+    jacobian = SparseJacobian(f!, res, u, params, pattern; coloring, batchsize, check_pattern)
+    builder = AssembledJacobianBuilder(jacobian, factorize; sparsity, coloring, pattern_update_rtol)
     return LaggedPreconditioner(builder; refresh_interval, refresh_iterations)
 end
