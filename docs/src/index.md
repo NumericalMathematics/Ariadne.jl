@@ -33,6 +33,14 @@ Ariadne.Fixed
 Ariadne.EisenstatWalker
 ```
 
+### Sparse Jacobians
+
+```@docs
+SparseJacobian
+assemble!
+Ariadne.jacobian_sparsity
+```
+
 ### Internal
 
 ```@docs
