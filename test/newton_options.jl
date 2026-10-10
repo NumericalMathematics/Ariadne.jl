@@ -101,6 +101,23 @@ end
     @test result.solved
     @test builds[] == result.stats.outer_iterations
 
+    # In-place rebuild: `rebuild` updates the previous operator after the first build
+    builds[] = 0
+    rebuilds = Ref(0)
+    operators = Set{UInt}()
+    P = LaggedPreconditioner(
+        J -> (builds[] += 1; lu(collect(J)));
+        rebuild = (F, J) -> (rebuilds[] += 1; push!(operators, objectid(F)); lu!(F, collect(J)))
+    )
+    _, result = newton_krylov!(F!, [2.0, 0.5]; N = P, krylov_kwargs = (; ldiv = true))
+    @test result.solved
+    @test builds[] == 1
+    @test rebuilds[] == result.stats.outer_iterations - 1
+    @test P.n_builds == result.stats.outer_iterations
+    # `lu!` refactorizes the sparse matrix into the first factorization (UMFPACK reuses
+    # its symbolic analysis)
+    @test length(operators) == 1
+
     # Function preconditioners are still called in every Newton iteration
     calls = Ref(0)
     _, result = newton_krylov!(

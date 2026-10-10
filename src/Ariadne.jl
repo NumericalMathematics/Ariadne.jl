@@ -435,7 +435,8 @@ Called by [`newton_krylov!`](@ref) after each Krylov solve with the stats of the
 record!(::AbstractPreconditioner, stats) = nothing
 
 """
-    LaggedPreconditioner(build; refresh_interval = 1, refresh_iterations = typemax(Int))
+    LaggedPreconditioner(build; rebuild = nothing, refresh_interval = 1,
+                         refresh_iterations = typemax(Int))
 
 A preconditioner that is rebuilt lazily by `operator = build(J)`, where `J` is the
 current [`JacobianOperator`](@ref) (with `J.u` and `J.p` the current state and parameters).
@@ -444,6 +445,11 @@ The operator is rebuilt
 - after it has been used for `refresh_interval` Krylov solves,
 - when the last Krylov solve needed more than `refresh_iterations` iterations or failed, and
 - after [`refresh!`](@ref) was called.
+
+If `rebuild` is given, all but the first build call `operator = rebuild(operator, J)` with
+the previous operator instead of `build(J)`. `rebuild` can update the operator in place
+and return it, e.g., refactorize into the same storage, so that rebuilding does not
+allocate a new operator each time.
 
 `LaggedPreconditioner` forwards `ldiv!` and `mul!` to the current operator.
 The same object can be passed to several calls of [`newton_krylov!`](@ref), e.g., in
@@ -455,10 +461,18 @@ across calls.
 ```julia
 P = LaggedPreconditioner(J -> lu(assemble_jacobian(J.u, J.p)); refresh_interval = 20)
 newton_krylov!(ws; N = P, krylov_kwargs = (; ldiv = true))
+
+# Refactorize a sparse Jacobian in place, reusing UMFPACK's symbolic analysis
+A = assemble_jacobian(u, p)
+P = LaggedPreconditioner(
+    J -> lu(assemble_jacobian!(A, J.u, J.p));
+    rebuild = (F, J) -> lu!(F, assemble_jacobian!(A, J.u, J.p))
+)
 ```
 """
-mutable struct LaggedPreconditioner{B} <: AbstractPreconditioner
+mutable struct LaggedPreconditioner{B, R} <: AbstractPreconditioner
     const build::B
+    const rebuild::R
     operator::Any
     const refresh_interval::Int
     const refresh_iterations::Int
@@ -468,11 +482,13 @@ mutable struct LaggedPreconditioner{B} <: AbstractPreconditioner
 end
 
 function LaggedPreconditioner(
-        build; refresh_interval::Integer = 1,
+        build; rebuild = nothing, refresh_interval::Integer = 1,
         refresh_iterations::Integer = typemax(Int)
     )
     @assert refresh_interval > 0 "refresh_interval must be positive"
-    return LaggedPreconditioner(build, nothing, Int(refresh_interval), Int(refresh_iterations), 0, true, 0)
+    return LaggedPreconditioner(
+        build, rebuild, nothing, Int(refresh_interval), Int(refresh_iterations), 0, true, 0
+    )
 end
 
 """
@@ -484,7 +500,11 @@ refresh!(P::LaggedPreconditioner) = (P.needs_refresh = true; P)
 
 function prepare!(P::LaggedPreconditioner, J)
     if P.needs_refresh || P.operator === nothing || P.uses >= P.refresh_interval
-        P.operator = P.build(J)
+        if P.operator === nothing || P.rebuild === nothing
+            P.operator = P.build(J)
+        else
+            P.operator = P.rebuild(P.operator, J)
+        end
         P.uses = 0
         P.needs_refresh = false
         P.n_builds += 1
