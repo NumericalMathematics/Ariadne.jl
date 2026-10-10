@@ -1,0 +1,4 @@
+[Trixi]
+loop_vectorization = false
+backend = "static"
+

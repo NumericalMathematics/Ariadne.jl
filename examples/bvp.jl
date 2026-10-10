@@ -1,6 +1,6 @@
 # BVP from (Kelley2022)[@cite]
 
-using NewtonKrylov, Krylov, LinearAlgebra
+using Ariadne, Krylov, LinearAlgebra
 
 function Phi(t, tdag, vp, v)
     phi = 4.0 * tdag * vp + (t * v - 1.0) * v
@@ -53,7 +53,7 @@ function BVP_solve(n = 801, T = Float64)
 
     bvpout, stats = newton_krylov!(
         Fbvp!, U0, (force, tv, tvdag, h, n), res,
-        Solver = FgmresSolver,
+        algo = :fgmres,
         N = (J) -> GmresPreconditioner(J, 30),
     )
     return (; bvpout, tv, stats)

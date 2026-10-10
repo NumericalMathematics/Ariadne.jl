@@ -1,12 +1,35 @@
-pushfirst!(LOAD_PATH, joinpath(@__DIR__, "..")) # add NewtonKrylov to environment stack
-
-using NewtonKrylov
+using Ariadne
+using Theseus
 using Documenter
 import Documenter.Remotes: GitHub
 using Literate
+using PlutoStaticHTML
 using DocumenterCitations
 
-DocMeta.setdocmeta!(NewtonKrylov, :DocTestSetup, :(using NewtonKrylov); recursive = true)
+const NOTEBOOK_DIR = joinpath(@__DIR__, "src", "notebooks")
+
+"""
+    build()
+
+Run all Pluto notebooks (".jl" files) in `NOTEBOOK_DIR`.
+"""
+function build()
+    println("Building notebooks in $NOTEBOOK_DIR")
+    oopts = OutputOptions(; append_build_context = false)
+    output_format = documenter_output
+    bopts = BuildOptions(NOTEBOOK_DIR; output_format)
+    build_notebooks(bopts, oopts)
+    return nothing
+end
+
+# Build the notebooks; defaults to true.
+if get(ENV, "BUILD_DOCS_NOTEBOOKS", "true") == "true"
+    build()
+end
+
+
+DocMeta.setdocmeta!(Ariadne, :DocTestSetup, :(using Ariadne); recursive = true)
+DocMeta.setdocmeta!(Theseus, :DocTestSetup, :(using Theseus); recursive = true)
 
 
 ##
@@ -17,11 +40,20 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR = joinpath(@__DIR__, "src/generated")
 
 examples = [
+    "Rosenbrock" => "rosenbrock",
     "Bratu -- 1D" => "bratu",
     "Bratu -- KernelAbstractions" => "bratu_ka",
     "Simple" => "simple",
     "BVP" => "bvp",
-    "Implicit" => "implicit_timedependent",
+    "Implicit" => "implicit",
+    "Implicit -- Spring" => "spring",
+    "Implicit -- Heat 1D" => "heat_1D",
+    "Implicit -- Heat 1D DG" => "heat_1D_DG",
+    "Implicit -- Heat 2D" => "heat_2D",
+    "Trixi" => "trixi",
+    "Trixi IMEX SSP" => "trixi_imex_ssp",
+    "Trixi IMEX ARS" => "trixi_imex_ars",
+    "Trixi IMEX Von Karman street" => "trixi_imex_von_karman_street",
 ]
 
 for (_, name) in examples
@@ -34,26 +66,27 @@ examples = [title => joinpath("generated", string(name, ".md")) for (title, name
 bib = CitationBibliography(joinpath(@__DIR__, "src", "refs.bib"))
 
 makedocs(;
-    modules = [NewtonKrylov],
+    modules = [Ariadne, Theseus],
     authors = "Valentin Churavy",
-    repo = GitHub("vchuravy", "NewtonKrylov.jl"),
-    sitename = "NewtonKrylov.jl",
+    repo = GitHub("vchuravy", "Ariadne.jl"),
+    sitename = "Ariadne.jl",
     format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
-        canonical = "https://vchuravy.dev/NewtonKrylov.jl",
+        canonical = "https://numericalmathematics.github.io/Ariadne.jl",
         assets = [
-            asset(
-                "https://plausible.io/js/plausible.js",
-                class = :js,
-                attributes = Dict(Symbol("data-domain") => "vchuravy.dev", :defer => "")
-            ),
             "assets/citations.css",
         ],
         mathengine = MathJax3(),
+        size_threshold = 10_000_000,
     ),
     pages = [
-        "Home" => "index.md",
+        "Ariadne.jl" => "index.md",
+        "Theseus.jl" => "theseus.md",
         "Examples" => examples,
+        "Notebooks" => [
+            "Heat 2D" => "notebooks/heat_2d.md",
+            "Heat 1D DG" => "notebooks/heat_1D_DG.md",
+        ],
     ],
     doctest = true,
     linkcheck = true,
@@ -61,7 +94,14 @@ makedocs(;
 )
 
 deploydocs(;
-    repo = "github.com/vchuravy/NewtonKrylov.jl.git",
+    repo = "github.com/NumericalMathematics/Ariadne.jl.git",
     devbranch = "main",
-    push_preview = true,
+    # Only push previews if all the relevant environment variables are non-empty.
+    push_preview = all(
+        !isempty,
+        (
+            get(ENV, "GITHUB_TOKEN", ""),
+            get(ENV, "DOCUMENTER_KEY", ""),
+        )
+    )
 )

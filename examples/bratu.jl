@@ -1,7 +1,7 @@
 # # 1D bratu equation from (Kan2022-ko)[@cite]
 
 # ## Necessary packages
-using NewtonKrylov, Krylov
+using Ariadne, Krylov
 using KrylovPreconditioners
 using SparseArrays, LinearAlgebra
 using CairoMakie
@@ -41,16 +41,16 @@ const N = 10_000
 const λ = 3.51382
 const dx = 1 / (N + 1) # Grid-spacing
 
-# ### Domain and Inital condition
+# ### Domain and Initial condition
 x = LinRange(0.0 + dx, 1.0 - dx, N)
 u₀ = sin.(x .* π)
 
-lines(x, u₀, label = "Inital guess")
+lines(x, u₀, label = "Initial guess")
 
 # ## Reference solution evaluated over domain
 reference = true_sol_bratu.(x)
 
-fig, ax = lines(x, u₀, label = "Inital guess")
+fig, ax = lines(x, u₀, label = "Initial guess")
 lines!(ax, x, reference, label = "Reference solution")
 axislegend(ax, position = :cb)
 fig
@@ -59,7 +59,7 @@ fig
 uₖ, _ = newton_krylov!(
     bratu!,
     copy(u₀), (dx, λ), similar(u₀);
-    Solver = CgSolver,
+    algo = :cg,
 )
 
 ϵ = abs2.(uₖ .- reference)
@@ -85,7 +85,7 @@ end
 _, stats = newton_krylov(
     bratu,
     copy(u₀), (dx, λ);
-    Solver = CgSolver
+    algo = :cg
 )
 stats
 
@@ -93,8 +93,8 @@ stats
 _, stats = newton_krylov!(
     bratu!,
     copy(u₀), (dx, λ), similar(u₀);
-    Solver = CgSolver,
-    forcing = NewtonKrylov.Fixed(0.1)
+    algo = :cg,
+    forcing = Ariadne.Fixed(0.1)
 )
 stats
 
@@ -102,7 +102,7 @@ stats
 _, stats = newton_krylov!(
     bratu!,
     copy(u₀), (dx, λ), similar(u₀);
-    Solver = CgSolver,
+    algo = :cg,
     forcing = nothing
 )
 stats
@@ -112,32 +112,32 @@ stats
 # _, stats = newton_krylov!(
 #     bratu!,
 #     copy(u₀), (dx, λ), similar(u₀);
-#     Solver = GmresSolver,
+#     algo = :gmres,
 # )
 # stats
 # ```
 
-# ## Solve using GMRES + ILU Preconditoner
+# ## Solve using GMRES + ILU Preconditioner
 _, stats = newton_krylov!(
     bratu!,
     copy(u₀), (dx, λ), similar(u₀);
-    Solver = GmresSolver,
+    algo = :gmres,
     N = (J) -> ilu(collect(J)), # Assembles the full Jacobian
     krylov_kwargs = (; ldiv = true)
 )
 stats
 
-# ## Solve using FGMRES + ILU Preconditoner
+# ## Solve using FGMRES + ILU Preconditioner
 _, stats = newton_krylov!(
     bratu!,
     copy(u₀), (dx, λ), similar(u₀);
-    Solver = FgmresSolver,
+    algo = :fgmres,
     N = (J) -> ilu(collect(J)), # Assembles the full Jacobian
     krylov_kwargs = (; ldiv = true)
 )
 stats
 
-# ## Solve using FGMRES + GMRES Preconditoner
+# ## Solve using FGMRES + GMRES Preconditioner
 struct GmresPreconditioner{JOp}
     J::JOp
     itmax::Int
@@ -151,7 +151,7 @@ end
 _, stats = newton_krylov!(
     bratu!,
     copy(u₀), (dx, λ), similar(u₀);
-    Solver = FgmresSolver,
+    algo = :fgmres,
     N = (J) -> GmresPreconditioner(J, 5),
 )
 stats
@@ -161,7 +161,7 @@ stats
 # newton_krylov!(
 # 	bratu!,
 # 	copy(u₀), (dx, λ), similar(u₀);
-# 	Solver = CglsSolver, # CgneSolver
+# 	algo = :cgls, # Cgne
 #   krylov_kwargs = (; verbose=1)
 # )
 # ```
@@ -171,7 +171,7 @@ stats
 # 	bratu!,
 # 	copy(u₀), (dx, λ), similar(u₀);
 # 	verbose = 1,
-# 	Solver = BicgstabSolver, # L=2
+# 	algo = :bicgstab, # L=2
 # 	η_max = nothing
 # )
 # ```

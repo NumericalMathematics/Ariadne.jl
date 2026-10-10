@@ -1,0 +1,959 @@
+using Theseus
+using LinearAlgebra: norm
+using Statistics: mean
+
+function compute_eoc(dts, errors)
+    eocs = similar(errors)
+    eocs[begin] = 0 # no EOC defined for the first grid
+    for idx in Iterators.drop(eachindex(errors, dts, eocs), 1)
+        eocs[idx] = log(errors[idx] / errors[idx - 1]) /
+            log(dts[idx] / dts[idx - 1])
+    end
+    return mean(eocs[(begin + 1):end])
+end
+
+function compute_errors(prob, u_ana, alg, dts; kwargs...)
+    errors = similar(dts)
+    for (i, dt) in enumerate(dts)
+        sol = @inferred solve(
+            prob, alg;
+            dt, adaptive = false, kwargs...
+        )
+        u_num = sol.u[end]
+        errors[i] = norm(u_num - u_ana)
+    end
+    return errors
+end
+
+
+@testset "Convergence quadrature cos" begin
+    ode = ODEProblem([0.0], (0.0, 1.0)) do du, u, p, t
+        du[begin] = cos(t)
+    end
+    function rhs_split!(du, u, p, t)
+        du[begin] = cos(t) / 2
+    end
+    ode_split = SplitODEProblem(
+        rhs_split!, rhs_split!,
+        ode.u0, ode.tspan
+    )
+    u_ana = [sin(ode.tspan[end])]
+
+    @testset "DIRK methods" begin
+        @testset "LobattoIIIA2" begin
+            alg = Theseus.LobattoIIIA2()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "Crouzeix32" begin
+            alg = Theseus.Crouzeix32()
+            order = 3 + 1 # Gaussian quadrature
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "DIRK43" begin
+            alg = Theseus.DIRK43()
+            order = 4
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "ESDIRK43SA2" begin
+            alg = Theseus.ESDIRK43SA2()
+            order = 4
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "CooperSayfy5" begin
+            alg = Theseus.CooperSayfy5()
+            order = 5
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "HairerWannerSDIRK4" begin
+            alg = Theseus.HairerWannerSDIRK4()
+            order = 4
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "CrouzeixRaviart34" begin
+            alg = Theseus.CrouzeixRaviart34()
+            order = 4
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end # DIRK methods
+
+    @testset "Rosenbrock methods" begin
+        @testset "SSPKnoth" begin
+            alg = Theseus.SSPKnoth()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test_broken isapprox(eoc, order; atol = 0.1)
+            # https://github.com/NumericalMathematics/Ariadne.jl/issues/77
+        end
+
+        @testset "ROS2" begin
+            alg = Theseus.ROS2()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test_broken isapprox(eoc, order; atol = 0.1)
+            # https://github.com/NumericalMathematics/Ariadne.jl/issues/77
+        end
+    end # Rosenbrock methods
+
+    @testset "IMEX methods" begin
+        @testset "SP111" begin
+            alg = Theseus.SP111()
+            order = 1 + 1 # trapezoidal quadrature for this symmetric, time-only split
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "H222" begin
+            alg = Theseus.H222()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "SSP2222" begin
+            alg = Theseus.SSP2222()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "SSP2322" begin
+            alg = Theseus.SSP2322()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "SSP2332" begin
+            alg = Theseus.SSP2332()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "SSP3332" begin
+            alg = Theseus.SSP3332()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "SSP3433" begin
+            alg = Theseus.SSP3433()
+            order = 3 + 1 # Simpson quadrature for this time-only split
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "AGSA342" begin
+            alg = Theseus.AGSA342()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "HT222" begin
+            alg = Theseus.HT222()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "ARS111" begin
+            alg = Theseus.ARS111()
+            order = 1 + 1 # trapezoidal quadrature for this symmetric, time-only split
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "ARS222" begin
+            alg = Theseus.ARS222()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "ARS233" begin
+            alg = Theseus.ARS233()
+            order = 3 + 1 # Gaussian quadrature
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "ARS443" begin
+            alg = Theseus.ARS443()
+            order = 3
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "KenCarpARK324L2SA" begin
+            alg = Theseus.KenCarpARK324L2SA()
+            order = 3
+            dts = 2.0 .^ (-3:-1:-7)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.2)
+        end
+
+        @testset "KenCarpARK436L2SA" begin
+            alg = Theseus.KenCarpARK436L2SA()
+            order = 4
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+             @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "BHR553G1" begin
+            alg = Theseus.BHR553G1()
+            order = 3
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "KenCarpARK437" begin
+            alg = Theseus.KenCarpARK437()
+            order = 4
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "BHR553G2" begin
+            alg = Theseus.BHR553G2()
+            order = 3
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "KenCarpARK548" begin
+            alg = Theseus.KenCarpARK548()
+            order = 5
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end # IMEX methods
+end
+
+@testset "Convergence linear system" begin
+    ode = ODEProblem([1.0, 0.0, 1.0], (0.0, 1.0)) do du, u, p, t
+        du[1] = -u[2]
+        du[2] = u[1]
+        du[3] = -u[3]
+        return nothing
+    end
+    function rhs_split!(du, u, p, t)
+        du[1] = -u[2] / 2
+        du[2] = u[1] / 2
+        du[3] = -u[3] / 2
+        return nothing
+    end
+    ode_split = SplitODEProblem(rhs_split!, rhs_split!, ode.u0, ode.tspan)
+    u_ana = [cos(ode.tspan[end]), sin(ode.tspan[end]), exp(-ode.tspan[end])]
+
+    @testset "DIRK methods" begin
+        @testset "LobattoIIIA2" begin
+            alg = Theseus.LobattoIIIA2()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "Crouzeix32" begin
+            alg = Theseus.Crouzeix32()
+            order = 3
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts; newton_tol_abs = 1.0e-8)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "DIRK43" begin
+            alg = Theseus.DIRK43()
+            order = 4
+            dts = 2.0 .^ (-3:-1:-7)
+            errors = compute_errors(
+                ode,
+                u_ana,
+                alg,
+                dts;
+                newton_tol_abs = 1.0e-8,
+                newton_tol_rel = 1.0e-8,
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "ESDIRK43SA2" begin
+            alg = Theseus.ESDIRK43SA2()
+            order = 4
+            dts = 2.0 .^ (-3:-1:-7)
+            errors = compute_errors(
+                ode,
+                u_ana,
+                alg,
+                dts;
+                newton_tol_abs = 1.0e-12,
+                newton_tol_rel = 1.0e-12,
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end # DIRK methods
+
+    @testset "Rosenbrock methods" begin
+        @testset "SSPKnoth" begin
+            alg = Theseus.SSPKnoth()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "ROS2" begin
+            alg = Theseus.ROS2()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode, u_ana, alg, dts)
+            eoc = compute_eoc(dts, errors)
+            @test_broken isapprox(eoc, order; atol = 0.1)
+            # TODO: Is this a second- or a third-order method?
+        end
+    end # Rosenbrock methods
+
+    @testset "IMEX methods" begin
+        @testset "SP111" begin
+            alg = Theseus.SP111()
+            order = 1 + 1 # Crank-Nicolson for this symmetric split
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-8)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "H222" begin
+            alg = Theseus.H222()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-8)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "SSP2222" begin
+            alg = Theseus.SSP2222()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-8)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "SSP2322" begin
+            alg = Theseus.SSP2322()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-8)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "SSP2332" begin
+            alg = Theseus.SSP2332()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-8)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "SSP3332" begin
+            alg = Theseus.SSP3332()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-8)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "SSP3433" begin
+            alg = Theseus.SSP3433()
+            order = 3
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-8)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "AGSA342" begin
+            alg = Theseus.AGSA342()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-8
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "HT222" begin
+            alg = Theseus.HT222()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-8)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "ARS111" begin
+            alg = Theseus.ARS111()
+            order = 1
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-8)
+            eoc = compute_eoc(dts, errors)
+            @test_broken isapprox(eoc, order; atol = 0.1)
+            # This appears to be even second-order accurate,
+            # but it is documented to be first-order.
+        end
+
+        @testset "ARS222" begin
+            alg = Theseus.ARS222()
+            order = 2
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-8)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "ARS233" begin
+            alg = Theseus.ARS233()
+            order = 3
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(
+                ode_split,
+                u_ana,
+                alg,
+                dts;
+                newton_tol_abs = 1.0e-8,
+                newton_tol_rel = 1.0e-8,
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "ARS443" begin
+            alg = Theseus.ARS443()
+            order = 3
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(
+                ode_split,
+                u_ana,
+                alg,
+                dts;
+                newton_tol_abs = 1.0e-9,
+                newton_tol_rel = 1.0e-9,
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "BHR553G1" begin
+            alg = Theseus.BHR553G1()
+            order = 3
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(
+                ode_split,
+                u_ana,
+                alg,
+                dts;
+                newton_tol_abs = 1.0e-9,
+                newton_tol_rel = 1.0e-9,
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "BHR553G2" begin
+            alg = Theseus.BHR553G2()
+            order = 3
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(
+                ode_split,
+                u_ana,
+                alg,
+                dts;
+                newton_tol_abs = 1.0e-9,
+                newton_tol_rel = 1.0e-9,
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "KenCarpARK324L2SA" begin
+            alg = Theseus.KenCarpARK324L2SA()
+            order = 3
+            dts = 2.0 .^ (-2:-1:-6)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-9,
+                newton_tol_rel = 1.0e-9
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "KenCarpARK436L2SA" begin
+            alg = Theseus.KenCarpARK436L2SA()
+            order = 4
+            dts = 2.0 .^ (0:-1:-4)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-9,
+                newton_tol_rel = 1.0e-9
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "KenCarpARK437" begin
+            alg = Theseus.KenCarpARK437()
+            order = 4
+            dts = 2.0 .^ (0:-1:-4)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-9,
+                newton_tol_rel = 1.0e-9
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+
+        @testset "KenCarpARK548" begin
+            alg = Theseus.KenCarpARK548()
+            order = 5
+            dts = 2.0 .^ (0:-1:-4)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-12,
+                newton_tol_rel = 1.0e-12
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end # IMEX methods
+end
+
+@testset "Convergence linear system for IMEX methods" begin
+    function rhs_full!(du, u, p, t)
+        du[1] = -u[2]
+        du[2] = u[1]
+        du[3] = -u[3]
+        return nothing
+    end
+    function rhs_zero!(du, u, p, t)
+        du .= 0
+        return nothing
+    end
+    ode_split_1 = SplitODEProblem(rhs_full!, rhs_zero!, [1.0, 0.0, 1.0], (0.0, 1.0))
+    ode_split_2 = SplitODEProblem(rhs_zero!, rhs_full!, ode_split_1.u0, ode_split_1.tspan)
+    u_ana = [
+        cos(ode_split_1.tspan[end]),
+        sin(ode_split_1.tspan[end]),
+        exp(-ode_split_1.tspan[end]),
+    ]
+
+    @testset "SP111" begin
+        alg = Theseus.SP111()
+        order = 1
+        dts = 2.0 .^ (-2:-1:-6)
+        for ode_split in (ode_split_1, ode_split_2)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-8)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
+
+    @testset "AGSA342" begin
+        alg = Theseus.AGSA342()
+        order = 2
+        dts = 2.0 .^ (-2:-1:-6)
+        let ode_split = ode_split_2
+            # The explicit method is third-order accurate for linear problems.
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-10,
+                newton_tol_rel = 1.0e-10
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order + 1; atol = 0.1)
+        end
+        let ode_split = ode_split_1
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-10,
+                newton_tol_rel = 1.0e-10
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
+
+    @testset "BHR553G1" begin
+        alg = Theseus.BHR553G1()
+        order = 3
+        dts = 2.0 .^ (-2:-1:-6)
+        let ode_split = ode_split_2
+            # The explicit method is fourth-order accurate for linear problems
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-9, newton_tol_rel = 1.0e-9)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order + 1; atol = 0.1)
+        end
+        let ode_split = ode_split_1
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-9, newton_tol_rel = 1.0e-9)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
+
+    @testset "BHR553G2" begin
+        alg = Theseus.BHR553G2()
+        # Both individual methods are fourth-order accurate for linear problems.
+        order = 3 + 1
+        dts = 2.0 .^ (-2:-1:-6)
+        for ode_split in (ode_split_1, ode_split_2)
+            errors = compute_errors(ode_split, u_ana, alg, dts; newton_tol_abs = 1.0e-10, newton_tol_rel = 1.0e-10)
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
+
+    # TODO: Add tests for other IMEX methods
+
+    @testset "KenCarpARK324L2SA" begin
+        alg = Theseus.KenCarpARK324L2SA()
+        order = 3
+        dts = 2.0 .^ (-2:-1:-6)
+        for ode_split in (ode_split_1, ode_split_2)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-12,
+                newton_tol_rel = 1.0e-12
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
+
+    @testset "KenCarpARK436L2SA" begin
+        alg = Theseus.KenCarpARK436L2SA()
+        order = 4
+        dts = 2.0 .^ (0:-1:-4)
+        for ode_split in (ode_split_1, ode_split_2)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-12,
+                newton_tol_rel = 1.0e-12
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
+
+    @testset "KenCarpARK437" begin
+        alg = Theseus.KenCarpARK437()
+        order = 4
+        dts = 2.0 .^ (0:-1:-4)
+        for ode_split in (ode_split_1, ode_split_2)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-12,
+                newton_tol_rel = 1.0e-12
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
+
+    @testset "KenCarpARK548" begin
+        alg = Theseus.KenCarpARK548()
+        order = 5
+        dts = 2.0 .^ (-2:-1:-6)
+        for ode_split in (ode_split_1, ode_split_2)
+            errors = compute_errors(
+                ode_split, u_ana, alg, dts;
+                newton_tol_abs = 1.0e-12,
+                newton_tol_rel = 1.0e-12
+            )
+            eoc = compute_eoc(dts, errors)
+            @test isapprox(eoc, order; atol = 0.1)
+        end
+    end
+end
+
+@testset "Convergence noncommuting linear system for IMEX methods" begin
+    function rhs_split_implicit!(du, u, p, t)
+        du[1] = -u[1]
+        du[2] = -2 * u[2]
+        return nothing
+    end
+    function rhs_split_explicit!(du, u, p, t)
+        du[1] = u[2]
+        du[2] = -3 * u[1]
+        return nothing
+    end
+    ode_split = SplitODEProblem(
+        rhs_split_implicit!, rhs_split_explicit!,
+        [1.0, -1.0], (0.0, 1.0)
+    )
+    u_ana = exp([-1.0 1.0; -3.0 -2.0]) * ode_split.u0
+
+    @testset "SP111" begin
+        alg = Theseus.SP111()
+        order = 1
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(ode_split, u_ana, alg, dts)
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "H222" begin
+        alg = Theseus.H222()
+        order = 2
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(ode_split, u_ana, alg, dts)
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "SSP2222" begin
+        alg = Theseus.SSP2222()
+        order = 2
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(ode_split, u_ana, alg, dts)
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "SSP2322" begin
+        alg = Theseus.SSP2322()
+        order = 2
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(ode_split, u_ana, alg, dts)
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "SSP2332" begin
+        alg = Theseus.SSP2332()
+        order = 2
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(ode_split, u_ana, alg, dts)
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "SSP3332" begin
+        alg = Theseus.SSP3332()
+        order = 2
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(ode_split, u_ana, alg, dts)
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "SSP3433" begin
+        alg = Theseus.SSP3433()
+        order = 3
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(
+            ode_split, u_ana, alg, dts;
+            newton_tol_abs = 1.0e-9,
+            newton_tol_rel = 1.0e-9
+        )
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "AGSA342" begin
+        alg = Theseus.AGSA342()
+        order = 2
+        dts = 2.0 .^ (-5:-1:-9)
+        errors = compute_errors(
+            ode_split, u_ana, alg, dts;
+            newton_tol_abs = 1.0e-10,
+            newton_tol_rel = 1.0e-10
+        )
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "HT222" begin
+        alg = Theseus.HT222()
+        order = 2
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(ode_split, u_ana, alg, dts)
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "ARS111" begin
+        alg = Theseus.ARS111()
+        order = 1
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(ode_split, u_ana, alg, dts)
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "ARS222" begin
+        alg = Theseus.ARS222()
+        order = 2
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(ode_split, u_ana, alg, dts)
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "ARS233" begin
+        alg = Theseus.ARS233()
+        order = 3
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(ode_split, u_ana, alg, dts)
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "ARS443" begin
+        alg = Theseus.ARS443()
+        order = 3
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(
+            ode_split, u_ana, alg, dts;
+            newton_tol_abs = 1.0e-9,
+            newton_tol_rel = 1.0e-9
+        )
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "BHR553G1" begin
+        alg = Theseus.BHR553G1()
+        order = 3
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(
+            ode_split, u_ana, alg, dts;
+            newton_tol_abs = 1.0e-9,
+            newton_tol_rel = 1.0e-9
+        )
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "BHR553G2" begin
+        alg = Theseus.BHR553G2()
+        order = 3
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(
+            ode_split, u_ana, alg, dts;
+            newton_tol_abs = 1.0e-9,
+            newton_tol_rel = 1.0e-9
+        )
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "KenCarpARK324L2SA" begin
+        alg = Theseus.KenCarpARK324L2SA()
+        order = 3
+        dts = 2.0 .^ (-3:-1:-7)
+        errors = compute_errors(
+            ode_split, u_ana, alg, dts;
+            newton_tol_abs = 1.0e-10,
+            newton_tol_rel = 1.0e-10
+        )
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+
+    @testset "KenCarpARK436L2SA" begin
+        alg = Theseus.KenCarpARK436L2SA()
+        order = 4
+        dts = 2.0 .^ (-2:-1:-6)
+        errors = compute_errors(
+            ode_split, u_ana, alg, dts;
+            newton_tol_abs = 1.0e-12,
+            newton_tol_rel = 1.0e-12
+        )
+        eoc = compute_eoc(dts, errors)
+        @test isapprox(eoc, order; atol = 0.1)
+    end
+end

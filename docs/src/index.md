@@ -1,4 +1,4 @@
-# NewtonKrylov.jl
+# Ariadne.jl
 
 Newton Method using Krylov.jl (montoison-orban-2023)[@cite]
 
@@ -7,20 +7,37 @@ Newton Method using Krylov.jl (montoison-orban-2023)[@cite]
 ```@docs
 newton_krylov!
 newton_krylov
+NewtonKrylovWorkspace
+```
+
+### Line Searches
+
+```@docs
+Ariadne.LineSearches.AbstractLineSearch
+NoLineSearch
+BacktrackingLineSearch
+```
+
+### Statistics
+
+```@docs
+Ariadne.Stats
 ```
 
 ### Parameters
 
 ```@docs
-NewtonKrylov.Forcing
-NewtonKrylov.Fixed
-NewtonKrylov.EisenstatWalker
+Ariadne.Forcing
+Ariadne.Fixed
+Ariadne.EisenstatWalker
 ```
 
 ### Internal
 
 ```@docs
-NewtonKrylov.JacobianOperator
+Ariadne.JacobianOperator
+Ariadne.BatchedJacobianOperator
+Ariadne.evaluate!
 ```
 
 ## Bibliography
