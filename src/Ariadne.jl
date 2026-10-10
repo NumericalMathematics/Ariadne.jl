@@ -887,7 +887,7 @@ end
 ##
 
 include("mixed_precision.jl")
-export MixedPrecisionLU, lu_in_precision!, AbstractStepWorkspace, DirectSolveWorkspace,
+export MixedPrecisionLU, ConvertedPreconditioner, lu_in_precision!, AbstractStepWorkspace, DirectSolveWorkspace,
     IterativeRefinementWorkspace, GMRESIRWorkspace
 
 end # module Ariadne

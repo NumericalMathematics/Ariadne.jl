@@ -156,9 +156,78 @@ LinearAlgebra.ldiv!(P::MixedPrecisionLU, x::AbstractVector) = ldiv!(x, P, x)
 Base.:\(P::MixedPrecisionLU, x::AbstractVector) = ldiv!(similar(x), P, x)
 LinearAlgebra.mul!(y, P::MixedPrecisionLU, x) = mul!(y, P.A, x)
 
+"""
+    ConvertedPreconditioner{T}(P; scale = true)
+
+Applies the preconditioner `P` in the precision `T`, e.g., a preconditioner whose
+operators, smoothers and factors are all stored in `Float32` inside a solver in `Float64`.
+`ldiv!(y, C, x)` (and `mul!`) rounds `x` to `T`, applies `P` in `T` and converts the result
+back to the precision of `y`. With `scale = true`, `x` is scaled by `‖x‖∞` before rounding
+and the result is scaled back (Kelley's interprecision transfer), which keeps small
+residuals from underflowing in low precision.
+
+Rounding makes the preconditioner slightly nonlinear, so use it with a flexible Krylov
+method (e.g. `algo = :fgmres`) unless the rounding error is negligible.
+
+If `P` is an [`AbstractPreconditioner`](@ref), e.g., a [`LaggedPreconditioner`](@ref) that
+builds the low-precision operator, [`prepare!`](@ref) and [`record!`](@ref) are forwarded
+to it.
+
+## Example
+
+```julia
+# A multigrid hierarchy built in Float32, applied inside FGMRES in Float64
+P = ConvertedPreconditioner{Float32}(LaggedPreconditioner(J -> build_multigrid_f32(J.u, J.p)))
+newton_krylov!(ws; N = P, krylov_kwargs = (; ldiv = true))
+```
+"""
+mutable struct ConvertedPreconditioner{T, OP} <: AbstractPreconditioner
+    const P::OP
+    const scale::Bool
+    x::Any # buffers in precision T, allocated on first use with `similar`
+    y::Any
+end
+ConvertedPreconditioner{T}(P; scale::Bool = true) where {T} =
+    ConvertedPreconditioner{T, typeof(P)}(P, scale, nothing, nothing)
+
+function converted_buffers(C::ConvertedPreconditioner{T}, x) where {T}
+    if C.x === nothing || axes(C.x) != axes(x)
+        C.x = similar(x, T)
+        C.y = similar(x, T)
+    end
+    return C.x, C.y
+end
+
+function apply_converted!(op!, y, C::ConvertedPreconditioner{T}, x) where {T}
+    xT, yT = converted_buffers(C, x)
+    s = C.scale ? norm(x, Inf) : one(real(eltype(x)))
+    if iszero(s) || !isfinite(s)
+        # Nothing to scale: the result of P on a zero (or non-finite) vector
+        y .= s .* x
+        return y
+    end
+    xT .= round_to.(T, x ./ s)
+    op!(yT, C.P, xT)
+    y .= s .* yT
+    return y
+end
+
+LinearAlgebra.ldiv!(y, C::ConvertedPreconditioner, x) = apply_converted!(ldiv!, y, C, x)
+LinearAlgebra.mul!(y, C::ConvertedPreconditioner, x) = apply_converted!(mul!, y, C, x)
+Base.:\(C::ConvertedPreconditioner, x::AbstractVector) = ldiv!(similar(x), C, x)
+
+function prepare!(C::ConvertedPreconditioner, J)
+    C.P isa AbstractPreconditioner && prepare!(C.P, J)
+    return C
+end
+record!(C::ConvertedPreconditioner, stats) =
+    C.P isa AbstractPreconditioner ? record!(C.P, stats) : nothing
+refresh!(C::ConvertedPreconditioner) = (applicable(refresh!, C.P) && refresh!(C.P); C)
+
 # The stored Jacobian of a preconditioner, used as operator of iterative refinement
 stored_jacobian(P::MixedPrecisionLU) = P.A
 stored_jacobian(P::LaggedPreconditioner) = stored_jacobian(P.operator)
+stored_jacobian(C::ConvertedPreconditioner) = stored_jacobian(C.P)
 stored_jacobian(P) = throw(ArgumentError("$(typeof(P)) does not store a Jacobian; use `operator = :jacobian`"))
 
 ##

@@ -1,6 +1,6 @@
 using Test
 using Ariadne
-using Ariadne: MixedPrecisionLU, lu_in_precision!, DirectSolveWorkspace,
+using Ariadne: MixedPrecisionLU, ConvertedPreconditioner, lu_in_precision!, DirectSolveWorkspace,
     IterativeRefinementWorkspace, GMRESIRWorkspace, LaggedPreconditioner
 using LinearAlgebra
 
@@ -55,6 +55,25 @@ end
     @test norm(Q \ Float32.(b) - x) / norm(x) < 1.0e-2
 end
 
+@testset "ConvertedPreconditioner" begin
+    A = rand(32, 32) + 8I
+    b = rand(32)
+    x = A \ b
+    C = ConvertedPreconditioner{Float32}(lu(Matrix{Float32}(A)))
+    y = C \ b
+    @test eltype(y) == Float64
+    @test norm(y - x) / norm(x) < 1.0e-5
+    # Scaling keeps tiny right-hand sides from underflowing in half precision
+    H = ConvertedPreconditioner{Float16}(Diagonal(fill(Float16(2), 32)))
+    @test H \ fill(1.0e-12, 32) ≈ fill(0.5e-12, 32)
+    @test ConvertedPreconditioner{Float16}(Diagonal(fill(Float16(2), 32)); scale = false) \
+        fill(1.0e-12, 32) == zeros(32)
+    @test C \ zeros(32) == zeros(32)
+    # mul! is applied in the low precision as well
+    D = ConvertedPreconditioner{Float32}(Diagonal(fill(2.0f0, 32)))
+    @test mul!(similar(b), D, b) ≈ 2b rtol = 1.0e-6
+end
+
 @testset "Newton in mixed precision (H-equation)" begin
     N = 128
     c = 0.99
@@ -104,6 +123,16 @@ end
     )
     _, result = newton_krylov!(heq!, u, c; tol_rel = 1.0e-8, tol_abs = 1.0e-8, N = P, krylov_kwargs = (; ldiv = true))
     @test result.solved
+    # A Float32 preconditioner inside FGMRES, built by a LaggedPreconditioner
+    P32 = ConvertedPreconditioner{Float32}(
+        LaggedPreconditioner(J -> lu(Matrix{Float32}(heq_jacobian(J.u, c))))
+    )
+    _, result = newton_krylov!(
+        heq!, ones(N), c; algo = :fgmres, tol_rel = 1.0e-8, tol_abs = 1.0e-8, N = P32,
+        krylov_kwargs = (; ldiv = true)
+    )
+    @test result.solved
+    @test P32.P.n_builds == result.stats.outer_iterations
     # Step workspaces through the `algo` keyword
     _, result = newton_krylov!(heq!, ones(N), c; algo = :ir, kw..., N = P)
     @test result.solved
