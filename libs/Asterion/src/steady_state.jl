@@ -54,14 +54,16 @@ end
     AbstractCFLStrategy
 
 Evolution of the CFL number in [`PseudoTransientNewtonKrylov`](@ref).
-See [`SER`](@ref).
+See [`SER`](@ref) and [`LodaresSER`](@ref).
 """
 abstract type AbstractCFLStrategy end
 
 """
     SER(; initial = 1.0, min = 1.0e-6, max = 1.0e8, growth_min = 0.1, growth_max = 2.0,
           exponent = 1.0, reference = :previous, n_variables = 0,
-          rejection_factor = 0.1)
+          rejection_factor = 0.1, increase_tolerance = 0.0, tolerant_growth = 1.0,
+          cycle_window = 4, cycle_amplitude = 0.05, cycle_progress = 0.1, cycle_cut = 0.5,
+          ceiling_relaxation = 1.25, ceiling_release = 0.5)
 
 Switched evolution relaxation (SER, Mulder & van Leer 1985) of the CFL number.
 After each accepted pseudo-time step, the CFL number is updated with the residual ratio
@@ -75,6 +77,13 @@ After each accepted pseudo-time step, the CFL number is updated with the residua
 
 and the result is clamped to `[min, max]`.
 
+During slow physical transients of the pseudo-time evolution (e.g., the development of
+a wake or a separation region), the residual can increase slightly over many steps, so
+that SER keeps the CFL number small. With `reference = :previous`, `increase_tolerance > 0`,
+and `tolerant_growth > 1`, the CFL number is increased by at least the factor
+`tolerant_growth` as long as the residual does not increase by more than the factor
+`1 + increase_tolerance`. The defaults give plain SER.
+
 The residual ratio `f` is computed with the norm of the algorithm if `n_variables == 0`,
 and otherwise with [`variable_residual_ratio`](@ref Ariadne.variable_residual_ratio) for `n_variables` variables stored
 interleaved (median over the variables of the maximum of the ratios of the 2-norm and
@@ -83,6 +92,21 @@ max-norm, Lodares et al. 2022, Eq. 123).
 When a pseudo-time step is rejected, the CFL number is multiplied by `rejection_factor`.
 If it drops below `min`, the solver stops with status `:cfl_too_small`.
 
+SER can also lock into a limit cycle without rejections. For example, at a CFL number `c₁`
+the residual decreases by a factor `q < 1`, SER grows the CFL number to `c₂ = c₁/q`, at
+which the pseudo-time step overshoots and the residual grows by `1/q`, so that SER returns
+to `c₁`; or the CFL number settles where the residual alternates around a constant value
+(e.g., a Newton cycle). Damping the SER (a smaller `exponent`) does not help, since the
+fixed point of the SER is a CFL number at which the residual stays constant. Instead, if
+the residual alternated between increase and decrease, both by more than the factor
+`1 + cycle_amplitude` (or its vector reversed its direction, `⟨res, res_prior⟩ < 0`), in
+each of the last `cycle_window` accepted steps and decreased by less than the factor
+`1 - cycle_progress` over them, the CFL number is capped at `cycle_cut` times the smallest
+CFL number of these steps. The cap grows by the factor `ceiling_relaxation` whenever the
+residual reaches a new minimum below the cap; if a cycle is detected again, the cap is
+reset and its growth factor is reduced to its square root. Once the residual dropped below
+`ceiling_release` times the residual at which the cycle was detected, the cap is removed.
+`cycle_window = 0` disables the cap. The number of caps is `stats.cfl_ceilings`.
 
 `initial`, `min`, and `max` can be `NamedTuple`s for several CFL numbers that are
 evolved with the same factor, e.g., `initial = (advective = 1.0, diffusive = 0.1)`, which
@@ -98,18 +122,62 @@ Base.@kwdef struct SER{C, L, H} <: AbstractCFLStrategy
     reference::Symbol = :previous
     n_variables::Int = 0
     rejection_factor::Float64 = 0.1
+    increase_tolerance::Float64 = 0.0
+    tolerant_growth::Float64 = 1.0
+    cycle_window::Int = 4
+    cycle_amplitude::Float64 = 0.05
+    cycle_progress::Float64 = 0.1
+    cycle_cut::Float64 = 0.5
+    ceiling_relaxation::Float64 = 1.25
+    ceiling_release::Float64 = 0.5
     function SER(
             initial::C, min::L, max::H, growth_min, growth_max, exponent, reference, n_variables,
-            rejection_factor
+            rejection_factor, increase_tolerance, tolerant_growth, cycle_window, cycle_amplitude,
+            cycle_progress, cycle_cut, ceiling_relaxation, ceiling_release
         ) where {C, L, H}
         @assert reference in (:previous, :initial) "reference must be :previous or :initial"
         @assert 0 < rejection_factor < 1 "rejection_factor must be in (0, 1)"
         @assert 0 <= growth_min <= growth_max "need 0 <= growth_min <= growth_max"
+        @assert increase_tolerance >= 0 "increase_tolerance must be nonnegative"
+        @assert tolerant_growth >= 1 "tolerant_growth must be at least 1"
+        @assert cycle_window == 0 || cycle_window >= 3 "cycle_window must be 0 or at least 3"
+        @assert cycle_amplitude >= 0 "cycle_amplitude must be nonnegative"
+        @assert 0 <= cycle_progress < 1 "cycle_progress must be in [0, 1)"
+        @assert 0 < cycle_cut <= 1 "cycle_cut must be in (0, 1]"
+        @assert ceiling_relaxation > 1 "ceiling_relaxation must be larger than 1"
+        @assert 0 <= ceiling_release < 1 "ceiling_release must be in [0, 1)"
         return new{C, L, H}(
             initial, min, max, growth_min, growth_max, exponent, reference, n_variables,
-            rejection_factor
+            rejection_factor, increase_tolerance, tolerant_growth, cycle_window, cycle_amplitude,
+            cycle_progress, cycle_cut, ceiling_relaxation, ceiling_release
         )
     end
+end
+
+"""
+    LodaresSER(n_variables; initial = 1.0, max = 1.0e8, min = 1.0e-6,
+               growth_max = 2.0, exponent = 1.0, rejection_factor = 0.1)
+
+CFL evolution of Lodares et al. (2022), Eqs. (122)-(123):
+`CFLⁿ⁺¹ = max(min(CFL⁰ / fᵝ, CFLmax, k CFLⁿ), CFLmin)` with `k = growth_max`,
+`β = exponent`, and `f` the median over the `n_variables` variables of the maximum of
+the 2-norm and max-norm residual ratios with respect to the initial residual
+(see [`variable_residual_ratio`](@ref Ariadne.variable_residual_ratio)). Equivalent to
+`SER(; reference = :initial, n_variables, growth_min = 0, …)`.
+
+- D. Lodares, J. Manzanero, E. Ferrer, E. Valero (2022)
+  An entropy-stable discontinuous Galerkin approximation of the Spalart-Allmaras
+  turbulence model for the compressible Reynolds averaged Navier-Stokes equations.
+  Journal of Computational Physics 455, 110998.
+"""
+function LodaresSER(
+        n_variables::Integer; initial = 1.0, max = 1.0e8, min = 1.0e-6,
+        growth_max = 2.0, exponent = 1.0, rejection_factor = 0.1
+    )
+    return SER(;
+        initial, min, max, growth_min = 0.0, growth_max, exponent,
+        reference = :initial, n_variables, rejection_factor
+    )
 end
 
 initial_cfl(s::SER) = s.initial
@@ -137,6 +205,10 @@ function update_cfl(s::SER, cfl, info)
         f = info.norm_res / norm_ref
     end
     (; growth_min, growth_max, exponent) = s
+    if s.reference === :previous && f <= 1 + s.increase_tolerance
+        # The residual decreased or increased only within the tolerance
+        growth_min = Base.max(growth_min, Base.min(s.tolerant_growth, growth_max))
+    end
     return _map_cfl(cfl, s.initial, s.min, s.max) do c, c₀, lo, hi
         if s.reference === :previous
             c_new = c * clamp(f^(-exponent), growth_min, growth_max)
@@ -153,6 +225,100 @@ end
 New CFL number after a rejected pseudo-time step.
 """
 reject_cfl(s::SER, cfl) = _map_cfl(c -> c * s.rejection_factor, cfl)
+
+# State of the limit-cycle detection of the SER (see `cycle_window` of [`SER`](@ref))
+mutable struct CycleGuard
+    const cfls::Vector{Float64} # (first) CFL numbers of the last accepted steps
+    const ratios::Vector{Float64} # residual ratios of the last accepted steps
+    const norms::Vector{Float64} # residual norms before the last accepted steps
+    const reversals::Vector{Bool} # whether the residual reversed its direction
+    ceiling::Float64 # cap of the (first) CFL number, `Inf` if inactive
+    relaxation::Float64 # growth factor of the cap after a new smallest residual
+    best::Float64 # smallest residual since the cap was set
+    release::Float64 # residual below which the cap is removed
+    triggers::Int # number of times the cap was set
+end
+CycleGuard() = CycleGuard(Float64[], Float64[], Float64[], Bool[], Inf, NaN, Inf, 0.0, 0)
+
+# Forget the last steps (e.g., after the state was changed from outside), but keep the cap
+function restart_window!(g::CycleGuard)
+    empty!(g.cfls)
+    empty!(g.ratios)
+    empty!(g.norms)
+    empty!(g.reversals)
+    return g
+end
+
+_first_cfl(c::Number) = Float64(c)
+_first_cfl(c::NamedTuple) = Float64(first(values(c)))
+
+# The residual norm increased in one step and decreased in the other, both by more than
+# the factor `1 + a`
+function _alternates(r₁, r₂, a)
+    up(r) = r > 1 + a
+    down(r) = r < 1 / (1 + a)
+    return (up(r₁) && down(r₂)) || (down(r₁) && up(r₂))
+end
+
+cycle_window(s::SER) = s.cycle_window
+cycle_window(_) = 0
+
+"""
+    limit_cycle!(guard, strategy, cfl_used, cfl_new, norm_res_prior, norm_res, reversed) -> cfl
+
+Detect a limit cycle of the SER (see `cycle_window` of [`SER`](@ref)) after an accepted
+step with `cfl_used` that changed the residual norm from `norm_res_prior` to `norm_res`
+(`reversed`: the residual vector reversed its direction, `⟨res, res_prior⟩ < 0`), and cap
+the CFL number `cfl_new` of the next step.
+"""
+limit_cycle!(guard, strategy, cfl_used, cfl_new, norm_res_prior, norm_res, reversed) = cfl_new
+function limit_cycle!(g::CycleGuard, s::SER, cfl_used, cfl_new, norm_res_prior, norm_res, reversed)
+    m = s.cycle_window
+    m == 0 && return cfl_new
+    ratio = norm_res / norm_res_prior
+    push!(g.cfls, _first_cfl(cfl_used))
+    push!(g.ratios, ratio)
+    push!(g.norms, norm_res_prior)
+    push!(g.reversals, reversed)
+    if length(g.cfls) > m
+        popfirst!(g.cfls)
+        popfirst!(g.ratios)
+        popfirst!(g.norms)
+        popfirst!(g.reversals)
+    end
+    if isfinite(g.ceiling) && norm_res < g.best
+        # Progress below the cap: relax it
+        g.best = norm_res
+        g.ceiling *= g.relaxation
+        if g.ceiling >= _first_cfl(s.max) || norm_res < g.release
+            # Out of the cycle
+            g.ceiling = Inf
+            g.relaxation = NaN
+        end
+    end
+    if length(g.ratios) == m &&
+            all(k -> g.reversals[k + 1] || _alternates(g.ratios[k], g.ratios[k + 1], s.cycle_amplitude), 1:(m - 1)) &&
+            norm_res > (1 - s.cycle_progress) * first(g.norms)
+        # The residual alternated between increase and decrease during the last `m`
+        # steps without net progress: cap the CFL number below the cycle
+        if isfinite(g.ceiling)
+            g.relaxation = sqrt(g.relaxation)
+        else
+            g.relaxation = s.ceiling_relaxation
+        end
+        g.ceiling = s.cycle_cut * minimum(g.cfls)
+        g.best = norm_res
+        g.release = s.ceiling_release * norm_res
+        g.triggers += 1
+        restart_window!(g)
+    end
+    c_new = _first_cfl(cfl_new)
+    c_new <= g.ceiling && return cfl_new
+    scale = g.ceiling / c_new
+    return _map_cfl(cfl_new, s.min) do cn, lo
+        Base.max(cn * scale, lo)
+    end
+end
 
 """
     cfl_too_small(strategy, cfl) -> Bool
@@ -187,7 +353,7 @@ by `newton_iterations` inexact Newton steps, i.e., implicit Euler for the pseudo
 Use it with [`pseudo_transient!`](@ref).
 
 ## Keyword arguments
-- `cfl = SER()`: CFL evolution strategy, see [`SER`](@ref).
+- `cfl = SER()`: CFL evolution strategy, see [`SER`](@ref) and [`LodaresSER`](@ref).
 - `dtau! = nothing`: hook `dtau!(dtau, u, p, cfl)` that fills the (local) pseudo-time
   steps for the CFL number `cfl`, e.g., from the convective CFL condition. The default is
   the global pseudo-time step `Δτ = cfl`.
@@ -249,6 +415,8 @@ Statistics of [`pseudo_transient!`](@ref):
 - `residual_evaluations`: evaluations of `f!` (without line search trials and
   Jacobian-vector products)
 - `preconditioner_builds`: builds of a [`LaggedPreconditioner`](@ref Ariadne.LaggedPreconditioner)
+- `cfl_ceilings`: times the SER limit-cycle detection capped the CFL number
+  (see `cycle_window` of [`SER`](@ref))
 - `norm_res_initial`, `norm_res`: initial and final norm of the steady residual
 - `timings`: `Dict` of wall times in seconds (`:total`, `:newton` (including the
   preconditioner), `:residual`)
@@ -261,6 +429,7 @@ Base.@kwdef mutable struct PseudoTransientStats
     krylov_failures::Int = 0
     residual_evaluations::Int = 0
     preconditioner_builds::Int = 0
+    cfl_ceilings::Int = 0
     norm_res_initial::Float64 = NaN
     norm_res::Float64 = NaN
     timings::Dict{Symbol, Float64} = Dict{Symbol, Float64}()
@@ -312,6 +481,7 @@ mutable struct PseudoTransientWorkspace{ALG, F, A, P, PP, NW, PC, C}
     norm_res_prior::Float64
     nsteps::Int
     t_start::UInt64
+    const cycle_guard::CycleGuard # limit-cycle detection of the SER
 end
 
 function PseudoTransientWorkspace(
@@ -333,7 +503,8 @@ function PseudoTransientWorkspace(
     stats.timings[:setup] = (time_ns() - t₀) / 1.0e9
     return PseudoTransientWorkspace(
         alg, f!, Int(σ), u, p, res, res_initial, res_prior, dtau, params, newton,
-        preconditioner, cfl, stats, Any[], :initialized, NaN, NaN, NaN, 0, time_ns()
+        preconditioner, cfl, stats, Any[], :initialized, NaN, NaN, NaN, 0, time_ns(),
+        CycleGuard()
     )
 end
 
@@ -565,7 +736,13 @@ function ptc_step!(ws::PseudoTransientWorkspace; verbose = 0)
         norm_res, norm_res_prior, ws.norm_res_initial,
         res = ws.res, res_prior = ws.res_prior, res_initial = ws.res_initial,
     )
-    ws.cfl = update_cfl(alg.cfl, ws.cfl, info)
+    cfl_new = update_cfl(alg.cfl, ws.cfl, info)
+    cfl_new = limit_cycle!(
+        ws.cycle_guard, alg.cfl, cfl_used, cfl_new, norm_res_prior, norm_res,
+        cycle_window(alg.cfl) > 0 && dot(ws.res, ws.res_prior) < 0
+    )
+    stats.cfl_ceilings = ws.cycle_guard.triggers
+    ws.cfl = cfl_new
     copyto!(ws.res_prior, ws.res)
     ws.norm_res_prior = norm_res_prior
     ws.norm_res = norm_res
@@ -597,6 +774,7 @@ function ptc_reset_reference!(ws::PseudoTransientWorkspace)
     ws.norm_res = norm_res
     ws.norm_res_prior = norm_res
     copyto!(ws.res_prior, ws.res)
+    restart_window!(ws.cycle_guard)
     return norm_res
 end
 
