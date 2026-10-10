@@ -6,6 +6,12 @@ on:
       - main
     tags: "*"
 
+# A new push to a pull request supersedes its running docs build. Builds on
+# main and tags are not cancelled, so that every merge deploys.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 # needed to allow julia-actions/cache to delete old caches that it has created
 permissions:
   actions: write
@@ -15,6 +21,7 @@ jobs:
   docs:
     name: Documentation
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v3
