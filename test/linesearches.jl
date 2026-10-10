@@ -85,7 +85,7 @@ end
     # Custom line searches get the verbosity level
     seen_verbose = Ref(-1)
     struct FullStep <: Ariadne.LineSearches.AbstractLineSearch end
-    (::FullStep)(ws, norm_res_prior, d; verbose = 0) = (seen_verbose[] = verbose; ws.u .+= d; (Ariadne.evaluate!(ws), :success))
+    (::FullStep)(ws, norm_res_prior, d; verbose = 0) = (seen_verbose[] = verbose; ws.u .+= d; (Ariadne.evaluate!(ws), :success, 1.0))
     _, result = newton_krylov!((res, x, _) -> (res .= x .- 1; nothing), [3.0]; linesearch! = FullStep(), verbose = 1)
     @test result.solved
     @test seen_verbose[] == 1
@@ -136,21 +136,112 @@ end
         @test result.stats.linesearch_failures == 0
     end
 
-    # Line searches return the residual norm and a status
+    # Line searches return the residual norm, a status and the step length
     ws = NewtonKrylovWorkspace(A!, [3.0], nothing, zeros(1))
     norm_res_prior = Ariadne.evaluate!(ws)
     d = [-atan(3.0) * (1 + 3.0^2)] # Newton direction at x = 3
-    norm_res, status = BacktrackingLineSearch(; n_iter_max = 1)(ws, norm_res_prior, copy(d))
+    norm_res, status, λ = BacktrackingLineSearch(; n_iter_max = 1)(ws, norm_res_prior, copy(d))
     @test status === :failed
+    @test λ == 1
     @test norm_res > norm_res_prior
     ws.u .= 3.0
-    norm_res, status = BacktrackingLineSearch()(ws, norm_res_prior, copy(d))
+    norm_res, status, λ = BacktrackingLineSearch()(ws, norm_res_prior, copy(d))
     @test status === :success
+    @test ws.u ≈ [3.0] + λ * d
+    @test 0 < λ < 1
     @test norm_res < norm_res_prior
     ws.u .= 3.0
-    @test NoLineSearch()(ws, norm_res_prior, copy(d))[2] === :success
+    @test NoLineSearch()(ws, norm_res_prior, copy(d))[2:3] == (:success, 1.0)
+    # The step length of `AdmissibleLineSearch` refers to the direction before `max_step`
+    ws.u .= 3.0
+    norm_res, status, λ = AdmissibleLineSearch((u, p) -> true, NoLineSearch(); max_step = (u, d, p) -> 0.25)(ws, norm_res_prior, copy(d))
+    @test λ == 0.25
+    @test ws.u ≈ [3.0] + λ * d
+    # A failed admissible line search undoes the step and returns the step length 0
+    ws.u .= 3.0
+    @test AdmissibleLineSearch((u, p) -> false, NoLineSearch())(ws, norm_res_prior, copy(d)) == (Inf, :failed, 0.0)
+    @test ws.u == [3.0]
 
     # Without a line search, no failures are reported
     _, result = newton_krylov!(A!, [3.0]; linesearch! = NoLineSearch(), max_niter = 3)
     @test result.stats.linesearch_failures == 0
+end
+
+# F(u) = log|u| - log a has the physical root u = a > 0 and the unphysical root u = -a
+log_residual!(res, u, p) = (@. res = log(abs(u)) - log(p.a); nothing)
+positive(u, p) = all(>(0), u)
+
+@testset "AdmissibleLineSearch" begin
+    n = 4
+    p = (; a = ones(n))
+    u₀ = fill(4.0, n) # the full Newton step jumps to u = 4 - 4 log(4) < 0
+
+    # Plain Newton converges to the unphysical root
+    u, result = newton_krylov!(log_residual!, copy(u₀), p; forcing = nothing)
+    @test result.solved
+    @test u ≈ -ones(n) rtol = 1.0e-5
+
+    # The admissible line search keeps u > 0 and finds the physical root
+    iterates = Vector{Float64}[]
+    u, result = newton_krylov!(
+        log_residual!, copy(u₀), p; forcing = nothing,
+        linesearch! = AdmissibleLineSearch(positive),
+        callback = (u, res, n) -> push!(iterates, copy(u))
+    )
+    @test result.solved
+    @test u ≈ ones(n) rtol = 1.0e-5
+    @test all(x -> all(>(0), x), iterates)
+
+    # A step limiter (at most a relative change of 50% per Newton step) with full steps
+    max_step(u, d, p) = minimum(i -> d[i] < 0 ? 0.5 * u[i] / -d[i] : Inf, eachindex(u, d))
+    iterates = Vector{Float64}[]
+    u, result = newton_krylov!(
+        log_residual!, copy(u₀), p; forcing = nothing,
+        linesearch! = AdmissibleLineSearch(positive, NoLineSearch(); max_step),
+        callback = (u, res, n) -> push!(iterates, copy(u))
+    )
+    @test result.solved
+    @test u ≈ ones(n) rtol = 1.0e-5
+    @test all(i -> all(iterates[i + 1] .>= 0.5 .* iterates[i] .- 1.0e-12), 1:(length(iterates) - 1))
+
+    # No admissible state along the direction: the line search fails with Inf and
+    # resets the state
+    u, result = newton_krylov!(
+        log_residual!, copy(u₀), p; forcing = nothing,
+        linesearch! = AdmissibleLineSearch((u, p) -> false, BacktrackingLineSearch(; n_iter_max = 3))
+    )
+    @test result.status === :nonfinite
+    @test u ≈ u₀
+
+    # In admissible states, residuals that throw are still rejected by the backtracking:
+    # the full Newton step from x = 3 for log(x) = 0 goes to x ≈ -0.3, which this hook
+    # admits, but where `log` throws a `DomainError`
+    L!(res, x, _) = (res[1] = log(x[1]); nothing)
+    x, result = newton_krylov!(L!, [3.0]; linesearch! = AdmissibleLineSearch((u, p) -> u[1] > -1))
+    @test result.solved
+    @test x[1] ≈ 1
+    # and logged with the verbosity of `newton_krylov!`
+    @test_logs (:info, r"threw an exception") match_mode = :any newton_krylov!(
+        L!, [3.0]; linesearch! = AdmissibleLineSearch((u, p) -> u[1] > -1), verbose = 1
+    )
+
+    # The line search can be reused across solves
+    ls = AdmissibleLineSearch(positive)
+    for _ in 1:2
+        u, result = newton_krylov!(log_residual!, copy(u₀), p; forcing = nothing, linesearch! = ls)
+        @test result.solved
+        @test u ≈ ones(n) rtol = 1.0e-5
+    end
+
+    # The hooks get `Ariadne.user_parameters(p)`
+    struct Wrapped{P}
+        p::P
+    end
+    Ariadne.user_parameters(w::Wrapped) = w.p
+    W!(res, u, w::Wrapped) = log_residual!(res, u, w.p)
+    seen = Ref{Any}(nothing)
+    hook = (u, q) -> (seen[] = q; positive(u, q))
+    u, result = newton_krylov!(W!, copy(u₀), Wrapped(p); forcing = nothing, linesearch! = AdmissibleLineSearch(hook))
+    @test result.solved
+    @test seen[] === p
 end

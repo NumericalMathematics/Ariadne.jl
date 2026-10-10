@@ -1,21 +1,22 @@
 module LineSearches
 
 using LinearAlgebra
-import ..evaluate!
+import ..evaluate!, ..user_parameters
 
 """
     AbstractLineSearch
 
 Line search updates `ws.u` in-place along the Newton direction `d` and calls
 `evaluate!(ws)` to refresh `ws.res` and obtain the new residual norm.
-It returns `(norm_res, status)`: the residual norm of the new state and
-`status = :success`, or `:failed` if it did not find a step with sufficient decrease
-(and took its last trial step), which [`newton_krylov!`](@ref Ariadne.newton_krylov!) counts in
-`stats.linesearch_failures`.
+It returns `(norm_res, status, λ)`: the residual norm of the new state, `status = :success`,
+or `:failed` if it did not find a step with sufficient decrease (and took its last trial
+step), which [`newton_krylov!`](@ref Ariadne.newton_krylov!) counts in
+`stats.linesearch_failures`, and the step length `λ` of the new state `u + λ d`.
 
 ## Implemented variants
 - [`NoLineSearch`](@ref)
 - [`BacktrackingLineSearch`](@ref)
+- [`AdmissibleLineSearch`](@ref), which restricts another line search to admissible states
 
 ## Custom line searches
 ```julia
@@ -26,12 +27,15 @@ end
 function (ls::CustomLineSearch)(ws, norm_res_prior, d; verbose = 0)
     # update ws.u
     ws.u .+= d # for example, take the full Newton step
-    return evaluate!(ws), :success
+    return evaluate!(ws), :success, 1.0
 end
 ```
 
 A line search is called as `ls(ws, norm_res_prior, d; verbose)` and must accept the keyword
 argument `verbose`, the verbosity level of [`newton_krylov!`](@ref Ariadne.newton_krylov!).
+
+[`AdmissibleLineSearch`](@ref) uses the returned step length to undo failed steps of the line
+search it wraps without a copy of `u`.
 """
 abstract type AbstractLineSearch end
 
@@ -106,7 +110,7 @@ struct NoLineSearch <: AbstractLineSearch end
 
 function (::NoLineSearch)(ws, norm_res_prior, d; verbose = 0)
     ws.u .+= d
-    return evaluate!(ws), :success
+    return evaluate!(ws), :success, 1.0
 end
 
 """
@@ -170,7 +174,7 @@ function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d; verbose = 0)
     for iter in 2:ls.n_iter_max
         # Armijo condition
         if norm_res <= (1 - alpha * lambda) * norm_res_prior
-            return norm_res, :success
+            return norm_res, :success, lambda
         end
 
         if iter == 2 || !ls.parabolic
@@ -189,7 +193,90 @@ function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d; verbose = 0)
         ffc = norm_res^2
     end
     status = norm_res <= (1 - alpha * lambda) * norm_res_prior ? :success : :failed
-    return norm_res, status
+    return norm_res, status, lambda
+end
+
+"""
+    AdmissibleLineSearch(isadmissible, linesearch = BacktrackingLineSearch(); max_step = nothing)
+
+Restrict the line search `linesearch` to admissible states, e.g., states with positive
+density and pressure: a trial state `u` with `isadmissible(u, p) == false` counts as a
+trial state with infinite residual norm (without evaluating the residual), in the same
+way as a trial state whose residual throws a `DomainError` in
+[`BacktrackingLineSearch`](@ref). A backtracking line search then reduces the step length
+until the state is admissible.
+
+`p` are the parameters of the problem, `Ariadne.user_parameters(ws.p)` (solvers that wrap
+the parameters of the user, e.g., pseudo-transient continuation, extend `user_parameters`).
+
+The optional hook `max_step(u, d, p)` returns the largest step length allowed by the state
+`u` and the Newton direction `d`, e.g., to limit the relative change of the density and
+pressure per Newton step (solution update limiting); `d` is scaled by it (in place) before
+`linesearch` is called.
+
+If `linesearch` does not find an admissible state with finite residual, `u` is reset to the
+state before the step (by undoing the step `λ d` with the step length `λ` that `linesearch`
+returns, so no copy of `u` is needed) and the line search returns `(Inf, :failed, 0)`, so that
+[`newton_krylov!`](@ref Ariadne.newton_krylov!) stops with status `:nonfinite`.
+
+## Examples
+
+```julia
+positive(u, p) = all(>(0), u)
+AdmissibleLineSearch(positive) # backtracking until u > 0 and the Armijo condition hold
+AdmissibleLineSearch(positive, NoLineSearch(); max_step) # limited full steps only
+```
+"""
+struct AdmissibleLineSearch{A, L <: AbstractLineSearch, S} <: AbstractLineSearch
+    isadmissible::A
+    linesearch::L
+    max_step::S
+end
+
+function AdmissibleLineSearch(isadmissible, linesearch::AbstractLineSearch = BacktrackingLineSearch(); max_step = nothing)
+    return AdmissibleLineSearch(isadmissible, linesearch, max_step)
+end
+
+# The workspace seen by the inner line search: `evaluate!` returns `Inf` for inadmissible
+# states and evaluates the residual otherwise
+struct AdmissibleWorkspace{W, A, P}
+    ws::W
+    isadmissible::A
+    user_p::P # `user_parameters(ws.p)`, passed to `isadmissible`
+end
+
+# The properties of the workspace that line searches use
+function Base.getproperty(w::AdmissibleWorkspace, s::Symbol)
+    if s === :u || s === :res || s === :p
+        return getproperty(getfield(w, :ws), s)
+    end
+    return getfield(w, s)
+end
+
+function evaluate!(w::AdmissibleWorkspace)
+    if w.isadmissible(w.u, w.user_p)
+        return evaluate!(w.ws)
+    else
+        return float(real(eltype(w.u)))(Inf)
+    end
+end
+
+function (ls::AdmissibleLineSearch)(ws, norm_res_prior, d; verbose = 0)
+    aws = AdmissibleWorkspace(ws, ls.isadmissible, user_parameters(ws.p))
+    λ_max = one(real(eltype(d)))
+    if ls.max_step !== nothing
+        λ_max = clamp(ls.max_step(ws.u, d, aws.user_p), 0, 1)
+        λ_max < 1 && (d .*= λ_max)
+    end
+    norm_res, status, λ = ls.linesearch(aws, norm_res_prior, d; verbose)
+    if !isfinite(norm_res)
+        # No admissible state with finite residual: undo the step `u + λ d`
+        ws.u .= muladd.(-λ, d, ws.u)
+        evaluate!(ws)
+        return oftype(norm_res_prior, Inf), :failed, zero(λ)
+    end
+    # The step length with respect to the direction before the scaling by `max_step`
+    return norm_res, status, λ * λ_max
 end
 
 end # module LineSearches

@@ -486,9 +486,19 @@ end
 # LineSearches
 ##
 
+"""
+    Ariadne.user_parameters(p)
+
+The parameters of the user inside the parameters `p` of the residual of a
+[`NewtonKrylovWorkspace`](@ref), which are passed to the hooks of
+[`AdmissibleLineSearch`](@ref). Solvers that wrap the parameters of the user (e.g., in the
+residual of pseudo-transient continuation) extend it; by default, `p` itself.
+"""
+user_parameters(p) = p
+
 include("linesearches.jl")
-import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch
-export NoLineSearch, BacktrackingLineSearch
+import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch, AdmissibleLineSearch
+export NoLineSearch, BacktrackingLineSearch, AdmissibleLineSearch
 
 
 const KWARGS_DOCS = """
@@ -705,7 +715,7 @@ function newton_krylov!(
 
         # Perform line search to find an appropriate step size and update `u` and `res` in-place
         norm_res_prior = norm_res
-        norm_res, linesearch_status = linesearch!(ws, norm_res_prior, d; verbose)
+        norm_res, linesearch_status, _ = linesearch!(ws, norm_res_prior, d; verbose)
         linesearch_failed = linesearch_status === :failed
         verbose > 0 && linesearch_failed && @info "Line search found no sufficient decrease" norm_res norm_res_prior
 
