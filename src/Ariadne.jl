@@ -379,21 +379,25 @@ Statistics of a [`newton_krylov!`](@ref) solve.
 - `norm_res`: norm of the final residual (computed with the `norm` of the workspace)
 - `krylov_failures`: number of Newton iterations in which the Krylov solver did not
   reach its tolerance
+- `linesearch_failures`: number of Newton iterations in which the line search did not
+  find a step with sufficient decrease (and took its last trial step)
 """
 struct Stats{T <: Real}
     outer_iterations::Int
     inner_iterations::Int
     norm_res::T
     krylov_failures::Int
+    linesearch_failures::Int
 end
-Stats(outer_iterations, inner_iterations, norm_res) = Stats(outer_iterations, inner_iterations, norm_res, 0)
+Stats(outer_iterations, inner_iterations, norm_res) = Stats(outer_iterations, inner_iterations, norm_res, 0, 0)
 
-function update(stats::Stats, inner_iterations, norm_res, krylov_solved::Bool)
+function update(stats::Stats, inner_iterations, norm_res, krylov_solved::Bool, linesearch_failed::Bool = false)
     return Stats(
         stats.outer_iterations + 1,
         stats.inner_iterations + inner_iterations,
         norm_res,
-        stats.krylov_failures + !krylov_solved
+        stats.krylov_failures + !krylov_solved,
+        stats.linesearch_failures + linesearch_failed
     )
 end
 
@@ -692,9 +696,19 @@ end
 # LineSearches
 ##
 
+"""
+    Ariadne.user_parameters(p)
+
+The parameters of the user inside the parameters `p` of the residual of a
+[`NewtonKrylovWorkspace`](@ref), which are passed to the hooks of
+[`AdmissibleLineSearch`](@ref). Solvers that wrap the parameters of the user (e.g., in the
+residual of pseudo-transient continuation) extend it; by default, `p` itself.
+"""
+user_parameters(p) = p
+
 include("linesearches.jl")
-import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch
-export NoLineSearch, BacktrackingLineSearch
+import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch, AdmissibleLineSearch
+export NoLineSearch, BacktrackingLineSearch, AdmissibleLineSearch
 export AbstractPreconditioner, LaggedPreconditioner, refresh!, ScaledNorm
 
 
@@ -919,7 +933,7 @@ function newton_krylov!(
             evaluate!(ws)
             stats = Stats(
                 stats.outer_iterations, stats.inner_iterations + krylov_stats.niter,
-                norm_res, stats.krylov_failures + 1
+                norm_res, stats.krylov_failures + 1, stats.linesearch_failures
             )
             status = :krylov_failed
             verbose > 0 && @info "Krylov solver failed" krylov_stats.status
@@ -930,11 +944,13 @@ function newton_krylov!(
 
         # Perform line search to find an appropriate step size and update `u` and `res` in-place
         norm_res_prior = norm_res
-        norm_res = linesearch!(ws, norm_res_prior, d; verbose)
+        norm_res, linesearch_status = linesearch!(ws, norm_res_prior, d; verbose)
+        linesearch_failed = linesearch_status === :failed
+        verbose > 0 && linesearch_failed && @info "Line search found no sufficient decrease" norm_res norm_res_prior
 
         callback(ws.u, ws.res, norm_res)
 
-        stats = update(stats, krylov_stats.niter, norm_res, krylov_solved)
+        stats = update(stats, krylov_stats.niter, norm_res, krylov_solved, linesearch_failed)
 
         if !isfinite(norm_res)
             status = :nonfinite
