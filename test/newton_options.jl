@@ -98,6 +98,17 @@ end
         )
         @test result.stats.norm_res <= 0.5 * sqrt(2)
     end
+    # An exact right preconditioner stays exact in the scaled norm: one Krylov iteration
+    # solves the linear problem. Scaling only from the left, `S⁻¹ J N⁻¹ ≈ S⁻¹` would have
+    # the condition number of the scales (1e12 here) instead.
+    for algo in (:gmres, :fgmres), (ldiv, N) in ((true, Diagonal([1.0, 2.0])), (false, Diagonal([1.0, 0.5])))
+        _, result = newton_krylov!(
+            L!, [0.0, 0.0]; norm = n, forcing = Ariadne.Fixed(1.0e-10), max_niter = 1,
+            algo, N = _ -> N, krylov_kwargs = (; ldiv)
+        )
+        @test result.stats.inner_iterations == 1
+        @test result.stats.norm_res <= 1.0e-10 * sqrt(2)
+    end
     # The inner product `W = S⁻²` of the Krylov solver
     ws = NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2); norm = n)
     @test ws.W ≈ Diagonal([1.0e-12, 1.0e12])
