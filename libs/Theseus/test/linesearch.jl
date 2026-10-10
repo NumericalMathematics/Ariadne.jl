@@ -27,16 +27,25 @@ end
         (; epsilon)
     )
 
-    # The residual of the second stage equation is ~1/ε larger than the first one. In the
-    # Euclidean norm, the tolerance is below the rounding floor of the stiff row, and
-    # line searches cannot help.
+    # With the defaults, the rows of the stage residual are weighted by their stiffness
+    # (`newton_scaling = :jacobian`) and Newton stops at the rounding floor of the
+    # residual (`newton_tol_step`)
+    for dt in (0.02, 0.01, 0.005)
+        u1, u2 = solve(ode, Theseus.ARS443(); dt).u[end]
+        @test isapprox(u1, 1.5 * exp(-1); rtol = 1.0e-2)
+        @test isapprox(u2, u1^2; rtol = 1.0e-6)
+    end
+
+    # Without the scaling, the residual of the second stage equation is ~1/ε larger than
+    # the first one: the Newton tolerance is below the rounding floor of the stiff row, and
+    # line searches cannot help
     @test_throws ErrorException("Newton did not converge") solve(
-        ode, Theseus.ARS443(); dt = 0.02,
+        ode, Theseus.ARS443(); dt = 0.02, newton_scaling = :none, newton_tol_step = 0.0,
         newton_kwargs = (; linesearch! = BacktrackingLineSearch())
     )
 
-    # Weight the rows of the residual by their stiffness, in the norm of the termination
-    # criterion and (as its inner product) in GMRES
+    # User-provided scaling of the residual (rows weighted in the norm of the termination
+    # criterion and, as its inner product, in GMRES)
     scale = 1 / epsilon
     for dt in (0.02, 0.01), linesearch! in (NoLineSearch(), BacktrackingLineSearch())
         sol = solve(

@@ -51,6 +51,8 @@ mutable struct SimpleImplicitExplicitOptions{Callback}
     newton_tol_abs::Float64
     newton_tol_rel::Float64
     newton_max_niter::Int
+    newton_tol_step::Float64
+    newton_scaling::Symbol
     newton_kwargs::Any
     krylov_algo::Symbol
     krylov_kwargs::Any
@@ -63,6 +65,8 @@ function SimpleImplicitExplicitOptions(
         newton_tol_abs = 1.0e-6,
         newton_tol_rel = 1.0e-6,
         newton_max_niter = 50,
+        newton_tol_step = 1.0e-10,
+        newton_scaling = :jacobian,
         newton_kwargs = (;),
         krylov_algo = :gmres,
         krylov_kwargs = (;),
@@ -75,6 +79,8 @@ function SimpleImplicitExplicitOptions(
         newton_tol_abs,
         newton_tol_rel,
         newton_max_niter,
+        newton_tol_step,
+        newton_scaling,
         newton_kwargs,
         krylov_algo,
         krylov_kwargs,
@@ -274,14 +280,21 @@ function stage!(integrator, alg::RKIMEX)
             end
             F! = nonlinear_problem(alg, integrator.f1)
             # TODO: Pass in `stages[1:(stage-1)]` or full tuple?
+            newton_p = (integrator.tmp, integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, stage, integrator.RK)
+            scaling_kwargs = newton_scaling_kwargs(
+                integrator.opts.newton_scaling, F!, integrator.u_tmp, newton_p, integrator.res,
+                integrator.opts.krylov_kwargs, integrator.opts.newton_kwargs
+            )
             _, stats = newton_krylov!(
-                F!, integrator.u_tmp, (integrator.tmp, integrator.u, integrator.dt, integrator.du, integrator.du_tmp, integrator.p, integrator.t, stage, integrator.RK), integrator.res;
+                F!, integrator.u_tmp, newton_p, integrator.res;
                 verbose = integrator.opts.verbose,
                 tol_abs = integrator.opts.newton_tol_abs,
                 tol_rel = integrator.opts.newton_tol_rel,
                 max_niter = integrator.opts.newton_max_niter,
+                tol_step = integrator.opts.newton_tol_step,
                 algo = integrator.opts.krylov_algo,
                 krylov_kwargs = integrator.opts.krylov_kwargs,
+                scaling_kwargs...,
                 integrator.opts.newton_kwargs...,
             )
             if !stats.solved

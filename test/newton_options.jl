@@ -137,3 +137,31 @@ end
     @test Ariadne.variable_residual_ratio(res, res₀, 2) ≈ 0.5
     @test Ariadne.variable_residual_ratio(res, zeros(6), 2) == 0
 end
+
+@testset "step tolerance" begin
+    # A stiff row: one ulp of x[2] changes the residual by 1e13 ulp(0.25) ≈ 6e-4, more than the
+    # tolerance (rounding floor, as in the stage equations of #135)
+    R!(res, x, _) = (res[1] = x[1] - 0.5; res[2] = 1.0e13 * (x[2] - x[1]^2) - 1.0; nothing)
+    x_exact = [0.5, 0.25 + 1.0e-13]
+    kwargs = (; tol_abs = 1.0e-6, tol_rel = 0.0, forcing = nothing, max_niter = 20)
+    x, result = newton_krylov!(R!, [1.0, 2.0]; kwargs...)
+    @test result.status === :max_iterations && !result.solved
+    @test x ≈ x_exact # at the solution, but above the tolerance
+    x, result = newton_krylov!(R!, [1.0, 2.0]; tol_step = 1.0e-10, kwargs...)
+    @test result.status === :small_step && result.solved
+    @test result.stats.outer_iterations < 20
+    @test x ≈ x_exact
+    @test result.stats.norm_res > 1.0e-6
+
+    # Regular convergence is unaffected
+    x, result = newton_krylov!(F!, [2.0, 0.5]; tol_step = 1.0e-10)
+    @test result.status === :converged && result.solved
+
+    # Small steps away from a solution do not count: the Krylov solver must have reached
+    # its tolerance (here it fails, the Newton steps are tiny, and the residual stays)
+    x, result = newton_krylov!(
+        R!, [1.0, 2.0]; tol_step = 1.0, tol_abs = 1.0e-6, tol_rel = 0.0, max_niter = 3,
+        krylov_kwargs = (; itmax = 1, rtol = 1.0e-14, atol = 0.0), forcing = nothing
+    )
+    @test result.status !== :small_step
+end

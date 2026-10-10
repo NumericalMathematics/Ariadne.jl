@@ -78,6 +78,22 @@ Theseus.SSPKnoth
 Theseus.ROS2
 ```
 
+## Newton options
+
+The implicit stages of the DIRK and IMEX methods are solved by `newton_krylov!` with the
+keyword arguments `newton_tol_abs = 1e-6`, `newton_tol_rel = 1e-6`,
+`newton_max_niter = 50`, `newton_tol_step = 1e-10` (passed as `tol_step`), `krylov_algo`,
+`krylov_kwargs`, and any further `newton_kwargs` (e.g., a line search) of `solve`.
+
+By default (`newton_scaling = :jacobian`), the rows of the stage residuals are weighted by
+their stiffness, so that rows of very different stiffness, e.g., a stiff relaxation term
+next to a non-stiff equation, are all resolved to the Newton tolerance. Use
+`newton_scaling = :none` to disable this, or pass a `norm` in `newton_kwargs`.
+
+```@docs
+Theseus.newton_scaling_kwargs
+```
+
 ## Utilities
 
 ```@docs
