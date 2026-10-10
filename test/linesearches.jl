@@ -85,7 +85,7 @@ end
     # Custom line searches get the verbosity level
     seen_verbose = Ref(-1)
     struct FullStep <: Ariadne.LineSearches.AbstractLineSearch end
-    (::FullStep)(ws, norm_res_prior, d; verbose = 0) = (seen_verbose[] = verbose; ws.u .+= d; Ariadne.evaluate!(ws))
+    (::FullStep)(ws, norm_res_prior, d; verbose = 0) = (seen_verbose[] = verbose; ws.u .+= d; (Ariadne.evaluate!(ws), :success))
     _, result = newton_krylov!((res, x, _) -> (res .= x .- 1; nothing), [3.0]; linesearch! = FullStep(), verbose = 1)
     @test result.solved
     @test seen_verbose[] == 1
@@ -102,4 +102,55 @@ end
     @test Ariadne.LineSearches.matches_exception(DomainError(1), (DomainError,))
     @test !Ariadne.LineSearches.matches_exception(ArgumentError(""), (DomainError,))
     @test !Ariadne.LineSearches.matches_exception(CompositeException(), (DomainError,))
+end
+
+@testset "BacktrackingLineSearch failures and parabolic step" begin
+    parabolic_step = Ariadne.LineSearches.parabolic_step
+    # Exact for a parabola: ff(λ) = (λ - 0.3)^2 + 0.91 has its minimum at λ = 0.3
+    ff(λ) = (λ - 0.3)^2 + 0.91
+    @test parabolic_step(1.0, 2.0, ff(0.0), ff(1.0), ff(2.0)) ≈ 0.3
+    # The step is clamped to [0.1 λc, 0.5 λc]
+    @test parabolic_step(0.5, 1.0, ff(0.0), ff(0.5), ff(1.0)) ≈ 0.25
+    ff_low(λ) = (λ - 0.01)^2
+    @test parabolic_step(1.0, 2.0, ff_low(0.0), ff_low(1.0), ff_low(2.0)) ≈ 0.1
+    # Negative curvature (no minimum): the smallest step length 0.1 λc
+    @test parabolic_step(1.0, 2.0, 1.0, 2.0, 1.0) ≈ 0.1
+    @test parabolic_step(0.5, 1.0, 1.0, 2.0, 1.0) ≈ 0.05
+    # Non-finite residuals, e.g., from a trial state that threw: halve
+    @test parabolic_step(1.0, 2.0, 1.0, Inf, 4.0) == 0.5
+    @test parabolic_step(1.0, 2.0, 1.0, 4.0, Inf) == 0.5
+
+    # The full Newton step for atan(x) = 0 from x = 3 overshoots to |x| > 3, where
+    # |atan(x)| is larger, so a single trial cannot satisfy the Armijo condition
+    A!(res, x, _) = (res[1] = atan(x[1]); nothing)
+    _, result = newton_krylov!(
+        A!, [3.0]; linesearch! = BacktrackingLineSearch(; n_iter_max = 1), max_niter = 1
+    )
+    @test result.stats.linesearch_failures == 1
+    @test result.status === :max_iterations
+
+    for parabolic in (true, false)
+        x, result = newton_krylov!(A!, [3.0]; linesearch! = BacktrackingLineSearch(; parabolic))
+        @test result.solved
+        @test abs(x[1]) < 1.0e-6
+        @test result.stats.linesearch_failures == 0
+    end
+
+    # Line searches return the residual norm and a status
+    ws = NewtonKrylovWorkspace(A!, [3.0], nothing, zeros(1))
+    norm_res_prior = Ariadne.evaluate!(ws)
+    d = [-atan(3.0) * (1 + 3.0^2)] # Newton direction at x = 3
+    norm_res, status = BacktrackingLineSearch(; n_iter_max = 1)(ws, norm_res_prior, copy(d))
+    @test status === :failed
+    @test norm_res > norm_res_prior
+    ws.u .= 3.0
+    norm_res, status = BacktrackingLineSearch()(ws, norm_res_prior, copy(d))
+    @test status === :success
+    @test norm_res < norm_res_prior
+    ws.u .= 3.0
+    @test NoLineSearch()(ws, norm_res_prior, copy(d))[2] === :success
+
+    # Without a line search, no failures are reported
+    _, result = newton_krylov!(A!, [3.0]; linesearch! = NoLineSearch(), max_niter = 3)
+    @test result.stats.linesearch_failures == 0
 end

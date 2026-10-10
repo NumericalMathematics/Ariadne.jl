@@ -16,6 +16,7 @@ NewtonKrylovWorkspace
 Ariadne.LineSearches.AbstractLineSearch
 NoLineSearch
 BacktrackingLineSearch
+Ariadne.LineSearches.parabolic_step
 ```
 
 ### Statistics
