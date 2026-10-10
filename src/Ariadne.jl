@@ -701,7 +701,7 @@ function newton_krylov!(
 
         # Perform line search to find an appropriate step size and update `u` and `res` in-place
         norm_res_prior = norm_res
-        norm_res = LineSearches.call_linesearch(linesearch!, ws, norm_res_prior, d, verbose)
+        norm_res = linesearch!(ws, norm_res_prior, d; verbose)
 
         callback(ws.u, ws.res, norm_res)
 

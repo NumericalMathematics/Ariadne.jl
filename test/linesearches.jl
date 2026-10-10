@@ -82,11 +82,13 @@ end
         L!, [3.0]; linesearch! = BacktrackingLineSearch()
     )
     @test_logs min_level = Base.CoreLogging.Info newton_krylov!(L!, [3.0]; linesearch! = BacktrackingLineSearch())
-    # Custom line searches without the `verbose` keyword still work
+    # Custom line searches get the verbosity level
+    seen_verbose = Ref(-1)
     struct FullStep <: Ariadne.LineSearches.AbstractLineSearch end
-    (::FullStep)(ws, _, d) = (ws.u .+= d; Ariadne.evaluate!(ws))
+    (::FullStep)(ws, _, d; verbose = 0) = (seen_verbose[] = verbose; ws.u .+= d; Ariadne.evaluate!(ws))
     _, result = newton_krylov!((res, x, _) -> (res .= x .- 1; nothing), [3.0]; linesearch! = FullStep(), verbose = 1)
     @test result.solved
+    @test seen_verbose[] == 1
 
     # Other exceptions are rethrown
     E!(res, x, _) = (x[1] < 0 && throw(ArgumentError("negative")); res[1] = log(abs(x[1])); nothing)
