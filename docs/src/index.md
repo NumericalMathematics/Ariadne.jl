@@ -37,6 +37,7 @@ Ariadne.EisenstatWalker
 ```@docs
 SparseJacobian
 assemble!
+PerTaskParameters
 Ariadne.jacobian_sparsity
 ```
 
