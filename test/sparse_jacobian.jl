@@ -60,6 +60,11 @@ dense_jacobian(f!, u, p) = collect(Ariadne.JacobianOperator(f!, zeros(length(u))
     # Coloring algorithms of SparseMatrixColorings.jl and given colors
     A = SparseJacobian(bratu2d!, zeros(n), u, p, pattern; coloring = GreedyColoringAlgorithm(LargestFirst()))
     @test assemble!(A) ≈ J_dense
+    # The best of several orders
+    orders = (NaturalOrder(), LargestFirst(), SmallestLast(), IncidenceDegree(), DynamicLargestFirst())
+    A = SparseJacobian(bratu2d!, zeros(n), u, p, pattern; coloring = GreedyColoringAlgorithm(orders))
+    @test ncolors(A.coloring) <= ncolors(SparseJacobian(bratu2d!, zeros(n), u, p, pattern).coloring)
+    @test assemble!(A) ≈ J_dense
     colors = column_colors(A.coloring)
     A = SparseJacobian(bratu2d!, zeros(n), u, p, pattern; coloring = colors)
     @test column_colors(A.coloring) == colors

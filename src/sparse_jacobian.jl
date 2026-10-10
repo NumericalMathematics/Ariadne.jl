@@ -1,5 +1,5 @@
 ##
-# Assembled sparse Jacobians by colored (batched) forward-mode AD with Enzyme
+# Assembled sparse Jacobians by colored (batched) AD with Enzyme
 ##
 
 """
@@ -23,7 +23,7 @@ function jacobian_sparsity end
 
 Workspace for the assembly of the sparse Jacobian `∂f/∂u` of the in-place function
 `f!(res, u, p)` at the state `u` with the sparsity `pattern` (any matrix whose structural
-nonzeros are the possible nonzeros of the Jacobian), by colored forward-mode AD. `res` is a
+nonzeros are the possible nonzeros of the Jacobian), by colored AD. `res` is a
 residual buffer. The Jacobian operator aliases `u` and `p`: [`assemble!`](@ref) assembles
 the Jacobian at their current values, so mutate them in place between assemblies.
 
@@ -39,7 +39,10 @@ versions or for `batchsize = 1` one [`JacobianOperator`](@ref) product per color
   are symmetric (the `pattern` must be symmetric), which needs fewer colors.
 `coloring` is a coloring algorithm of SparseMatrixColorings.jl (e.g.,
 `GreedyColoringAlgorithm(LargestFirst())`) or a vector with the color of each column (row).
-The coloring is computed once and reused for all assemblies.
+With a tuple of orders, e.g., `GreedyColoringAlgorithm((NaturalOrder(), LargestFirst(),
+SmallestLast(), IncidenceDegree(), DynamicLargestFirst()))`, the coloring with the fewest
+colors is kept (for the 5-point Laplacian on a 60 × 60 grid, 5 instead of the 7 colors of
+the default natural order). The coloring is computed once and reused for all assemblies.
 
 The diagonal is always included in the pattern of square Jacobians, so that
 `Diagonal(d) - J` has the same pattern.
@@ -82,7 +85,7 @@ function num_colors end
     assemble!(A::SparseJacobian) -> A.J
 
 Assemble the sparse Jacobian `∂f/∂u` of `f!(res, u, p)` at the current state `u` (and
-parameters `p`) of `A` into `A.J` by colored forward-mode AD.
+parameters `p`) of `A` into `A.J` by colored AD.
 """
 function assemble! end
 
