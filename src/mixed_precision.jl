@@ -17,8 +17,12 @@ over columns with `Threads.@threads` if `threaded` is `true`.
 
 Types whose arithmetic uses global state (for example the random number generator
 of StochasticRounding.jl) must be factored with `threaded = false`.
+
+Matrices that are not `Array`s (e.g. GPU arrays) are factored by [`Ariadne.array_lu!`](@ref)
+for every element type.
 """
 function lu_in_precision!(A::AbstractMatrix{T}; threaded::Bool = true) where {T}
+    A isa Array || return array_lu!(A)
     if T <: LinearAlgebra.BlasFloat
         return lu!(A; check = false)
     end
@@ -74,6 +78,116 @@ end
 end
 
 """
+    Ariadne.array_lu!(A::AbstractMatrix{T}) -> LU{T}
+
+LU factorization with partial pivoting of `A` in place, written with array operations
+(`findmax`, broadcasts over views) instead of scalar loops, so that it works for any
+array type that supports them, e.g. GPU arrays, and any element type `T`. Every entry
+sees the operations of `LinearAlgebra.generic_lufact!` in the same order, each rounded
+to `T`. It launches `O(n)` broadcasts of `O(n²)` work and reads one pivot per column
+back to the host.
+"""
+function array_lu!(A::AbstractMatrix{T}) where {T}
+    m, n = size(A)
+    minmn = min(m, n)
+    info = 0
+    ipiv = Vector{LinearAlgebra.BlasInt}(undef, minmn)
+    row = similar(A, n)
+    for k in 1:minmn
+        # Pivot: the first entry of largest magnitude in column k
+        _, i = findmax(abs, view(A, k:m, k))
+        kp = k + i - 1
+        ipiv[k] = kp
+        pivot = only(Array(view(A, kp:kp, k)))
+        if !iszero(pivot)
+            if kp != k
+                row .= view(A, k, :)
+                view(A, k, :) .= view(A, kp, :)
+                view(A, kp, :) .= row
+            end
+            Akkinv = inv(pivot)
+            view(A, (k + 1):m, k) .*= Akkinv
+        elseif info == 0
+            info = k
+        end
+        if k < m && k < n
+            L = view(A, (k + 1):m, k)
+            U = view(A, k, (k + 1):n)
+            view(A, (k + 1):m, (k + 1):n) .-= L .* transpose(U)
+        end
+    end
+    return LU{T, typeof(A), typeof(ipiv)}(A, ipiv, LinearAlgebra.BlasInt(info))
+end
+
+# The permutation `p` with `x[p] == P x` for the row interchanges `ipiv` of an LU
+function ipiv_to_perm(ipiv, n)
+    p = collect(1:n)
+    for (k, kp) in enumerate(ipiv)
+        p[k], p[kp] = p[kp], p[k]
+    end
+    return p
+end
+
+"""
+    Ariadne.default_triangular_solves(A)
+
+How [`MixedPrecisionLU`](@ref) solves with the triangular factors stored in a matrix like
+`A`: `:stdlib` (`LinearAlgebra.ldiv!` with an `LU`, LAPACK for BLAS floats) for `Array`s,
+`:array` (column-oriented substitutions with broadcasts over views) otherwise, and
+`:nextla` (recursive TRSM of NextLA.jl) for non-`Array`s if NextLA.jl is loaded.
+"""
+default_triangular_solves(A::Matrix) = :stdlib
+default_triangular_solves(A) = :array
+
+"""
+    Ariadne.triangular_solves!(::Val{method}, S, x)
+
+Solves `L U x = x` in place with the triangular factors of the LU solver `S` (unit lower `L`
+and upper `U` stored in `S.F.factors`) after the row interchanges are applied, see
+[`Ariadne.default_triangular_solves`](@ref).
+"""
+function triangular_solves!(::Val{:array}, S, x)
+    LU = S.F.factors
+    n = length(x)
+    for k in 1:(n - 1)
+        view(x, (k + 1):n) .-= view(LU, (k + 1):n, k) .* view(x, k:k)
+    end
+    for k in n:-1:1
+        view(x, k:k) ./= view(LU, k:k, k)
+        view(x, 1:(k - 1)) .-= view(LU, 1:(k - 1), k) .* view(x, k:k)
+    end
+    return x
+end
+
+# LU factorization for the solves of `MixedPrecisionLU`
+struct LUSolver{F, P, B, L}
+    F::F # LinearAlgebra.LU
+    perm::P # permutation on the device of the factors, or `nothing` for :stdlib
+    method::Symbol
+    buffer::B
+    L::L # additional data of the method, e.g. a copy of L with an explicit unit diagonal
+end
+
+function LUSolver(F::LU, method::Symbol)
+    if method === :stdlib
+        return LUSolver(F, nothing, method, nothing, nothing)
+    end
+    n = size(F.factors, 1)
+    perm = similar(F.factors, Int, n)
+    copyto!(perm, ipiv_to_perm(F.ipiv, n))
+    return LUSolver(F, perm, method, similar(F.factors, n), solver_data(Val(method), F))
+end
+solver_data(::Val, F) = nothing
+
+function solve!(S::LUSolver, x::AbstractVector)
+    S.method === :stdlib && return ldiv!(S.F, x)
+    S.buffer .= view(x, S.perm)
+    triangular_solves!(Val(S.method), S, S.buffer)
+    x .= S.buffer
+    return x
+end
+
+"""
     Ariadne.round_to(T, x)
 
 Rounds `x` to the precision `T`. Defaults to `T(x)`; add methods for number types
@@ -83,7 +197,7 @@ round_to(::Type{T}, x) where {T} = T(x)
 
 """
     MixedPrecisionLU(A; factor_precision = eltype(A), solve_precision = factor_precision,
-                     threaded = true)
+                     threaded = true, triangular_solves = Ariadne.default_triangular_solves(A))
 
 The Jacobian `A` stored in the precision `eltype(A)` together with an LU
 factorization of `A` rounded to `factor_precision`.
@@ -102,8 +216,12 @@ If `solve_precision != factor_precision`, the factors are converted once to
 triangular solves see the values of the low-precision factors but compute in
 `solve_precision`. GMRES-IR needs this.
 
-`A` is kept as the operator for iterative refinement (see [`IterativeRefinement`](@ref)
-and [`GMRESIR`](@ref)).
+`A` is kept as the operator for iterative refinement (see
+[`IterativeRefinementWorkspace`](@ref) and [`GMRESIRWorkspace`](@ref)).
+
+`A` can be any matrix type with broadcasting, e.g. a GPU array: the factorization is then
+computed by [`Ariadne.array_lu!`](@ref), and `triangular_solves` selects how the
+triangular systems are solved, see [`Ariadne.default_triangular_solves`](@ref).
 """
 struct MixedPrecisionLU{TA, TF, TS, MA <: AbstractMatrix{TA}, LF, LS, V}
     A::MA
@@ -115,16 +233,22 @@ end
 function MixedPrecisionLU(
         A::AbstractMatrix{TA}; factor_precision::Type = TA,
         solve_precision::Type = factor_precision, threaded::Bool = true,
+        triangular_solves::Symbol = default_triangular_solves(A),
     ) where {TA}
     TF = factor_precision
     TS = solve_precision
-    F = lu_in_precision!(Matrix{TF}(A); threaded)
+    AF = similar(A, TF)
+    AF .= round_to.(TF, A)
+    F = lu_in_precision!(AF; threaded)
     if TS === TF
-        S = F
+        FS = F
     else
-        S = LU{TS, Matrix{TS}, typeof(F.ipiv)}(Matrix{TS}(F.factors), F.ipiv, F.info)
+        factors = similar(F.factors, TS)
+        factors .= F.factors
+        FS = LU{TS, typeof(factors), typeof(F.ipiv)}(factors, F.ipiv, F.info)
     end
-    buffer = Vector{TS}(undef, size(A, 1))
+    S = LUSolver(FS, triangular_solves)
+    buffer = similar(A, TS, size(A, 1))
     return MixedPrecisionLU{TA, TF, TS, typeof(A), typeof(F), typeof(S), typeof(buffer)}(A, F, S, buffer)
 end
 
@@ -138,7 +262,7 @@ function LinearAlgebra.ldiv!(y::AbstractVector, P::MixedPrecisionLU, x::Abstract
     TS = solve_precision(P)
     if eltype(x) === TS
         y === x || copyto!(y, x)
-        ldiv!(P.solver, y)
+        solve!(P.solver, y)
         return y
     end
     s = norm(x, Inf)
@@ -148,7 +272,7 @@ function LinearAlgebra.ldiv!(y::AbstractVector, P::MixedPrecisionLU, x::Abstract
     end
     b = P.buffer
     b .= round_to.(TS, x ./ s)
-    ldiv!(P.solver, b)
+    solve!(P.solver, b)
     y .= s .* b
     return y
 end

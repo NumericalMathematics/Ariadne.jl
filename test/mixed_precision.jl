@@ -51,7 +51,7 @@ end
     # Factors promoted to single precision for the solves
     Q = MixedPrecisionLU(Matrix{Float32}(A); factor_precision = Float16, solve_precision = Float32)
     @test Ariadne.solve_precision(Q) == Float32
-    @test Q.solver.factors == Float32.(P.factors.factors)
+    @test Q.solver.F.factors == Float32.(P.factors.factors)
     @test norm(Q \ Float32.(b) - x) / norm(x) < 1.0e-2
 end
 
