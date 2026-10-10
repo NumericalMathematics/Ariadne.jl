@@ -38,9 +38,6 @@ Ariadne.EisenstatWalker
 SparseJacobian
 assemble!
 Ariadne.jacobian_sparsity
-greedy_column_coloring
-is_column_coloring
-Ariadne.column_coloring_lower_bound
 ```
 
 ### Internal

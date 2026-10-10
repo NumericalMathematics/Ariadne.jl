@@ -3,7 +3,7 @@ using Ariadne
 using LinearAlgebra
 using SparseArrays
 using SparseConnectivityTracer
-using Random
+using SparseMatrixColorings
 
 # Steady state of the 2D Bratu problem du/dt = Δu + λ exp(u) on an m × m grid
 function bratu2d!(du, u, p)
@@ -27,6 +27,8 @@ function laplace_pattern(m)
     return kron(sparse(I, m, m), T) + kron(T, sparse(I, m, m)) .!= 0
 end
 
+dense_jacobian(f!, u, p) = collect(Ariadne.JacobianOperator(f!, zeros(length(u)), copy(u), p))
+
 @testset "Coloring and assembly" begin
     m = 8
     n = m^2
@@ -37,44 +39,41 @@ end
     detected = Ariadne.jacobian_sparsity(bratu2d!, rand(n), p)
     @test (detected .!= 0) == pattern
 
-    colors = greedy_column_coloring(pattern)
-    @test maximum(colors) <= 8 # optimal: 5
-    # Columns of the same color are structurally orthogonal
-    for c in 1:maximum(colors)
-        cols = findall(==(c), colors)
-        @test all(<=(1), sum(pattern[:, cols]; dims = 2))
-    end
-
     u = 0.1 * rand(n)
-    J_dense = collect(Ariadne.JacobianOperator(bratu2d!, zeros(n), u, p))
+    J_dense = dense_jacobian(bratu2d!, u, p)
     for batchsize in (1, 4, 8)
-        A = SparseJacobian(pattern; batchsize)
-        J = assemble!(A, bratu2d!, u, p)
+        A = SparseJacobian(bratu2d!, zeros(n), u, p, pattern; batchsize)
+        @test A.operator isa Ariadne.AbstractJacobianOperator
+        @test 5 <= ncolors(A.coloring) <= 8 # optimal: 5
+        J = assemble!(A)
         @test J ≈ J_dense
         @test J isa SparseMatrixCSC{Float64, Int}
         @test nnz(J) == nnz(pattern)
         @test A.n_assemblies == 1
         @test A.missed_entries == 0
-        # with given colors
-        A = SparseJacobian(pattern; batchsize, colors)
-        @test assemble!(A, bratu2d!, u, p) ≈ J_dense
-        # repeated assembly reuses the cached operator
-        u2 = 0.2 * rand(n)
-        @test assemble!(A, bratu2d!, u2, p) ≈ collect(Ariadne.JacobianOperator(bratu2d!, zeros(n), u2, p))
+        # the Jacobian operator aliases `u`: assemble at another state
+        u .= 0.2 .* rand.()
+        @test assemble!(A) ≈ dense_jacobian(bratu2d!, u, p)
+        u .= 0.1 .* rand.()
+        J_dense = dense_jacobian(bratu2d!, u, p)
     end
-    # Colors from a function of the pattern
-    A = SparseJacobian(pattern; colors = P -> greedy_column_coloring(P; order = :largest_first))
-    @test assemble!(A, bratu2d!, u, p) ≈ J_dense
+    # Coloring algorithms of SparseMatrixColorings.jl and given colors
+    A = SparseJacobian(bratu2d!, zeros(n), u, p, pattern; coloring = GreedyColoringAlgorithm(LargestFirst()))
+    @test assemble!(A) ≈ J_dense
+    colors = column_colors(A.coloring)
+    A = SparseJacobian(bratu2d!, zeros(n), u, p, pattern; coloring = colors)
+    @test column_colors(A.coloring) == colors
+    @test assemble!(A) ≈ J_dense
+    # Invalid colors: two neighbors with the same color
+    @test_throws Exception SparseJacobian(bratu2d!, zeros(n), u, p, pattern; coloring = ones(Int, n))
     # The diagonal is always part of the pattern
-    A = SparseJacobian(spzeros(Bool, n, n))
+    A = SparseJacobian(bratu2d!, zeros(n), u, p, spzeros(Bool, n, n))
     @test nnz(A.J) == n
 
-    # Assembly from a JacobianOperator
-    A = SparseJacobian(pattern)
-    @test assemble!(A, Ariadne.JacobianOperator(bratu2d!, zeros(n), u, p)) ≈ J_dense
-
     # The assembled Jacobian as a preconditioner for Newton-Krylov
-    P = LinearAlgebra.lu(assemble!(SparseJacobian(pattern), bratu2d!, zeros(n), p))
+    u = zeros(n)
+    A = SparseJacobian(bratu2d!, zeros(n), u, p, pattern)
+    P = lu(assemble!(A))
     _, plain = newton_krylov!(bratu2d!, zeros(n), p; forcing = Ariadne.Fixed(1.0e-6))
     _, prec = newton_krylov!(
         bratu2d!, zeros(n), p; forcing = Ariadne.Fixed(1.0e-6), N = J -> P,
@@ -82,26 +81,6 @@ end
     )
     @test plain.solved && prec.solved
     @test prec.stats.inner_iterations < plain.stats.inner_iterations
-end
-
-@testset "Column coloring" begin
-    for pattern in (laplace_pattern(8), sprand(Random.Xoshiro(1), Bool, 200, 150, 0.03), spzeros(Bool, 5, 5))
-        n = size(pattern, 2)
-        lb = Ariadne.column_coloring_lower_bound(pattern)
-        for order in (:natural, :reverse, :largest_first, randperm(Random.Xoshiro(2), n))
-            colors = greedy_column_coloring(pattern; order)
-            @test is_column_coloring(pattern, colors)
-            @test maximum(colors; init = 0) >= lb
-        end
-        colors = greedy_column_coloring(pattern)
-        ptr, cols = Ariadne.color_groups(colors)
-        @test sort(cols) == 1:n
-        @test all(colors[cols[ptr[c]:(ptr[c + 1] - 1)]] == fill(c, ptr[c + 1] - ptr[c]) for c in 1:(length(ptr) - 1))
-    end
-    pattern = laplace_pattern(8)
-    @test is_column_coloring(pattern, ones(Int, 64)) == false
-    @test is_column_coloring(pattern, collect(1:63)) == false
-    @test_throws ArgumentError greedy_column_coloring(pattern; order = :unknown)
 end
 
 # Bratu with a branch: the coupling to the right neighbor only exists for u[i] > 0
@@ -121,25 +100,23 @@ end
     n = m^2
     p = (; λ = 2.0, m)
     pattern = laplace_pattern(m)
-    u_neg = fill(-0.1, n)
-    u_pos = fill(0.1, n)
-    # The local pattern at u_neg misses the u[i + 1]^2 terms of u_pos
+    # The local pattern at u < 0 misses the u[i + 1]^2 terms at u > 0
     # (except where i + 1 is already a neighbor)
-    P_neg = Ariadne.jacobian_sparsity(bratu_branch!, u_neg, p; detector = TracerLocalSparsityDetector())
+    P_neg = Ariadne.jacobian_sparsity(bratu_branch!, fill(-0.1, n), p; detector = TracerLocalSparsityDetector())
     @test (P_neg .!= 0) == pattern
     for batchsize in (1, 4)
-        A = SparseJacobian(P_neg; batchsize)
-        J_dense = collect(Ariadne.JacobianOperator(bratu_branch!, zeros(n), u_neg, p))
-        @test assemble!(A, bratu_branch!, u_neg, p) ≈ J_dense
+        u = fill(-0.1, n)
+        A = SparseJacobian(bratu_branch!, zeros(n), u, p, P_neg; batchsize)
+        @test assemble!(A) ≈ dense_jacobian(bratu_branch!, u, p)
         @test A.missed_entries == 0
-        J_dense = collect(Ariadne.JacobianOperator(bratu_branch!, zeros(n), u_pos, p))
-        J = @test_logs (:warn,) match_mode = :any assemble!(A, bratu_branch!, u_pos, p)
+        u .= 0.1
+        J = @test_logs (:warn,) match_mode = :any assemble!(A)
         @test A.missed_entries > 0
         @test A.missed_max ≈ 0.2
-        @test !(J ≈ J_dense)
+        @test !(J ≈ dense_jacobian(bratu_branch!, u, p))
         # without the check
-        A = SparseJacobian(P_neg; batchsize, check_pattern = false)
-        assemble!(A, bratu_branch!, u_pos, p)
+        A = SparseJacobian(bratu_branch!, zeros(n), u, p, P_neg; batchsize, check_pattern = false)
+        assemble!(A)
         @test A.missed_entries == 0
     end
 end

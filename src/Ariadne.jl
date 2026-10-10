@@ -5,6 +5,8 @@ export newton_krylov, newton_krylov!, NewtonKrylovWorkspace
 using Krylov
 using LinearAlgebra, SparseArrays
 using Enzyme
+using SparseMatrixColorings: SparseMatrixColorings, ColoringProblem, GreedyColoringAlgorithm,
+    ConstantColoringAlgorithm, column_groups, ncolors, decompress_single_color!
 
 ##
 # JacobianOperator
@@ -735,8 +737,7 @@ end
 # Sparse Jacobians
 ##
 
-include("coloring.jl")
 include("sparse_jacobian.jl")
-export SparseJacobian, assemble!, greedy_column_coloring, is_column_coloring
+export SparseJacobian, assemble!
 
 end # module Ariadne

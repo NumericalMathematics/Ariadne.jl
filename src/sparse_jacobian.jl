@@ -17,18 +17,22 @@ pass it to [`SparseJacobian`](@ref).
 function jacobian_sparsity end
 
 """
-    SparseJacobian(pattern; colors = nothing, batchsize = 8, check_pattern = true)
+    SparseJacobian(f!, res, u, p, pattern; coloring = GreedyColoringAlgorithm(),
+                   batchsize = 8, check_pattern = true)
 
-Workspace for the assembly of the sparse Jacobian `∂f/∂u` of an in-place function
-`f!(res, u, p)` with the sparsity `pattern` (any matrix whose structural nonzeros are the
-possible nonzeros of the Jacobian). The columns are grouped by the column `colors` and
+Workspace for the assembly of the sparse Jacobian `∂f/∂u` of the in-place function
+`f!(res, u, p)` at the state `u` with the sparsity `pattern` (any matrix whose structural
+nonzeros are the possible nonzeros of the Jacobian), by colored forward-mode AD. `res` is a
+residual buffer. The Jacobian operator aliases `u` and `p`: [`assemble!`](@ref) assembles
+the Jacobian at their current values, so mutate them in place between assemblies.
+
+The columns are grouped by a distance-2 column coloring of SparseMatrixColorings.jl, and
 `batchsize` colors are computed together by one batched forward-mode Enzyme.jl pass
-([`BatchedJacobianOperator`](@ref), Julia ≥ 1.11; on older versions or for
-`batchsize = 1` one [`JacobianOperator`](@ref) product per color is used).
-
-`colors` is a vector with the color of each column, a function `pattern -> colors`, or
-`nothing` for [`greedy_column_coloring`](@ref). See SparseMatrixColorings.jl for
-colorings with fewer colors. The coloring is computed once and reused for all assemblies.
+([`BatchedJacobianOperator`](@ref), Julia ≥ 1.11; on older versions or for `batchsize = 1`
+one [`JacobianOperator`](@ref) product per color is used). `coloring` is a coloring
+algorithm of SparseMatrixColorings.jl (e.g., `GreedyColoringAlgorithm(LargestFirst())`) or a
+vector with the color of each column. The coloring is computed once and reused for all
+assemblies.
 
 The diagonal is always included in the pattern of square Jacobians, so that
 `Diagonal(d) - J` has the same pattern.
@@ -39,20 +43,16 @@ Jacobian (e.g., a pattern detected at a different state for a function with bran
 These entries are dropped from `A.J`; their number and largest magnitude in the last
 assembly are `A.missed_entries` and `A.missed_max`.
 
-Use [`assemble!`](@ref) to compute the Jacobian, which is stored in `A.J`.
+The Jacobian is stored in `A.J`.
 """
-mutable struct SparseJacobian{T, BS}
+mutable struct SparseJacobian{T, BS, Op <: AbstractJacobianOperator, R}
     const J::SparseMatrixCSC{T, Int}
-    const colors::Vector{Int}
-    const ncolors::Int
-    # columns of color `c`: `color_cols[color_ptr[c]:(color_ptr[c + 1] - 1)]`
-    const color_ptr::Vector{Int}
-    const color_cols::Vector{Int}
+    const operator::Op # (Batched)JacobianOperator of `f!` at `u` and `p`
+    const coloring::R # column coloring of SparseMatrixColorings.jl
     const seeds::Matrix{T}
     const compressed::Matrix{T}
     const covered::Vector{Int} # covered[i] == c: row `i` is covered by a column of color `c`
     const check_pattern::Bool
-    operator::Any # cached (Batched)JacobianOperator for the last (f!, u, p)
     n_assemblies::Int
     time::Float64
     missed_entries::Int
@@ -60,70 +60,48 @@ mutable struct SparseJacobian{T, BS}
 end
 
 function SparseJacobian(
-        pattern::AbstractMatrix; colors = nothing, batchsize::Integer = 8,
-        eltype::Type{T} = Float64, check_pattern::Bool = true
-    ) where {T}
-    pattern = bool_pattern(pattern)
-    m, n = size(pattern)
+        f!, res, u, p, pattern::AbstractMatrix; coloring = GreedyColoringAlgorithm(),
+        batchsize::Integer = 8, check_pattern::Bool = true
+    )
+    T = eltype(u)
+    P = SparseMatrixCSC{Bool, Int}(sparse(pattern) .!= 0)
+    dropzeros!(P)
+    m, n = size(P)
+    @assert (m, n) == (length(res), length(u)) "pattern must have size (length(res), length(u))"
     if m == n
-        pattern = pattern .| sparse(I, n, n)
+        P = P .| sparse(I, n, n)
     end
-    if colors === nothing
-        colors = greedy_column_coloring(pattern)
-    elseif !(colors isa AbstractVector)
-        colors = colors(pattern)
-    end
-    @assert length(colors) == n "colors must have one entry per column"
-    J = SparseMatrixCSC{T, Int}(pattern)
+    problem = ColoringProblem(; structure = :nonsymmetric, partition = :column)
+    algorithm = coloring isa AbstractVector ?
+        ConstantColoringAlgorithm(P, coloring; partition = :column) : coloring
+    result = SparseMatrixColorings.coloring(P, problem, algorithm)
+    J = SparseMatrixCSC{T, Int}(P)
     fill!(nonzeros(J), zero(T))
-    ncolors = maximum(colors; init = 0)
-    color_ptr, color_cols = color_groups(colors, ncolors)
-    N = Int(batchsize)
-    if VERSION < v"1.11.0"
-        N = 1
-    end
-    return SparseJacobian{T, N}(
-        J, Vector{Int}(colors), ncolors, color_ptr, color_cols, zeros(T, n, N), zeros(T, m, N),
-        zeros(Int, m), check_pattern, nothing, 0, 0.0, 0, zero(T)
+    BS = VERSION < v"1.11.0" ? 1 : Int(batchsize)
+    operator = BS == 1 ? JacobianOperator(f!, res, u, p) : BatchedJacobianOperator{BS}(f!, res, u, p)
+    return SparseJacobian{T, BS, typeof(operator), typeof(result)}(
+        J, operator, result, zeros(T, n, BS), zeros(T, m, BS), zeros(Int, m), check_pattern,
+        0, 0.0, 0, zero(T)
     )
 end
 
 Base.size(A::SparseJacobian) = size(A.J)
 batch_size(::SparseJacobian{T, BS}) where {T, BS} = BS
 Base.show(io::IO, A::SparseJacobian{T, BS}) where {T, BS} =
-    print(io, "SparseJacobian{$T, $BS}(", size(A, 1), "×", size(A, 2), ", nnz = ", nnz(A.J), ", ", A.ncolors, " colors)")
-
-function jacobian_operator(A::SparseJacobian{T, BS}, f!, u, p) where {T, BS}
-    op = A.operator
-    if op === nothing || op.f !== f! || op.u !== u || op.p !== p
-        res = similar(u)
-        Enzyme.make_zero!(res)
-        if BS == 1
-            op = JacobianOperator(f!, res, u, p)
-        else
-            op = BatchedJacobianOperator{BS}(f!, res, u, p)
-        end
-        A.operator = op
-    end
-    return op
-end
+    print(io, "SparseJacobian{$T, $BS}(", size(A, 1), "×", size(A, 2), ", nnz = ", nnz(A.J), ", ", ncolors(A.coloring), " colors)")
 
 """
-    assemble!(A::SparseJacobian, f!, u, p) -> A.J
-    assemble!(A::SparseJacobian, J::JacobianOperator) -> A.J
+    assemble!(A::SparseJacobian) -> A.J
 
-Assemble the sparse Jacobian `∂f/∂u` of `f!(res, u, p)` at `u` into `A.J` by colored
-forward-mode AD. The second form uses the function, state and parameters of the
-Jacobian operator `J` of [`newton_krylov!`](@ref).
+Assemble the sparse Jacobian `∂f/∂u` of `f!(res, u, p)` at the current state `u` (and
+parameters `p`) of `A` into `A.J` by colored forward-mode AD.
 """
-function assemble!(A::SparseJacobian{T, BS}, f!::F, u, p) where {T, BS, F}
+function assemble!(A::SparseJacobian{T, BS}) where {T, BS}
     t₀ = time_ns()
-    op = jacobian_operator(A, f!, u, p)
-    (; seeds, compressed, covered) = A
     missed = 0
     missed_max = zero(T)
-    for offset in 0:BS:(A.ncolors - 1)
-        n, mx = assemble_batch!(A, op, seeds, compressed, covered, offset)
+    for offset in 0:BS:(ncolors(A.coloring) - 1)
+        n, mx = assemble_batch!(A, offset)
         missed += n
         missed_max = max(missed_max, mx)
     end
@@ -147,43 +125,36 @@ end
 # Columns of the colors `offset + 1:offset + BS` of `A.J` by one (batched) product. Returns
 # the number and largest magnitude of the nonzeros of the products in rows that are not
 # covered by the pattern of the columns of their color (if `A.check_pattern`).
-function assemble_batch!(A::SparseJacobian, op, seeds::AbstractMatrix{T}, compressed, covered, offset) where {T}
-    (; J, color_ptr, color_cols, ncolors) = A
-    BS = size(seeds, 2)
-    nb = min(BS, ncolors - offset)
+function assemble_batch!(A::SparseJacobian{T, BS}, offset) where {T, BS}
+    (; J, operator, coloring, seeds, compressed, covered) = A
+    groups = column_groups(coloring)
+    nb = min(BS, ncolors(coloring) - offset)
     rows = rowvals(J)
-    vals = nonzeros(J)
     fill!(seeds, zero(T))
-    for k in 1:nb, idx in color_ptr[offset + k]:(color_ptr[offset + k + 1] - 1)
-        seeds[color_cols[idx], k] = one(T)
+    for k in 1:nb, j in groups[offset + k]
+        seeds[j, k] = one(T)
     end
     if BS == 1
-        mul!(vec(compressed), op, vec(seeds))
+        mul!(vec(compressed), operator, vec(seeds))
     else
-        mul!(compressed, op, seeds)
+        mul!(compressed, operator, seeds)
     end
     missed = 0
     missed_max = zero(T)
     for k in 1:nb
         c = offset + k
-        for idx in color_ptr[c]:(color_ptr[c + 1] - 1)
-            j = color_cols[idx]
-            for idx2 in nzrange(J, j)
-                vals[idx2] = compressed[rows[idx2], k]
-                covered[rows[idx2]] = c
-            end
+        decompress_single_color!(J, view(compressed, :, k), c, coloring)
+        A.check_pattern || continue
+        for j in groups[c], idx in nzrange(J, j)
+            covered[rows[idx]] = c
         end
-        if A.check_pattern
-            for i in axes(compressed, 1)
-                x = compressed[i, k]
-                if covered[i] != c && !iszero(x)
-                    missed += 1
-                    missed_max = max(missed_max, abs(x))
-                end
+        for i in axes(compressed, 1)
+            x = compressed[i, k]
+            if covered[i] != c && !iszero(x)
+                missed += 1
+                missed_max = max(missed_max, abs(x))
             end
         end
     end
     return missed, missed_max
 end
-
-assemble!(A::SparseJacobian, J::JacobianOperator) = assemble!(A, J.f, J.u, J.p)
