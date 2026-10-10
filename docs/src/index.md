@@ -17,6 +17,8 @@ Ariadne.LineSearches.AbstractLineSearch
 NoLineSearch
 BacktrackingLineSearch
 Ariadne.LineSearches.parabolic_step
+AdmissibleLineSearch
+Ariadne.user_parameters
 ```
 
 ### Statistics
