@@ -529,7 +529,26 @@ function krylov_scaling(n::ScaledNorm, res)
         m = length(scale)
         copyto!(s, T[scale[mod1(i, m)] for i in 1:length(res)])
     end
-    return (; S = Diagonal(s), S⁻¹ = Diagonal(inv.(s)))
+    return (; S = Diagonal(s), S⁻¹ = Diagonal(inv.(s)), tmp = similar(s))
+end
+
+# Right preconditioner `N` of the scaled system: applies `S` before `N`, i.e.,
+# `RightScaled(N, S) \ x == N \ (S * x)` (`ldiv = true`) or `RightScaled(N, S) * x == N * (S * x)`.
+# With the left scaling `S⁻¹`, the preconditioned operator is `S⁻¹ J N⁻¹ S`, which is close
+# to the identity if `N⁻¹` approximates `J⁻¹`, whereas `S⁻¹ J N⁻¹ ≈ S⁻¹` can be arbitrarily
+# ill-conditioned.
+struct RightScaled{P, D, V}
+    N::P
+    S::D
+    tmp::V
+end
+function LinearAlgebra.ldiv!(y, R::RightScaled, x)
+    mul!(R.tmp, R.S, x)
+    return ldiv!(y, R.N, R.tmp)
+end
+function LinearAlgebra.mul!(y, R::RightScaled, x)
+    mul!(R.tmp, R.S, x)
+    return mul!(y, R.N, R.tmp)
 end
 
 """
@@ -602,8 +621,11 @@ const KWARGS_DOCS = """
                with signature `callback(u, res, norm_res)`.
   - `scaled_krylov = true`: if the `norm` of the workspace is a weighted Euclidean norm
     `‖S⁻¹x‖` (e.g., a [`ScaledNorm`](@ref), see [`Ariadne.krylov_scaling`](@ref)) and no
-    left preconditioner `M` is given, pass `S⁻¹` as left preconditioner to the Krylov
-    solver. Then the Krylov solver minimizes `‖S⁻¹(F′(u) d + F(u))‖`, so that the forcing
+    left preconditioner `M` is given, solve the scaled system `S⁻¹ F′(u) S (S⁻¹ d) = -S⁻¹ F(u)`:
+    `S⁻¹` is passed as left preconditioner, and `S` is applied before the right
+    preconditioner `N` (or alone, without `N`), so that a good preconditioner of `F′(u)`
+    remains a good one of the scaled system. Then the Krylov solver minimizes
+    `‖S⁻¹(F′(u) d + F(u))‖`, so that the forcing
     term (and the descent of the Newton direction in the norm of the line searches) refers
     to the same norm as the termination criteria. Otherwise, the relative tolerance of the
     Krylov solver refers to the Euclidean norm, which can ignore variables of small
@@ -753,16 +775,23 @@ function newton_krylov!(
     while isfinite(norm_res) && norm_res > tol && stats.outer_iterations < max_niter
         # Handle kwargs for Preconditioners
         kwargs = krylov_solve_kwargs(krylov_kwargs)
+        scaled = scaled_krylov && M === nothing && ws.scaling !== nothing
+        ldiv = get(kwargs, :ldiv, false)
         if N !== nothing
-            kwargs = (; N = N(ws.J), kwargs...)
+            Nᵢ = N(ws.J)
+            # Scaled system: the right preconditioner acts on `S` times the scaled vectors
+            kwargs = (; N = scaled ? RightScaled(Nᵢ, ws.scaling.S, ws.scaling.tmp) : Nᵢ, kwargs...)
+        elseif scaled
+            # Right scaling `S` (applied as `N \ x` with `ldiv = true`, as `N * x` otherwise)
+            kwargs = (; N = ldiv ? ws.scaling.S⁻¹ : ws.scaling.S, kwargs...)
         end
         if M !== nothing
             kwargs = (; M = M(ws.J), kwargs...)
-        elseif scaled_krylov && ws.scaling !== nothing
+        elseif scaled
             # Left preconditioner S⁻¹ (applied as `M \ x` with `ldiv = true`, as `M * x`
-            # otherwise): the Krylov solver minimizes ‖S⁻¹(F′(u) d + F(u))‖
-            S = get(kwargs, :ldiv, false) ? ws.scaling.S : ws.scaling.S⁻¹
-            kwargs = (; M = S, kwargs...)
+            # otherwise): the Krylov solver minimizes ‖S⁻¹(F′(u) d + F(u))‖ for the
+            # operator `S⁻¹ J S` of the scaled system
+            kwargs = (; M = ldiv ? ws.scaling.S : ws.scaling.S⁻¹, kwargs...)
         end
         if forcing !== nothing
             # The termination criterion of the inner Krylov solver is

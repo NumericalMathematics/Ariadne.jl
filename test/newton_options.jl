@@ -102,6 +102,17 @@ end
         )
         @test result.stats.norm_res > 0.5 * norm₀
     end
+    # An exact right preconditioner stays exact for the scaled system (`S` is applied
+    # before it), so GMRES needs a single iteration; without that, the preconditioned
+    # operator would be `S⁻¹` with the condition number 1e6.
+    kw_exact = (; kw..., forcing = Ariadne.Fixed(1.0e-10))
+    for (ldiv, Nᵢ) in ((true, Diagonal([1.0, 2.0])), (false, Diagonal([1.0, 0.5])))
+        _, result = newton_krylov!(
+            L!, [0.0, 0.0]; N = _ -> Nᵢ, krylov_kwargs = (; ldiv), kw_exact...
+        )
+        @test result.stats.inner_iterations == 1
+        @test result.stats.norm_res <= 1.0e-10 * norm₀
+    end
     @test Ariadne.krylov_scaling(LinearAlgebra.norm, zeros(2)) === nothing
     scaling = Ariadne.krylov_scaling(n, zeros(4))
     @test scaling.S.diag == [1.0, 1.0e-6, 1.0, 1.0e-6]
