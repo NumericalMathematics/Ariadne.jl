@@ -75,7 +75,7 @@ r2.dp
 # solution instead of differentiating the Newton iterations.
 
 solve!(x, p) = (newton_krylov!(F!, x, p; tol_rel = 1.0e-12); x)
-implicit = ImplicitFunction(F!, solve!)
+implicit = ImplicitFunction(F!, solve!, x)
 
 function objective(x, p)
     implicit_solve!(implicit, x, p)

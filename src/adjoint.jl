@@ -10,13 +10,20 @@ using Enzyme: EnzymeRules
 # for the factorizations of LinearAlgebra.jl and SparseArrays.jl (e.g., UMFPACK `lu`).
 
 # Solve `A x = b` with `solver` (`Krylov.gmres` or `Krylov.block_gmres`), right-preconditioned
-# with `ldiv!(y, Pr, x)` and warm-started from `x0` if they are not `nothing`.
-function krylov_solve(solver::S, A, b, x0, Pr; kwargs...) where {S}
+# with `ldiv!(y, Pr, x)` and warm-started from `x0` if they are not `nothing`. If a Krylov.jl
+# `workspace` is given, the solve is done in place with `solver!` (`Krylov.gmres!` or
+# `Krylov.block_gmres!`) and returns the solution stored in the workspace. The workspace
+# determines the memory then.
+function krylov_solve(
+        solver::S, solver!::S!, A, b, x0, Pr, workspace; memory, kwargs...
+    ) where {S, S!}
     args = x0 === nothing ? (A, b) : (A, b, x0)
-    if Pr === nothing
-        return solver(args...; kwargs...)
+    precond = Pr === nothing ? (;) : (; N = Pr, ldiv = true)
+    if workspace === nothing
+        return solver(args...; memory, precond..., kwargs...)
     else
-        return solver(args...; N = Pr, ldiv = true, kwargs...)
+        solver!(workspace, args...; precond..., kwargs...)
+        return Krylov.results(workspace)
     end
 end
 
@@ -40,6 +47,9 @@ If a `preconditioner` `P ≈ J` is given, the system is right-preconditioned wit
 SparseArrays.jl (e.g., the `lu` of an assembled Jacobian). For other preconditioners, add a
 method `ldiv!(y, ::Transpose{<:Any, <:MyPreconditioner}, x)` or pass an already transposed
 preconditioner as `transposed_preconditioner`. `λ0` is an initial guess (warm start).
+If a Krylov.jl `workspace` (`Krylov.GmresWorkspace`, or `Krylov.BlockGmresWorkspace` for the
+batched solve, e.g., from an [`ImplicitFunctionWorkspace`](@ref)) is given, the solve is done in
+place in it and the returned solution is the one stored in the workspace.
 
 For a [`BatchedJacobianOperator`](@ref) with `N` columns of right-hand sides `G` (a matrix of
 size `length(u) × N`), the `N` adjoint systems are solved together with block GMRES
@@ -52,20 +62,23 @@ The remaining keyword arguments are passed to `Krylov.gmres` or `Krylov.block_gm
 function adjoint_solve(
         J::JacobianOperator, g; preconditioner = nothing,
         transposed_preconditioner = maybe_transpose(preconditioner), λ0 = nothing,
-        memory = 50, rtol = 1.0e-10, atol = 0.0, kwargs...
+        workspace = nothing, memory = 50, rtol = 1.0e-10, atol = 0.0, kwargs...
     )
     return krylov_solve(
-        Krylov.gmres, transpose(J), g, λ0, transposed_preconditioner;
-        memory, rtol, atol, kwargs...
+        Krylov.gmres, Krylov.gmres!, transpose(J), g, λ0, transposed_preconditioner,
+        workspace; memory, rtol, atol, kwargs...
     )
 end
 
 # Solve the tangent system `J u̇ = rhs`, see `adjoint_solve`
 function tangent_solve(
         J::JacobianOperator, rhs; preconditioner = nothing, u̇0 = nothing,
-        memory = 50, rtol = 1.0e-10, atol = 0.0, kwargs...
+        workspace = nothing, memory = 50, rtol = 1.0e-10, atol = 0.0, kwargs...
     )
-    return krylov_solve(Krylov.gmres, J, rhs, u̇0, preconditioner; memory, rtol, atol, kwargs...)
+    return krylov_solve(
+        Krylov.gmres, Krylov.gmres!, J, rhs, u̇0, preconditioner, workspace;
+        memory, rtol, atol, kwargs...
+    )
 end
 
 """
@@ -155,25 +168,27 @@ if VERSION >= v"1.11.0"
     function adjoint_solve(
             J::BatchedJacobianOperator{N}, G::AbstractMatrix; preconditioner = nothing,
             transposed_preconditioner = maybe_transpose(preconditioner), λ0 = nothing,
-            memory = 50, rtol = 1.0e-10, atol = 0.0, kwargs...
+            workspace = nothing, memory = 50, rtol = 1.0e-10, atol = 0.0, kwargs...
         ) where {N}
         size(G, 2) == N ||
             throw(DimensionMismatch("expected $N right-hand sides, got $(size(G, 2))"))
         # The batched products need the columns of dense matrices
         G = convert(Matrix{eltype(J)}, G)
         return krylov_solve(
-            Krylov.block_gmres, transpose(J), G, λ0, transposed_preconditioner;
-            memory, rtol, atol, kwargs...
+            Krylov.block_gmres, Krylov.block_gmres!, transpose(J), G, λ0,
+            transposed_preconditioner, workspace; memory, rtol, atol, kwargs...
         )
     end
 
     function tangent_solve(
             J::BatchedJacobianOperator{N}, RHS::AbstractMatrix; preconditioner = nothing,
-            u̇0 = nothing, memory = 50, rtol = 1.0e-10, atol = 0.0, kwargs...
+            u̇0 = nothing, workspace = nothing, memory = 50, rtol = 1.0e-10, atol = 0.0,
+            kwargs...
         ) where {N}
         RHS = convert(Matrix{eltype(J)}, RHS)
         return krylov_solve(
-            Krylov.block_gmres, J, RHS, u̇0, preconditioner; memory, rtol, atol, kwargs...
+            Krylov.block_gmres, Krylov.block_gmres!, J, RHS, u̇0, preconditioner, workspace;
+            memory, rtol, atol, kwargs...
         )
     end
 
@@ -225,11 +240,45 @@ if VERSION >= v"1.11.0"
 end # VERSION >= v"1.11.0"
 
 """
-    ImplicitFunction(f!, solve!; preconditioner = (u, p) -> nothing, adjoint_kwargs = (;), warm_start = false)
+    ImplicitFunctionWorkspace(u, ::Val{N} = Val(1); memory = 50)
+
+Krylov.jl workspaces for the adjoint and tangent solves of an [`ImplicitFunction`](@ref)
+with states like `u` and batch width `N`: `adjoint` and `tangent` are `Krylov.GmresWorkspace`s
+for `N == 1` and `Krylov.BlockGmresWorkspace`s with `N` columns otherwise. They are reused
+for every solve, so the solves do not allocate Krylov.jl storage. After a solve,
+`Krylov.solution(ws.adjoint)` and `Krylov.statistics(ws.adjoint)` (or `ws.tangent`) are the
+last solution and its statistics.
+"""
+mutable struct ImplicitFunctionWorkspace{N, WA, WT}
+    const adjoint::WA
+    const tangent::WT
+    # Whether `adjoint` (`tangent`) holds the solution of a previous solve (for warm starts)
+    adjoint_solved::Bool
+    tangent_solved::Bool
+end
+
+function ImplicitFunctionWorkspace(u, ::Val{N} = Val(1); memory::Int = 50) where {N}
+    T = eltype(u)
+    n = length(u)
+    if N == 1
+        kc = Krylov.KrylovConstructor(vec(u))
+        adjoint = Krylov.GmresWorkspace(kc; memory)
+        tangent = Krylov.GmresWorkspace(kc; memory)
+    else
+        adjoint = Krylov.BlockGmresWorkspace(n, n, N, Vector{T}, Matrix{T}; memory)
+        tangent = Krylov.BlockGmresWorkspace(n, n, N, Vector{T}, Matrix{T}; memory)
+    end
+    return ImplicitFunctionWorkspace{N, typeof(adjoint), typeof(tangent)}(
+        adjoint, tangent, false, false
+    )
+end
+
+"""
+    ImplicitFunction(f!, solve!, u, ::Val{N} = Val(1); preconditioner = (u, p) -> nothing, adjoint_kwargs = (;), warm_start = false)
 
 The solution `u(p)` of `f!(res, u, p) = 0`, computed by `solve!(u, p)`, which overwrites
 `u` (that contains the initial guess) with the solution. Use it with
-[`implicit_solve!`](@ref).
+[`implicit_solve!`](@ref). `u` is a prototype of the state, e.g., the initial guess.
 
 For the derivatives with Enzyme.jl, the solver is not differentiated. Instead, the implicit
 function theorem `∂u/∂p = -(∂f/∂u)⁻¹ ∂f/∂p` is applied at the solution:
@@ -241,43 +290,45 @@ In batched mode (`BatchDuplicated` with width `N > 1`, Julia 1.11 or later), the
 (or tangent) systems are solved together with block GMRES on a
 [`BatchedJacobianOperator`](@ref), and the products with `∂f/∂p` are batched Enzyme.jl sweeps.
 
+The solves use the Krylov.jl workspaces in `F.workspace`, an
+[`ImplicitFunctionWorkspace`](@ref) for states like `u` and batch width `N` (the `Val(N)`
+argument). If Enzyme.jl differentiates with another batch width (or the state has another
+length), a temporary workspace is used for that call (without warm start, and `F.workspace` is not updated).
+
 `preconditioner(u, p)` returns a preconditioner `P ≈ ∂f/∂u` at the solution (anything that
 supports `ldiv!`, e.g., the LU factorization of an assembled Jacobian) or `nothing`.
 In reverse mode, it is applied transposed (see [`adjoint_solve`](@ref)). `adjoint_kwargs` are
-passed to `Krylov.gmres` (or `Krylov.block_gmres`). If `warm_start` is `true`, an adjoint
-(tangent) solve starts from the solution `λ` (`u̇`) of the previous adjoint (tangent) solve if
-it has the same size, which saves iterations, e.g., in an optimization loop. Krylov.jl
-measures `rtol` relative to the initial residual, so this pays off with an absolute
-tolerance `atol` in `adjoint_kwargs`.
+passed to `Krylov.gmres!` (or `Krylov.block_gmres!`), except for `memory`, which sets the size
+of the workspaces. If `warm_start` is `true`, an adjoint (tangent) solve starts from the
+solution of the previous adjoint (tangent) solve in the workspace, which saves iterations,
+e.g., in an optimization loop. Krylov.jl measures `rtol` relative to the initial residual,
+so this pays off with an absolute tolerance `atol` in `adjoint_kwargs`.
 
-The statistics of the last adjoint (or tangent) solve are stored in `last_stats[]`, the
-last adjoint solution in `last_λ[]`, and the last tangent solution in `last_u̇[]`.
+The solution and statistics of the last adjoint solve are `Krylov.solution(F.workspace.adjoint)`
+and `Krylov.statistics(F.workspace.adjoint)` (`F.workspace.tangent` for the last tangent solve).
 """
-struct ImplicitFunction{F, S, P, K}
+struct ImplicitFunction{F, S, P, K, W <: ImplicitFunctionWorkspace}
     f!::F
     solve!::S
     preconditioner::P
     adjoint_kwargs::K
     warm_start::Bool
-    last_stats::Base.RefValue{Any}
-    last_λ::Base.RefValue{Any}
-    last_u̇::Base.RefValue{Any}
+    workspace::W
 end
 
 function ImplicitFunction(
-        f!, solve!; preconditioner = (u, p) -> nothing,
+        f!, solve!, u, width::Val = Val(1); preconditioner = (u, p) -> nothing,
         adjoint_kwargs = (;), warm_start::Bool = false
     )
-    return ImplicitFunction(
-        f!, solve!, preconditioner, adjoint_kwargs, warm_start,
-        Ref{Any}(nothing), Ref{Any}(nothing), Ref{Any}(nothing)
-    )
+    workspace = ImplicitFunctionWorkspace(u, width; krylov_workspace_kwargs(adjoint_kwargs)...)
+    return ImplicitFunction(f!, solve!, preconditioner, adjoint_kwargs, warm_start, workspace)
 end
 
-# The previous solution in `last[]` as an initial guess for a solve with right-hand side `b`
-function initial_guess(F::ImplicitFunction, last, b)
-    x0 = last[]
-    return F.warm_start && x0 isa typeof(b) && size(x0) == size(b) ? x0 : nothing
+# The workspace of `F` for batch width `N` and states like `u`, or a temporary one
+function workspace(F::ImplicitFunction, ::Val{N}, u) where {N}
+    ws = F.workspace
+    ws isa ImplicitFunctionWorkspace{N} && ws.adjoint.n == length(u) && return ws
+    return ImplicitFunctionWorkspace(u, Val(N); krylov_workspace_kwargs(F.adjoint_kwargs)...)
 end
 
 """
@@ -296,7 +347,7 @@ storage in `p` that is overwritten by `f!` must not carry derivatives into
 ## Example
 
 ```julia
-F = ImplicitFunction(f!, (u, p) -> newton_krylov!(f!, u, p))
+F = ImplicitFunction(f!, (u, p) -> newton_krylov!(f!, u, p), u)
 function objective(u, p)
     implicit_solve!(F, u, p)
     return J(u, p)
@@ -352,23 +403,25 @@ function EnzymeRules.reverse(
         u_star = tape
         res = similar(u_star)
         P = F.preconditioner(u_star, p.val)
+        ws = workspace(F, Val(N), u_star)
+        λ0 = F.warm_start && ws.adjoint_solved ? Krylov.solution(ws.adjoint) : nothing
+        kwargs = krylov_solve_kwargs(F.adjoint_kwargs)
         if N == 1
             J = JacobianOperator(F.f!, res, u_star, p.val)
-            g = vec(only(ū))
-            λ0 = initial_guess(F, F.last_λ, g)
-            λ, stats = adjoint_solve(J, g; preconditioner = P, λ0, F.adjoint_kwargs...)
+            λ, stats = adjoint_solve(
+                J, vec(only(ū)); preconditioner = P, λ0, workspace = ws.adjoint, kwargs...
+            )
             # p̄ -= (∂f/∂p)ᵀ λ
             parameter_vjp!(only(shadows(p)), F.f!, res, u_star, p.val, -λ)
         else
             J = BatchedJacobianOperator{N}(F.f!, res, u_star, p.val)
-            G = stack(vec, ū)
-            λ0 = initial_guess(F, F.last_λ, G)
-            λ, stats = adjoint_solve(J, G; preconditioner = P, λ0, F.adjoint_kwargs...)
+            λ, stats = adjoint_solve(
+                J, stack(vec, ū); preconditioner = P, λ0, workspace = ws.adjoint, kwargs...
+            )
             # p̄[i] -= (∂f/∂p)ᵀ λ[:, i]
             parameter_vjp!(shadows(p), F.f!, res, u_star, p.val, tuple_of_vectors(-λ, size(res)))
         end
-        F.last_stats[] = stats
-        F.last_λ[] = λ
+        ws.adjoint_solved = true
         warn_unsolved("implicit_solve!", stats)
     end
     if !(u isa Const)
@@ -394,6 +447,9 @@ function EnzymeRules.forward(
     end
     res = similar(u.val)
     P = F.preconditioner(u.val, p.val)
+    ws = workspace(F, Val(N), u.val)
+    u̇0 = F.warm_start && ws.tangent_solved ? Krylov.solution(ws.tangent) : nothing
+    kwargs = krylov_solve_kwargs(F.adjoint_kwargs)
     # rhs = -(∂f/∂p) ṗ at the solution
     if N == 1
         rhs = zero(u.val)
@@ -404,9 +460,9 @@ function EnzymeRules.forward(
         )
         rhs .*= -1
         J = JacobianOperator(F.f!, res, copy(u.val), p.val)
-        rhs = vec(rhs)
-        u̇0 = initial_guess(F, F.last_u̇, rhs)
-        u̇, stats = tangent_solve(J, rhs; preconditioner = P, u̇0, F.adjoint_kwargs...)
+        u̇, stats = tangent_solve(
+            J, vec(rhs); preconditioner = P, u̇0, workspace = ws.tangent, kwargs...
+        )
         copyto!(only(tangents(u)), u̇)
     else
         RHS = zeros(eltype(u.val), length(u.val), N)
@@ -418,12 +474,12 @@ function EnzymeRules.forward(
         )
         RHS .*= -1
         J = BatchedJacobianOperator{N}(F.f!, res, copy(u.val), p.val)
-        u̇0 = initial_guess(F, F.last_u̇, RHS)
-        u̇, stats = tangent_solve(J, RHS; preconditioner = P, u̇0, F.adjoint_kwargs...)
+        u̇, stats = tangent_solve(
+            J, RHS; preconditioner = P, u̇0, workspace = ws.tangent, kwargs...
+        )
         foreach((ẋ, i) -> copyto!(ẋ, view(u̇, :, i)), tangents(u), 1:N)
     end
-    F.last_stats[] = stats
-    F.last_u̇[] = u̇
+    ws.tangent_solved = true
     warn_unsolved("implicit_solve!", stats)
     return nothing
 end

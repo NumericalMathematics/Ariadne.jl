@@ -1,6 +1,6 @@
 using Test
 using Ariadne
-import Ariadne: JacobianOperator, BatchedJacobianOperator
+import Ariadne: JacobianOperator, BatchedJacobianOperator, Krylov
 using Enzyme, LinearAlgebra, SparseArrays
 
 # f(u, p) = A u + u.^3 / 3 - θ₁ b - θ₂ c = 0 with parameters θ in a mutable struct
@@ -68,6 +68,24 @@ end
         @test λ ≈ Ju' \ g
     end
 
+    @testset "adjoint_solve (workspace)" begin
+        J = JacobianOperator(f!, zeros(n), copy(u), p)
+        ws = ImplicitFunctionWorkspace(u)
+        λ, stats = adjoint_solve(J, g; workspace = ws.adjoint)
+        @test stats.solved
+        @test λ === Krylov.solution(ws.adjoint)
+        @test λ ≈ Ju' \ g
+        # The Krylov.jl storage is reused
+        @test (@allocated adjoint_solve(J, g; workspace = ws.adjoint)) <
+            (@allocated adjoint_solve(J, g))
+        @inferred ImplicitFunctionWorkspace(u)
+        F = ImplicitFunction(f!, newton_solve!, u)
+        @test @inferred(Ariadne.workspace(F, Val(1), u)) === F.workspace
+        # another batch width gets a temporary workspace
+        @test @inferred(Ariadne.workspace(F, Val(2), u)) isa ImplicitFunctionWorkspace{2}
+        @test @inferred(Ariadne.workspace(F, Val(1), zeros(n + 1))) !== F.workspace
+    end
+
     @testset "parameter_vjp" begin
         λ = randn(n)
         p̄ = parameter_vjp(f!, zeros(n), u, p, λ)
@@ -107,7 +125,7 @@ end
 
     @testset "implicit_solve! (reverse)" begin
         F = ImplicitFunction(
-            f!, newton_solve!;
+            f!, newton_solve!, zeros(n);
             preconditioner = (u, p) -> lu(sparse(jacobian_u(u)))
         )
         function obj(u, p)
@@ -119,11 +137,11 @@ end
         autodiff(Reverse, Const(obj), Active, Duplicated(u0, zeros(n)), Duplicated(p, p̄))
         @test p̄.params.θ1 ≈ dθ_ref[1]
         @test p̄.params.θ2 ≈ dθ_ref[2]
-        @test F.last_stats[].solved
+        @test Krylov.statistics(F.workspace.adjoint).solved
     end
 
     @testset "implicit_solve! (reverse, overwritten solution)" begin
-        F = ImplicitFunction(f!, newton_solve!)
+        F = ImplicitFunction(f!, newton_solve!, zeros(n))
         function obj(u, p)
             implicit_solve!(F, u, p)
             val = objective(u)
@@ -139,7 +157,7 @@ end
 
     @testset "implicit_solve! (reverse, warm start)" begin
         F = ImplicitFunction(
-            f!, newton_solve!; warm_start = true,
+            f!, newton_solve!, zeros(n); warm_start = true,
             adjoint_kwargs = (; atol = 1.0e-10, rtol = 0.0)
         )
         function obj(u, p)
@@ -148,11 +166,11 @@ end
         end
         p̄ = Enzyme.make_zero(p)
         autodiff(Reverse, Const(obj), Active, Duplicated(zeros(n), zeros(n)), Duplicated(p, p̄))
-        niter_cold = F.last_stats[].niter
-        @test F.last_λ[] ≈ λ
+        niter_cold = Krylov.statistics(F.workspace.adjoint).niter
+        @test Krylov.solution(F.workspace.adjoint) ≈ λ
         p̄ = Enzyme.make_zero(p)
         autodiff(Reverse, Const(obj), Active, Duplicated(zeros(n), zeros(n)), Duplicated(p, p̄))
-        @test F.last_stats[].niter < niter_cold
+        @test Krylov.statistics(F.workspace.adjoint).niter < niter_cold
         @test p̄.params.θ1 ≈ dθ_ref[1]
         @test p̄.params.θ2 ≈ dθ_ref[2]
     end
@@ -160,7 +178,7 @@ end
     @testset "implicit_solve! (reverse, dynamic dispatch)" begin
         # A non-constant global makes the call type unstable, so that Enzyme.jl passes the
         # parameters to the rule as `MixedDuplicated`
-        global F_dynamic = ImplicitFunction(f!, newton_solve!)
+        global F_dynamic = ImplicitFunction(f!, newton_solve!, zeros(n))
         function obj_dynamic(u, p)
             implicit_solve!(F_dynamic, u, p)
             return objective(u)
@@ -172,7 +190,7 @@ end
     end
 
     @testset "implicit_solve! (forward)" begin
-        F = ImplicitFunction(f!, newton_solve!)
+        F = ImplicitFunction(f!, newton_solve!, zeros(n))
         u0 = zeros(n)
         du = zeros(n)
         autodiff(
@@ -186,17 +204,17 @@ end
 
     @testset "implicit_solve! (forward, warm start)" begin
         F = ImplicitFunction(
-            f!, newton_solve!; warm_start = true,
+            f!, newton_solve!, zeros(n); warm_start = true,
             adjoint_kwargs = (; atol = 1.0e-10, rtol = 0.0)
         )
         ṗ = (; params = Params(1.0, 0.0))
         du = zeros(n)
         autodiff(Forward, implicit_solve!, Const(F), Duplicated(zeros(n), du), Duplicated(p, ṗ))
-        niter_cold = F.last_stats[].niter
-        @test F.last_u̇[] ≈ Ju \ b
+        niter_cold = Krylov.statistics(F.workspace.tangent).niter
+        @test Krylov.solution(F.workspace.tangent) ≈ Ju \ b
         du = zeros(n)
         autodiff(Forward, implicit_solve!, Const(F), Duplicated(zeros(n), du), Duplicated(p, ṗ))
-        @test F.last_stats[].niter < niter_cold
+        @test Krylov.statistics(F.workspace.tangent).niter < niter_cold
         @test du ≈ Ju \ b
     end
 
@@ -261,7 +279,7 @@ end
 
         @testset "implicit_solve! (batched reverse)" begin
             F = ImplicitFunction(
-                f!, newton_solve!;
+                f!, newton_solve!, zeros(n), Val(2);
                 preconditioner = (u, p) -> lu(sparse(jacobian_u(u)))
             )
             function obj!(out, u, p)
@@ -274,7 +292,7 @@ end
                 Reverse, Const(obj!), Const, BatchDuplicated(zeros(2), ([1.0, 0.0], [0.0, 1.0])),
                 BatchDuplicated(zeros(n), (zeros(n), zeros(n))), BatchDuplicated(p, p̄s)
             )
-            @test F.last_stats[].solved
+            @test Krylov.statistics(F.workspace.adjoint).solved
             @test p̄s[1].params.θ1 ≈ dθ_ref[1]
             @test p̄s[1].params.θ2 ≈ dθ_ref[2]
             @test p̄s[2].params.θ1 ≈ dθ2_ref[1]
@@ -282,7 +300,7 @@ end
         end
 
         @testset "implicit_solve! (batched reverse, dynamic dispatch)" begin
-            global F_dynamic2 = ImplicitFunction(f!, newton_solve!)
+            global F_dynamic2 = ImplicitFunction(f!, newton_solve!, zeros(n), Val(2))
             function obj_dynamic!(out, u, p)
                 implicit_solve!(F_dynamic2, u, p)
                 functionals!(out, u, p)
@@ -298,22 +316,34 @@ end
         end
 
         @testset "implicit_solve! (batched forward)" begin
-            F = ImplicitFunction(f!, newton_solve!)
+            F = ImplicitFunction(f!, newton_solve!, zeros(n), Val(2))
             u0 = zeros(n)
             du = (zeros(n), zeros(n))
             autodiff(
                 Forward, implicit_solve!, Const(F), BatchDuplicated(u0, du),
                 BatchDuplicated(p, ((; params = Params(1.0, 0.0)), (; params = Params(0.0, 1.0))))
             )
-            @test F.last_stats[].solved
+            @test Krylov.statistics(F.workspace.tangent).solved
             @test u0 ≈ u
             @test du[1] ≈ Ju \ b
             @test du[2] ≈ Ju \ c
         end
 
+        @testset "implicit_solve! (batched, other width than the workspace)" begin
+            F = ImplicitFunction(f!, newton_solve!, zeros(n))
+            du = (zeros(n), zeros(n))
+            autodiff(
+                Forward, implicit_solve!, Const(F), BatchDuplicated(zeros(n), du),
+                BatchDuplicated(p, ((; params = Params(1.0, 0.0)), (; params = Params(0.0, 1.0))))
+            )
+            @test du[1] ≈ Ju \ b
+            @test du[2] ≈ Ju \ c
+            @test !F.workspace.tangent_solved
+        end
+
         @testset "implicit_solve! (batched, warm start)" begin
             F = ImplicitFunction(
-                f!, newton_solve!; warm_start = true,
+                f!, newton_solve!, zeros(n), Val(2); warm_start = true,
                 adjoint_kwargs = (; atol = 1.0e-10, rtol = 0.0)
             )
             ṗs = ((; params = Params(1.0, 0.0)), (; params = Params(0.0, 1.0)))
@@ -324,8 +354,8 @@ end
                 )
             end
             # The second solve starts from the solution of the first one
-            @test F.last_stats[].niter == 0
-            @test F.last_u̇[] ≈ Ju \ [b c]
+            @test Krylov.statistics(F.workspace.tangent).niter == 0
+            @test Krylov.solution(F.workspace.tangent) ≈ Ju \ [b c]
             function obj!(out, u, p)
                 implicit_solve!(F, u, p)
                 functionals!(out, u, p)
@@ -338,8 +368,8 @@ end
                     BatchDuplicated(p, (Enzyme.make_zero(p), Enzyme.make_zero(p)))
                 )
             end
-            @test F.last_stats[].niter == 0
-            @test F.last_λ[] ≈ [λ λ2]
+            @test Krylov.statistics(F.workspace.adjoint).niter == 0
+            @test Krylov.solution(F.workspace.adjoint) ≈ [λ λ2]
         end
     end
 end

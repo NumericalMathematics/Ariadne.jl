@@ -32,6 +32,7 @@ adjoint_gradient
 parameter_vjp
 parameter_vjp!
 ImplicitFunction
+ImplicitFunctionWorkspace
 implicit_solve!
 ```
 
