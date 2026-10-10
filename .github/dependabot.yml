@@ -18,6 +18,7 @@ updates:
       - "/examples"
       - "/test"
       - "/libs/Theseus/"
+      - "/libs/Asterion/"
     schedule:
       interval: "daily"
     groups:
