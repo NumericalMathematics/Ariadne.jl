@@ -85,7 +85,7 @@ end
     # Custom line searches get the verbosity level
     seen_verbose = Ref(-1)
     struct FullStep <: Ariadne.LineSearches.AbstractLineSearch end
-    (::FullStep)(ws, _, d; verbose = 0) = (seen_verbose[] = verbose; ws.u .+= d; Ariadne.evaluate!(ws))
+    (::FullStep)(ws, norm_res_prior, d; verbose = 0) = (seen_verbose[] = verbose; ws.u .+= d; Ariadne.evaluate!(ws))
     _, result = newton_krylov!((res, x, _) -> (res .= x .- 1; nothing), [3.0]; linesearch! = FullStep(), verbose = 1)
     @test result.solved
     @test seen_verbose[] == 1

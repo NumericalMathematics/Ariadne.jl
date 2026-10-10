@@ -73,7 +73,7 @@ A line search that does not perform any line search: it simply takes the full Ne
 """
 struct NoLineSearch <: AbstractLineSearch end
 
-function (::NoLineSearch)(ws, _, d; verbose = 0)
+function (::NoLineSearch)(ws, norm_res_prior, d; verbose = 0)
     ws.u .+= d
     return evaluate!(ws)
 end
