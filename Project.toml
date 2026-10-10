@@ -9,8 +9,15 @@ Krylov = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
+[weakdeps]
+NextLA = "d37ed344-79c4-486d-9307-6d11355a15a3"
+
+[extensions]
+AriadneNextLAExt = "NextLA"
+
 [compat]
 Enzyme = "0.13.50"
 Krylov = "0.10.1"
 LinearAlgebra = "1.10"
+NextLA = "0.2.3"
 julia = "1.10"

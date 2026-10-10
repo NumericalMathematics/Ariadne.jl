@@ -537,7 +537,11 @@ are allocated during the Newton iteration.
 - `u`: initial-guess array (used as template; the workspace holds a reference to it)
 - `p`: parameters
 - `res`: pre-allocated residual buffer
-- `algo`: Krylov algorithm symbol (e.g. `:gmres`, `:fgmres`) passed as a `Val`.
+- `algo`: Krylov algorithm symbol (e.g. `:gmres`, `:fgmres`) passed as a `Val`, or
+  `:direct`, `:ir`, `:gmresir` for the mixed-precision Newton steps with default
+  settings ([`DirectSolveWorkspace`](@ref), [`IterativeRefinementWorkspace`](@ref),
+  [`GMRESIRWorkspace`](@ref)). Instead of a `Val`, a workspace object can be passed,
+  e.g., `GMRESIRWorkspace(res; operator = :jacobian)`.
 - `assume_p_const`, `lazy_zero_shadows`: passed through to [`JacobianOperator`](@ref)
 - `krylov_kwargs`: the keyword arguments of the Krylov solver. The keys that configure the
   Krylov workspace (`memory` and `window`, e.g., `memory = 50` for the size of the Krylov
@@ -576,8 +580,18 @@ function NewtonKrylovWorkspace(
     neg_res = similar(res)
     Enzyme.make_zero!(neg_res)
     J = JacobianOperator(F!, res, u, p; assume_p_const, lazy_zero_shadows)
-    kc = KrylovConstructor(res)
-    krylov = krylov_workspace(Val(Algo), kc; krylov_workspace_kwargs(krylov_kwargs)...)
+    krylov = newton_step_workspace(Val(Algo), res, krylov_kwargs)
+    return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov)
+end
+
+function NewtonKrylovWorkspace(
+        F!, u::AbstractArray, p, res::AbstractArray, krylov;
+        assume_p_const::Bool = false, lazy_zero_shadows::Bool = false
+    )
+    Enzyme.make_zero!(res)
+    neg_res = similar(res)
+    Enzyme.make_zero!(neg_res)
+    J = JacobianOperator(F!, res, u, p; assume_p_const, lazy_zero_shadows)
     return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov)
 end
 
@@ -633,7 +647,8 @@ const KWARGS_DOCS = """
   - `iteration_callback`: A function called after each Newton iteration with signature
     `iteration_callback(ws, info)`, where `info` is a `NamedTuple` with the fields
     `iteration`, `norm_res`, `norm_res_prior`, `η`, `krylov_iterations`,
-    `krylov_solved`, and `krylov_status`.
+    `krylov_solved`, `krylov_status`, and `krylov_stats` (the statistics of the Krylov
+    workspace, e.g., the refinement history of an [`IterativeRefinementWorkspace`](@ref)).
 
 ## Return value
 `(u, (; solved, status, stats, t))`, where `status` is
@@ -838,7 +853,7 @@ function newton_krylov!(
                 ws, (;
                     iteration = stats.outer_iterations, norm_res, norm_res_prior, η,
                     krylov_iterations = krylov_stats.niter, krylov_solved,
-                    krylov_status = krylov_stats.status,
+                    krylov_status = krylov_stats.status, krylov_stats,
                 )
             )
         end
@@ -866,5 +881,13 @@ function newton_krylov!(
     t = (time_ns() - t₀) / 1.0e9
     return ws.u, (; solved = status === :converged, status, stats, t)
 end
+
+##
+# Mixed-precision Newton steps
+##
+
+include("mixed_precision.jl")
+export MixedPrecisionLU, ConvertedPreconditioner, lu_in_precision!, AbstractStepWorkspace, DirectSolveWorkspace,
+    IterativeRefinementWorkspace, GMRESIRWorkspace
 
 end # module Ariadne
