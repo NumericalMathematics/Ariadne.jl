@@ -6,6 +6,7 @@ OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
 Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 PlutoLinks = "0ff47ea0-7a50-410d-8455-4348d5de0420"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+StochasticRounding = "3843c9a1-1f18-49ff-9d99-1b4c8a8e97ed"
 SummationByPartsOperators = "9f78cca6-572e-554e-b819-917d2f1cf240"
 
 [sources]
