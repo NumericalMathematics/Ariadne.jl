@@ -8,10 +8,10 @@ import ..evaluate!, ..user_parameters
 
 Line search updates `ws.u` in-place along the Newton direction `d` and calls
 `evaluate!(ws)` to refresh `ws.res` and obtain the new residual norm.
-It returns `(norm_res, status)`: the residual norm of the new state and
-`status = :success`, or `:failed` if it did not find a step with sufficient decrease
-(and took its last trial step), which [`newton_krylov!`](@ref Ariadne.newton_krylov!) counts in
-`stats.linesearch_failures`.
+It returns `(norm_res, status, λ)`: the residual norm of the new state, `status = :success`,
+or `:failed` if it did not find a step with sufficient decrease (and took its last trial
+step), which [`newton_krylov!`](@ref Ariadne.newton_krylov!) counts in
+`stats.linesearch_failures`, and the step length `λ` of the new state `u + λ d`.
 
 ## Implemented variants
 - [`NoLineSearch`](@ref)
@@ -27,16 +27,15 @@ end
 function (ls::CustomLineSearch)(ws, norm_res_prior, d; verbose = 0)
     # update ws.u
     ws.u .+= d # for example, take the full Newton step
-    return evaluate!(ws), :success
+    return evaluate!(ws), :success, 1.0
 end
 ```
 
 A line search is called as `ls(ws, norm_res_prior, d; verbose)` and must accept the keyword
 argument `verbose`, the verbosity level of [`newton_krylov!`](@ref Ariadne.newton_krylov!).
 
-A line search should report the step length `λ` of the state it returns, `u + λ d`, with
-`Ariadne.LineSearches.record_step_length!(ws, λ)` (a no-op for a `NewtonKrylovWorkspace`);
-[`AdmissibleLineSearch`](@ref) uses it to undo failed steps without a copy of `u`.
+[`AdmissibleLineSearch`](@ref) uses the returned step length to undo failed steps of the line
+search it wraps without a copy of `u`.
 """
 abstract type AbstractLineSearch end
 
@@ -102,9 +101,6 @@ function parabolic_step(λc, λm, ff0, ffc, ffm; σ₀ = 0.1, σ₁ = 0.5)
     return clamp(λp, σ₀ * λc, σ₁ * λc)
 end
 
-# Report the step length `λ` of the state returned by a line search, `u + λ d`
-record_step_length!(ws, λ) = nothing
-
 """
     NoLineSearch()
 
@@ -114,8 +110,7 @@ struct NoLineSearch <: AbstractLineSearch end
 
 function (::NoLineSearch)(ws, norm_res_prior, d; verbose = 0)
     ws.u .+= d
-    record_step_length!(ws, 1.0)
-    return evaluate!(ws), :success
+    return evaluate!(ws), :success, 1.0
 end
 
 """
@@ -179,8 +174,7 @@ function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d; verbose = 0)
     for iter in 2:ls.n_iter_max
         # Armijo condition
         if norm_res <= (1 - alpha * lambda) * norm_res_prior
-            record_step_length!(ws, lambda)
-            return norm_res, :success
+            return norm_res, :success, lambda
         end
 
         if iter == 2 || !ls.parabolic
@@ -199,8 +193,7 @@ function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d; verbose = 0)
         ffc = norm_res^2
     end
     status = norm_res <= (1 - alpha * lambda) * norm_res_prior ? :success : :failed
-    record_step_length!(ws, lambda)
-    return norm_res, status
+    return norm_res, status, lambda
 end
 
 """
@@ -222,9 +215,8 @@ pressure per Newton step (solution update limiting); `d` is scaled by it (in pla
 `linesearch` is called.
 
 If `linesearch` does not find an admissible state with finite residual, `u` is reset to the
-state before the step (by undoing the step `λ d` that `linesearch` reports with
-`Ariadne.LineSearches.record_step_length!`, so no copy of `u` is needed) and the line
-search returns `(Inf, :failed)`, so that
+state before the step (by undoing the step `λ d` with the step length `λ` that `linesearch`
+returns, so no copy of `u` is needed) and the line search returns `(Inf, :failed, 0)`, so that
 [`newton_krylov!`](@ref Ariadne.newton_krylov!) stops with status `:nonfinite`.
 
 ## Examples
@@ -239,20 +231,18 @@ struct AdmissibleLineSearch{A, L <: AbstractLineSearch, S} <: AbstractLineSearch
     isadmissible::A
     linesearch::L
     max_step::S
-    step_length::Base.RefValue{Float64} # reported by `linesearch`
 end
 
 function AdmissibleLineSearch(isadmissible, linesearch::AbstractLineSearch = BacktrackingLineSearch(); max_step = nothing)
-    return AdmissibleLineSearch(isadmissible, linesearch, max_step, Ref(NaN))
+    return AdmissibleLineSearch(isadmissible, linesearch, max_step)
 end
 
 # The workspace seen by the inner line search: `evaluate!` returns `Inf` for inadmissible
-# states and evaluates the residual otherwise, and it records the step length
+# states and evaluates the residual otherwise
 struct AdmissibleWorkspace{W, A, P}
     ws::W
     isadmissible::A
     user_p::P # `user_parameters(ws.p)`, passed to `isadmissible`
-    step_length::Base.RefValue{Float64}
 end
 
 # The properties of the workspace that line searches use
@@ -263,8 +253,6 @@ function Base.getproperty(w::AdmissibleWorkspace, s::Symbol)
     return getfield(w, s)
 end
 
-record_step_length!(w::AdmissibleWorkspace, λ) = (w.step_length[] = λ; nothing)
-
 function evaluate!(w::AdmissibleWorkspace)
     if w.isadmissible(w.u, w.user_p)
         return evaluate!(w.ws)
@@ -274,25 +262,21 @@ function evaluate!(w::AdmissibleWorkspace)
 end
 
 function (ls::AdmissibleLineSearch)(ws, norm_res_prior, d; verbose = 0)
-    aws = AdmissibleWorkspace(ws, ls.isadmissible, user_parameters(ws.p), ls.step_length)
+    aws = AdmissibleWorkspace(ws, ls.isadmissible, user_parameters(ws.p))
+    λ_max = one(real(eltype(d)))
     if ls.max_step !== nothing
-        λ = clamp(ls.max_step(ws.u, d, aws.user_p), 0, 1)
-        λ < 1 && (d .*= λ)
+        λ_max = clamp(ls.max_step(ws.u, d, aws.user_p), 0, 1)
+        λ_max < 1 && (d .*= λ_max)
     end
-    ls.step_length[] = NaN
-    norm_res, status = ls.linesearch(aws, norm_res_prior, d; verbose)
-    λ = ls.step_length[]
-    record_step_length!(ws, λ)
+    norm_res, status, λ = ls.linesearch(aws, norm_res_prior, d; verbose)
     if !isfinite(norm_res)
-        # No admissible state with finite residual: undo the step `u + λ d` (if the inner
-        # line search reported `λ`)
-        if !isnan(λ)
-            ws.u .= muladd.(-λ, d, ws.u)
-            evaluate!(ws)
-        end
-        return oftype(norm_res_prior, Inf), :failed
+        # No admissible state with finite residual: undo the step `u + λ d`
+        ws.u .= muladd.(-λ, d, ws.u)
+        evaluate!(ws)
+        return oftype(norm_res_prior, Inf), :failed, zero(λ)
     end
-    return norm_res, status
+    # The step length with respect to the direction before the scaling by `max_step`
+    return norm_res, status, λ * λ_max
 end
 
 end # module LineSearches

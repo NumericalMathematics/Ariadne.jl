@@ -715,7 +715,7 @@ function newton_krylov!(
 
         # Perform line search to find an appropriate step size and update `u` and `res` in-place
         norm_res_prior = norm_res
-        norm_res, linesearch_status = linesearch!(ws, norm_res_prior, d; verbose)
+        norm_res, linesearch_status, _ = linesearch!(ws, norm_res_prior, d; verbose)
         linesearch_failed = linesearch_status === :failed
         verbose > 0 && linesearch_failed && @info "Line search found no sufficient decrease" norm_res norm_res_prior
 
