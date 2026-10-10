@@ -18,6 +18,16 @@ NoLineSearch
 BacktrackingLineSearch
 ```
 
+### Preconditioners
+
+```@docs
+AbstractPreconditioner
+LaggedPreconditioner
+refresh!
+Ariadne.prepare!
+Ariadne.record!
+```
+
 ### Statistics
 
 ```@docs
