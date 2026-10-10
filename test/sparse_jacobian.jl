@@ -69,6 +69,26 @@ dense_jacobian(f!, u, p) = collect(Ariadne.JacobianOperator(f!, zeros(length(u))
     # The diagonal is always part of the pattern
     A = SparseJacobian(bratu2d!, zeros(n), u, p, spzeros(Bool, n, n))
     @test nnz(A.J) == n
+    # Row coloring (vector-Jacobian products) and symmetric (star) coloring
+    for batchsize in (1, 4)
+        A = SparseJacobian(bratu2d!, zeros(n), u, p, pattern; partition = :row, batchsize)
+        @test A.coloring isa SparseMatrixColorings.AbstractColoringResult{:nonsymmetric, :row}
+        @test assemble!(A) ≈ J_dense
+        @test A.missed_entries == 0
+        A = SparseJacobian(bratu2d!, zeros(n), u, p, pattern; structure = :symmetric, batchsize)
+        @test A.coloring isa SparseMatrixColorings.AbstractColoringResult{:symmetric, :column}
+        @test ncolors(A.coloring) <= 5
+        @test assemble!(A) ≈ J_dense
+        @test A.missed_entries == 0
+    end
+    A = SparseJacobian(bratu2d!, zeros(n), u, p, pattern; partition = :row, coloring = colors)
+    @test row_colors(A.coloring) == colors
+    @test assemble!(A) ≈ J_dense
+    @test_throws ArgumentError SparseJacobian(bratu2d!, zeros(n), u, p, pattern; partition = :bidirectional)
+    @test_throws ArgumentError SparseJacobian(
+        bratu2d!, zeros(n), u, p, pattern; structure = :symmetric,
+        coloring = GreedyColoringAlgorithm(; decompression = :substitution)
+    )
 
     # The assembled Jacobian as a preconditioner for Newton-Krylov
     u = zeros(n)
@@ -119,4 +139,24 @@ end
         assemble!(A)
         @test A.missed_entries == 0
     end
+end
+
+@testset "Error hints without the package extensions" begin
+    # A fresh process in which only Ariadne is loaded
+    code = """
+    using Ariadne
+    for f in (() -> SparseJacobian(identity, [0.0], [0.0], nothing, [true;;]; batchsize = 1),
+              () -> assemble!(nothing),
+              () -> Ariadne.jacobian_sparsity(identity, [0.0], nothing))
+        try
+            f()
+        catch e
+            showerror(stdout, e)
+            println(stdout)
+        end
+    end
+    """
+    out = read(`$(Base.julia_cmd()) --project=$(Base.active_project()) --startup-file=no -e $code`, String)
+    @test count("requires SparseMatrixColorings.jl to be loaded", out) == 2
+    @test occursin("requires SparseConnectivityTracer.jl to be loaded", out)
 end

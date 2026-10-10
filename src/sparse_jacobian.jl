@@ -18,7 +18,8 @@ function jacobian_sparsity end
 
 """
     SparseJacobian(f!, res, u, p, pattern; coloring = GreedyColoringAlgorithm(),
-                   batchsize = 8, check_pattern = true)
+                   structure = :nonsymmetric, partition = :column, batchsize = 8,
+                   check_pattern = true)
 
 Workspace for the assembly of the sparse Jacobian `∂f/∂u` of the in-place function
 `f!(res, u, p)` at the state `u` with the sparsity `pattern` (any matrix whose structural
@@ -26,19 +27,25 @@ nonzeros are the possible nonzeros of the Jacobian), by colored forward-mode AD.
 residual buffer. The Jacobian operator aliases `u` and `p`: [`assemble!`](@ref) assembles
 the Jacobian at their current values, so mutate them in place between assemblies.
 
-The columns are grouped by a distance-2 column coloring of SparseMatrixColorings.jl, and
-`batchsize` colors are computed together by one batched forward-mode Enzyme.jl pass
-([`BatchedJacobianOperator`](@ref), Julia ≥ 1.11; on older versions or for `batchsize = 1`
-one [`JacobianOperator`](@ref) product per color is used). `coloring` is a coloring
-algorithm of SparseMatrixColorings.jl (e.g., `GreedyColoringAlgorithm(LargestFirst())`) or a
-vector with the color of each column. The coloring is computed once and reused for all
-assemblies.
+The columns are grouped by a coloring of SparseMatrixColorings.jl for the
+`ColoringProblem(; structure, partition)`, and `batchsize` colors are computed together by
+one batched Enzyme.jl pass ([`BatchedJacobianOperator`](@ref), Julia ≥ 1.11; on older
+versions or for `batchsize = 1` one [`JacobianOperator`](@ref) product per color is used):
+- `partition = :column`: a distance-2 column coloring, one forward-mode Jacobian-vector
+  product per color;
+- `partition = :row`: a distance-2 row coloring, one reverse-mode vector-Jacobian product
+  per color (fewer colors for Jacobians with dense rows, e.g., `length(res) < length(u)`);
+- `structure = :symmetric` (with `partition = :column`): a star coloring for Jacobians that
+  are symmetric (the `pattern` must be symmetric), which needs fewer colors.
+`coloring` is a coloring algorithm of SparseMatrixColorings.jl (e.g.,
+`GreedyColoringAlgorithm(LargestFirst())`) or a vector with the color of each column (row).
+The coloring is computed once and reused for all assemblies.
 
 The diagonal is always included in the pattern of square Jacobians, so that
 `Diagonal(d) - J` has the same pattern.
 
 With `check_pattern = true`, each assembly also checks whether the products have nonzeros in
-rows that no column of the color covers, i.e., whether `pattern` misses nonzeros of the
+rows (columns for `partition = :row`) that no column (row) of the color covers, i.e., whether `pattern` misses nonzeros of the
 Jacobian (e.g., a pattern detected at a different state for a function with branches).
 These entries are dropped from `A.J`; their number and largest magnitude in the last
 assembly are `A.missed_entries` and `A.missed_max`.
@@ -51,10 +58,11 @@ The Jacobian is stored in `A.J`.
 mutable struct SparseJacobian{T, BS, Op <: AbstractJacobianOperator, R}
     const J::SparseMatrixCSC{T, Int}
     const operator::Op # (Batched)JacobianOperator of `f!` at `u` and `p`
-    const coloring::R # column coloring of SparseMatrixColorings.jl
+    const coloring::R # column or row coloring of SparseMatrixColorings.jl
+    const pattern::SparseMatrixCSC{Bool, Int} # pattern with the seeded dimension as columns
     const seeds::Matrix{T}
     const compressed::Matrix{T}
-    const covered::Vector{Int} # covered[i] == c: row `i` is covered by a column of color `c`
+    const covered::Vector{Int} # covered[i] == c: entry `i` of a product is covered by color `c`
     const check_pattern::Bool
     n_assemblies::Int
     time::Float64
@@ -89,4 +97,29 @@ function finish_assembly!(A::SparseJacobian, missed, missed_max, t₀)
     A.n_assemblies += 1
     A.time += (time_ns() - t₀) / 1.0e9
     return nothing
+end
+
+# Point to the package that must be loaded for the methods defined in package extensions
+function sparse_jacobian_error_hint(io, exc, argtypes, kwargs)
+    f = exc.f
+    # Calls with keyword arguments throw a MethodError of `Core.kwcall(kwargs, f, args...)`
+    if f === Core.kwcall && length(exc.args) >= 2
+        f = exc.args[2]
+    end
+    if f === SparseJacobian || f === assemble!
+        pkg, ext = "SparseMatrixColorings", :AriadneSparseMatrixColoringsExt
+    elseif f === jacobian_sparsity
+        pkg, ext = "SparseConnectivityTracer", :AriadneSparseConnectivityTracerExt
+    else
+        return
+    end
+    if Base.get_extension(@__MODULE__, ext) === nothing
+        print(io, "\n`$f` requires $pkg.jl to be loaded: run `using $pkg`.")
+    end
+    return
+end
+
+function __init__()
+    Base.Experimental.register_error_hint(sparse_jacobian_error_hint, MethodError)
+    return
 end
