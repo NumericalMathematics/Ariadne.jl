@@ -455,9 +455,6 @@ struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW}
     p::P
     J::JOp
     krylov::KW
-    # Set by the line searches: the last line search did not find a step with
-    # sufficient decrease
-    linesearch_failed::Base.RefValue{Bool}
 end
 
 function NewtonKrylovWorkspace(
@@ -472,7 +469,7 @@ function NewtonKrylovWorkspace(
     J = JacobianOperator(F!, res, u, p; assume_p_const, lazy_zero_shadows)
     kc = KrylovConstructor(res)
     krylov = krylov_workspace(Val(Algo), kc; krylov_workspace_kwargs(krylov_kwargs)...)
-    return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov, Ref(false))
+    return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov)
 end
 
 """
@@ -708,9 +705,8 @@ function newton_krylov!(
 
         # Perform line search to find an appropriate step size and update `u` and `res` in-place
         norm_res_prior = norm_res
-        ws.linesearch_failed[] = false
-        norm_res = linesearch!(ws, norm_res_prior, d; verbose)
-        linesearch_failed = ws.linesearch_failed[]
+        norm_res, linesearch_status = linesearch!(ws, norm_res_prior, d; verbose)
+        linesearch_failed = linesearch_status === :failed
         verbose > 0 && linesearch_failed && @info "Line search found no sufficient decrease" norm_res norm_res_prior
 
         callback(ws.u, ws.res, norm_res)

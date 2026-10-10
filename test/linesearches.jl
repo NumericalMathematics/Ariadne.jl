@@ -85,7 +85,7 @@ end
     # Custom line searches get the verbosity level
     seen_verbose = Ref(-1)
     struct FullStep <: Ariadne.LineSearches.AbstractLineSearch end
-    (::FullStep)(ws, norm_res_prior, d; verbose = 0) = (seen_verbose[] = verbose; ws.u .+= d; Ariadne.evaluate!(ws))
+    (::FullStep)(ws, norm_res_prior, d; verbose = 0) = (seen_verbose[] = verbose; ws.u .+= d; (Ariadne.evaluate!(ws), :success))
     _, result = newton_krylov!((res, x, _) -> (res .= x .- 1; nothing), [3.0]; linesearch! = FullStep(), verbose = 1)
     @test result.solved
     @test seen_verbose[] == 1
@@ -135,6 +135,20 @@ end
         @test abs(x[1]) < 1.0e-6
         @test result.stats.linesearch_failures == 0
     end
+
+    # Line searches return the residual norm and a status
+    ws = NewtonKrylovWorkspace(A!, [3.0], nothing, zeros(1))
+    norm_res_prior = Ariadne.evaluate!(ws)
+    d = [-atan(3.0) * (1 + 3.0^2)] # Newton direction at x = 3
+    norm_res, status = BacktrackingLineSearch(; n_iter_max = 1)(ws, norm_res_prior, copy(d))
+    @test status === :failed
+    @test norm_res > norm_res_prior
+    ws.u .= 3.0
+    norm_res, status = BacktrackingLineSearch()(ws, norm_res_prior, copy(d))
+    @test status === :success
+    @test norm_res < norm_res_prior
+    ws.u .= 3.0
+    @test NoLineSearch()(ws, norm_res_prior, copy(d))[2] === :success
 
     # Without a line search, no failures are reported
     _, result = newton_krylov!(A!, [3.0]; linesearch! = NoLineSearch(), max_niter = 3)

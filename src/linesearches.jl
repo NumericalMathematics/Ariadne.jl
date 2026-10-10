@@ -8,8 +8,9 @@ import ..evaluate!
 
 Line search updates `ws.u` in-place along the Newton direction `d` and calls
 `evaluate!(ws)` to refresh `ws.res` and obtain the new residual norm.
-A line search that does not find a step with sufficient decrease reports this with
-`Ariadne.LineSearches.set_linesearch_failed!(ws)`, which [`newton_krylov!`](@ref Ariadne.newton_krylov!) counts in
+It returns `(norm_res, status)`: the residual norm of the new state and
+`status = :success`, or `:failed` if it did not find a step with sufficient decrease
+(and took its last trial step), which [`newton_krylov!`](@ref Ariadne.newton_krylov!) counts in
 `stats.linesearch_failures`.
 
 ## Implemented variants
@@ -25,7 +26,7 @@ end
 function (ls::CustomLineSearch)(ws, norm_res_prior, d; verbose = 0)
     # update ws.u
     ws.u .+= d # for example, take the full Newton step
-    return evaluate!(ws)
+    return evaluate!(ws), :success
 end
 ```
 
@@ -69,13 +70,6 @@ function evaluate_or_inf!(ws, types::Tuple; verbose = 0)
     end
 end
 
-# Report that the line search found no step with sufficient decrease. Line searches can be
-# called with other workspaces than `NewtonKrylovWorkspace`, which may not have the flag.
-function set_linesearch_failed!(ws, failed::Bool = true)
-    hasproperty(ws, :linesearch_failed) && (ws.linesearch_failed[] = failed)
-    return nothing
-end
-
 """
     parabolic_step(λc, λm, ff0, ffc, ffm; σ₀ = 0.1, σ₁ = 0.5)
 
@@ -112,7 +106,7 @@ struct NoLineSearch <: AbstractLineSearch end
 
 function (::NoLineSearch)(ws, norm_res_prior, d; verbose = 0)
     ws.u .+= d
-    return evaluate!(ws)
+    return evaluate!(ws), :success
 end
 
 """
@@ -176,7 +170,7 @@ function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d; verbose = 0)
     for iter in 2:ls.n_iter_max
         # Armijo condition
         if norm_res <= (1 - alpha * lambda) * norm_res_prior
-            return norm_res
+            return norm_res, :success
         end
 
         if iter == 2 || !ls.parabolic
@@ -194,10 +188,8 @@ function (ls::BacktrackingLineSearch)(ws, norm_res_prior, d; verbose = 0)
         norm_res = evaluate_or_inf!(ws, ls.reject_exceptions; verbose)
         ffc = norm_res^2
     end
-    if !(norm_res <= (1 - alpha * lambda) * norm_res_prior)
-        set_linesearch_failed!(ws)
-    end
-    return norm_res
+    status = norm_res <= (1 - alpha * lambda) * norm_res_prior ? :success : :failed
+    return norm_res, status
 end
 
 end # module LineSearches
