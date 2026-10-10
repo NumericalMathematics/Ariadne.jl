@@ -88,8 +88,7 @@ keyword arguments `newton_tol_abs = 1e-6`, `newton_tol_rel = 1e-6`,
 By default (`newton_scaling = :jacobian`), the rows of the stage residuals are weighted by
 their stiffness, so that rows of very different stiffness, e.g., a stiff relaxation term
 next to a non-stiff equation, are all resolved to the Newton tolerance. Use
-`newton_scaling = :none` to disable this, or pass a `norm` and a left preconditioner `M`
-in `newton_kwargs`.
+`newton_scaling = :none` to disable this, or pass a `norm` in `newton_kwargs`.
 
 ```@docs
 Theseus.newton_scaling_kwargs

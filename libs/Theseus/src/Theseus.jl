@@ -440,17 +440,17 @@ Keyword arguments of `newton_krylov!` that weight the rows of the stage residual
 their stiffness, for `scaling = :jacobian`: with the Jacobian `J` of `F!` at the initial
 guess `u`, the scale of row `i` is `sᵢ = max(1, |(J e)ᵢ|, |(J ẽ)ᵢ|)` with the probe vectors
 `e = (1, 1, …)` and `ẽ = (1, -1, 1, …)` (two Jacobian-vector products). The residual norm
-of the termination criterion is the `ScaledNorm(s)` and GMRES is preconditioned from the
-left by `Diagonal(1 ./ s)`, so that the tolerances refer to the scaled residual, which
-behaves like an error in `u`. Rows of very different stiffness, e.g., a stiff relaxation
+is the `ScaledNorm(s)`, which `newton_krylov!` also passes to GMRES and FGMRES as their inner
+product, so that the termination criterion and the Krylov tolerances refer to the scaled
+residual, which behaves like an error in `u`. Rows of very different stiffness, e.g., a stiff relaxation
 term next to a non-stiff equation (#135), otherwise put the Newton tolerance below the
 rounding floor of the stiff rows and make the residual of the non-stiff rows invisible.
 
-Returns `(;)` for `scaling = :none` or if `newton_kwargs` already contain a `norm` or `M`.
+Returns `(;)` for `scaling = :none` or if `newton_kwargs` already contain a `norm`.
 """
 function newton_scaling_kwargs(scaling, F!, u, p, res, krylov_kwargs, newton_kwargs)
     @assert scaling in (:jacobian, :none) "newton_scaling must be :jacobian or :none"
-    if scaling === :none || haskey(newton_kwargs, :norm) || haskey(newton_kwargs, :M)
+    if scaling === :none || haskey(newton_kwargs, :norm)
         return (;)
     end
     J = JacobianOperator(F!, res, u, p)
@@ -465,9 +465,7 @@ function newton_scaling_kwargs(scaling, F!, u, p, res, krylov_kwargs, newton_kwa
     end
     mul!(Jv, J, v)
     @. s = max(one(eltype(s)), s, abs(Jv))
-    ldiv = get(krylov_kwargs, :ldiv, false)
-    W = Diagonal(ldiv ? vec(s) : inv.(vec(s)))
-    return (; norm = ScaledNorm(s), M = _ -> W)
+    return (; norm = ScaledNorm(s))
 end
 
 include("rosenbrock/rosenbrock.jl")
