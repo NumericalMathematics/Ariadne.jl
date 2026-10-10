@@ -108,6 +108,50 @@ dense_jacobian(f!, u, p) = collect(Ariadne.JacobianOperator(f!, zeros(length(u))
     @test prec.stats.inner_iterations < plain.stats.inner_iterations
 end
 
+# DG-like residual: `N` nodes per cell, `K` cells of a periodic 1D mesh, dense coupling of
+# the nodes of a cell to the nodes of the cell and its two neighbors
+function dg_like!(du, u, p)
+    (; N, K, B) = p
+    U = reshape(u, N, K)
+    dU = reshape(du, N, K)
+    for k in 1:K
+        kl = mod1(k - 1, K)
+        kr = mod1(k + 1, K)
+        for i in 1:N
+            r = zero(eltype(u))
+            for j in 1:N
+                r += B[i, j] * (U[j, k]^2 + 2 * U[j, kl] - U[j, kr])
+            end
+            dU[i, k] = r
+        end
+    end
+    return nothing
+end
+
+@testset "Block coloring of a DG-like pattern" begin
+    N, K = 3, 9
+    n = N * K
+    p = (; N, K, B = [1.0 + i + 2j for i in 1:N, j in 1:N])
+    periodic = spdiagm(-1 => ones(K - 1), 0 => ones(K), 1 => ones(K - 1), K - 1 => ones(1), 1 - K => ones(1))
+    pattern = kron(periodic, ones(N, N)) .!= 0
+    @test (Ariadne.jacobian_sparsity(dg_like!, rand(n), p) .!= 0) == pattern
+    # The element-local index times the cell modulo 3
+    colors = vec([i + N * mod(k - 1, 3) for i in 1:N, k in 1:K])
+    u = rand(n)
+    J_dense = dense_jacobian(dg_like!, u, p)
+    for batchsize in (1, 4)
+        A = SparseJacobian(dg_like!, zeros(n), u, p, pattern; coloring = colors, batchsize)
+        @test ncolors(A.coloring) == 3N
+        @test column_colors(A.coloring) == colors
+        @test assemble!(A) ≈ J_dense
+        @test A.missed_entries == 0
+    end
+    # Every second cell is not enough: cells k and k + 2 share the rows of cell k + 1
+    @test_throws SparseMatrixColorings.InvalidColoringError SparseJacobian(
+        dg_like!, zeros(n), u, p, pattern; coloring = vec([i + N * mod(k - 1, 2) for i in 1:N, k in 1:K])
+    )
+end
+
 # Bratu with a branch: the coupling to the right neighbor only exists for u[i] > 0
 function bratu_branch!(du, u, p)
     bratu2d!(du, u, p)

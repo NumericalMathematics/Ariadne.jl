@@ -44,6 +44,17 @@ SmallestLast(), IncidenceDegree(), DynamicLargestFirst()))`, the coloring with t
 colors is kept (for the 5-point Laplacian on a 60 × 60 grid, 5 instead of the 7 colors of
 the default natural order). The coloring is computed once and reused for all assemblies.
 
+Given colors fit discretizations with a known block structure. For example, for a DG-like
+discretization with `N` nodes per cell and `K` cells in a periodic 1D mesh, where the
+residual of a cell depends on the cell and its two neighbors (`K` divisible by 3), the
+columns with the same element-local index `i` in every third cell can share a color:
+```julia
+pattern = kron(spdiagm(-1 => ones(K - 1), 0 => ones(K), 1 => ones(K - 1),
+                       K - 1 => ones(1), 1 - K => ones(1)), ones(N, N))
+colors = [i + N * mod(k - 1, 3) for i in 1:N, k in 1:K]  # 3N colors
+A = SparseJacobian(f!, res, u, p, pattern; coloring = vec(colors))
+```
+
 The diagonal is always included in the pattern of square Jacobians, so that
 `Diagonal(d) - J` has the same pattern.
 
