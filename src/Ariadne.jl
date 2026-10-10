@@ -732,7 +732,6 @@ function newton_krylov!(
 end
 
 include("adjoint.jl")
-export TransposedOperator, TransposedPreconditioner, transpose_ldiv!
 export adjoint_solve, adjoint_gradient, parameter_vjp, parameter_vjp!, ImplicitFunction, implicit_solve!
 
 end # module Ariadne

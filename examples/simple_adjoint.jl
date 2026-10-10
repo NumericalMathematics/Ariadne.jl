@@ -50,6 +50,24 @@ dp_fd = [(loss(p .+ h .* e) - loss(p .- h .* e)) / 2h for e in ([1.0, 0.0], [0.0
 @assert isapprox(r.dp, dp_fd; rtol = 1.0e-5)
 dp_fd
 
+# ## Several loss functions at once
+#
+# For `N` loss functions, [`adjoint_gradient`](@ref) with `Val(N)` takes a function that
+# writes the `N` values into a vector. It computes the `N` gradients with one batched
+# Enzyme.jl sweep through the losses, one block GMRES solve of the `N` adjoint systems, and
+# one batched sweep through `F!` (this requires Julia 1.11 or later).
+
+function losses!(out, x, p)
+    out[1] = g(x, p)
+    out[2] = p[2] * x[2]^2
+    return nothing
+end
+
+r2 = adjoint_gradient(losses!, F!, x, p, Val(2))
+@assert r2.solved
+@assert r2.dp[1] ≈ r.dp
+r2.dp
+
 # ## Differentiating through a solve with Enzyme.jl
 #
 # An [`ImplicitFunction`](@ref) wraps the solver. Differentiating a function that calls

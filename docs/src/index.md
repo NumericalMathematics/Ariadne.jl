@@ -29,9 +29,6 @@ Ariadne.Stats
 ```@docs
 adjoint_solve
 adjoint_gradient
-TransposedOperator
-TransposedPreconditioner
-transpose_ldiv!
 parameter_vjp
 parameter_vjp!
 ImplicitFunction
