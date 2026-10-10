@@ -86,6 +86,26 @@ end
     @test abs(x_scaled[2] - 1.0e-6) <= 1.0e-3 * 1.0e-6 * sqrt(2)
     @test abs(x_scaled[1] - 1.0e6) <= 1.0e-3 * 1.0e6 * sqrt(2)
 
+    # The Krylov solver minimizes the linear residual in the scaled norm: for the linear
+    # problem A x = b, one inexact Newton step reduces the scaled residual by at least η.
+    # Without the scaling, GMRES stops after one iteration, which solves the large
+    # variable but leaves the residual of the small one unchanged.
+    L!(res, x, _) = (res[1] = x[1] - 1.0e6; res[2] = 2 * x[2] - 1.0e-6; nothing)
+    for ldiv in (false, true)
+        _, result = newton_krylov!(
+            L!, [0.0, 0.0]; norm = n, forcing = Ariadne.Fixed(0.5), max_niter = 1,
+            krylov_kwargs = (; ldiv)
+        )
+        @test result.stats.norm_res <= 0.5 * sqrt(2)
+    end
+    ws = NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2); norm = n)
+    @test ws.scaling.S⁻¹ * [1.0e6, 1.0e-6] ≈ [1, 1]
+    @test NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2)).scaling === nothing
+    @test NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2); norm = ScaledNorm([2.0, 4.0])).scaling.S == Diagonal([2.0, 4.0])
+    # The line searches measure the residual in the norm of the workspace
+    _, result = newton_krylov!(S!, [0.0, 0.0]; norm = n, linesearch! = BacktrackingLineSearch())
+    @test result.solved
+
     # Per-variable residual reduction (median over variables, Lodares et al. 2022)
     res₀ = [1.0, 10.0, 100.0, 1.0, 10.0, 100.0]
     res = [0.5, 1.0, 100.0, 0.5, 1.0, 100.0]
