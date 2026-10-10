@@ -5,8 +5,6 @@ export newton_krylov, newton_krylov!, NewtonKrylovWorkspace
 using Krylov
 using LinearAlgebra, SparseArrays
 using Enzyme
-using SparseMatrixColorings: SparseMatrixColorings, ColoringProblem, GreedyColoringAlgorithm,
-    ConstantColoringAlgorithm, column_groups, ncolors, decompress_single_color!
 
 ##
 # JacobianOperator
