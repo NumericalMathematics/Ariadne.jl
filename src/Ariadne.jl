@@ -960,4 +960,11 @@ function newton_krylov!(
     return ws.u, (; solved = status === :converged, status, stats, t)
 end
 
+##
+# Sparse Jacobians
+##
+
+include("sparse_jacobian.jl")
+export SparseJacobian, PerTaskParameters, assemble!
+
 end # module Ariadne
