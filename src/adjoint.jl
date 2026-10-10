@@ -30,6 +30,15 @@ end
 maybe_transpose(::Nothing) = nothing
 maybe_transpose(P) = transpose(P)
 
+# A block of `N` columns with the storage of `u` (e.g., a GPU array), zeroed
+block_like(u, N) = fill!(similar(u, eltype(u), (length(u), N)), 0)
+
+# `G` as a block with the storage of `u`, which the batched products need
+function as_block(u, G)
+    G isa typeof(similar(u, eltype(u), (0, 0))) && return G
+    return copyto!(similar(u, eltype(u), size(G)), G)
+end
+
 function warn_unsolved(name, stats)
     stats.solved || @warn "$name: the Krylov solve did not converge" stats
     return stats.solved
@@ -172,8 +181,7 @@ if VERSION >= v"1.11.0"
         ) where {N}
         size(G, 2) == N ||
             throw(DimensionMismatch("expected $N right-hand sides, got $(size(G, 2))"))
-        # The batched products need the columns of dense matrices
-        G = convert(Matrix{eltype(J)}, G)
+        G = as_block(J.u, G)
         return krylov_solve(
             Krylov.block_gmres, Krylov.block_gmres!, transpose(J), G, λ0,
             transposed_preconditioner, workspace; memory, rtol, atol, kwargs...
@@ -185,7 +193,7 @@ if VERSION >= v"1.11.0"
             u̇0 = nothing, workspace = nothing, memory = 50, rtol = 1.0e-10, atol = 0.0,
             kwargs...
         ) where {N}
-        RHS = convert(Matrix{eltype(J)}, RHS)
+        RHS = as_block(J.u, RHS)
         return krylov_solve(
             Krylov.block_gmres, Krylov.block_gmres!, J, RHS, u̇0, preconditioner, workspace;
             memory, rtol, atol, kwargs...
@@ -205,7 +213,7 @@ if VERSION >= v"1.11.0"
             value = zeros(T, N)
             # The unit seeds pick the rows of ∂J/∂u and ∂J/∂p
             seeds = ntuple(i -> T.((1:N) .== i), Val(N))
-            dJdu = zeros(T, length(u), N)
+            dJdu = block_like(u, N)
             dp = ntuple(_ -> Enzyme.make_zero(p), Val(N))
             autodiff(
                 Reverse, Const(functional!), Const, BatchDuplicated(value, seeds),
@@ -243,7 +251,7 @@ end # VERSION >= v"1.11.0"
     ImplicitFunctionWorkspace(u, ::Val{N} = Val(1); memory = 50)
 
 Krylov.jl workspaces for the adjoint and tangent solves of an [`ImplicitFunction`](@ref)
-with states like `u` and batch width `N`: `adjoint` and `tangent` are `Krylov.GmresWorkspace`s
+with states like `u` (with the storage of `u`, e.g., GPU arrays) and batch width `N`: `adjoint` and `tangent` are `Krylov.GmresWorkspace`s
 for `N == 1` and `Krylov.BlockGmresWorkspace`s with `N` columns otherwise. They are reused
 for every solve, so the solves do not allocate Krylov.jl storage. After a solve,
 `Krylov.solution(ws.adjoint)` and `Krylov.statistics(ws.adjoint)` (or `ws.tangent`) are the
@@ -258,15 +266,17 @@ mutable struct ImplicitFunctionWorkspace{N, WA, WT}
 end
 
 function ImplicitFunctionWorkspace(u, ::Val{N} = Val(1); memory::Int = 50) where {N}
-    T = eltype(u)
     n = length(u)
     if N == 1
         kc = Krylov.KrylovConstructor(vec(u))
         adjoint = Krylov.GmresWorkspace(kc; memory)
         tangent = Krylov.GmresWorkspace(kc; memory)
     else
-        adjoint = Krylov.BlockGmresWorkspace(n, n, N, Vector{T}, Matrix{T}; memory)
-        tangent = Krylov.BlockGmresWorkspace(n, n, N, Vector{T}, Matrix{T}; memory)
+        # Vectors and matrices with the storage of `u` (e.g., GPU arrays)
+        SV = typeof(similar(vec(u), N))
+        SM = typeof(similar(vec(u), n, N))
+        adjoint = Krylov.BlockGmresWorkspace(n, n, N, SV, SM; memory)
+        tangent = Krylov.BlockGmresWorkspace(n, n, N, SV, SM; memory)
     end
     return ImplicitFunctionWorkspace{N, typeof(adjoint), typeof(tangent)}(
         adjoint, tangent, false, false
@@ -415,8 +425,10 @@ function EnzymeRules.reverse(
             parameter_vjp!(only(shadows(p)), F.f!, res, u_star, p.val, -λ)
         else
             J = BatchedJacobianOperator{N}(F.f!, res, u_star, p.val)
+            G = block_like(u_star, N)
+            foreach(copyto!, tuple_of_vectors(G, size(u_star)), ū)
             λ, stats = adjoint_solve(
-                J, stack(vec, ū); preconditioner = P, λ0, workspace = ws.adjoint, kwargs...
+                J, G; preconditioner = P, λ0, workspace = ws.adjoint, kwargs...
             )
             # p̄[i] -= (∂f/∂p)ᵀ λ[:, i]
             parameter_vjp!(shadows(p), F.f!, res, u_star, p.val, tuple_of_vectors(-λ, size(res)))
@@ -465,7 +477,7 @@ function EnzymeRules.forward(
         )
         copyto!(only(tangents(u)), u̇)
     else
-        RHS = zeros(eltype(u.val), length(u.val), N)
+        RHS = block_like(u.val, N)
         autodiff(
             Forward, maybe_duplicated(F.f!, init_cache(F.f!, Val(N)), Val(N)), Const,
             BatchDuplicated(res, tuple_of_vectors(RHS, size(res))),
@@ -477,7 +489,7 @@ function EnzymeRules.forward(
         u̇, stats = tangent_solve(
             J, RHS; preconditioner = P, u̇0, workspace = ws.tangent, kwargs...
         )
-        foreach((ẋ, i) -> copyto!(ẋ, view(u̇, :, i)), tangents(u), 1:N)
+        foreach(copyto!, tangents(u), tuple_of_vectors(u̇, size(u.val)))
     end
     ws.tangent_solved = true
     warn_unsolved("implicit_solve!", stats)

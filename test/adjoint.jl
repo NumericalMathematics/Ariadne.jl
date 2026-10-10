@@ -2,6 +2,7 @@ using Test
 using Ariadne
 import Ariadne: JacobianOperator, BatchedJacobianOperator, Krylov
 using Enzyme, LinearAlgebra, SparseArrays
+using JLArrays
 
 # f(u, p) = A u + u.^3 / 3 - θ₁ b - θ₂ c = 0 with parameters θ in a mutable struct
 mutable struct Params
@@ -327,6 +328,40 @@ end
             @test u0 ≈ u
             @test du[1] ≈ Ju \ b
             @test du[2] ≈ Ju \ c
+        end
+
+        @testset "storage of the state (JLArrays)" begin
+            # The Krylov.jl workspaces and the blocks of the batched solves keep the storage of
+            # `u` (e.g., GPU arrays). Enzyme.jl does not differentiate `JLArray`s, so this tests
+            # the Krylov.jl solves with a dense operator instead of a Jacobian operator.
+            ju = JLArray(u)
+            A = JLArray(Ju)
+            ws = ImplicitFunctionWorkspace(ju)
+            @test Krylov.solution(ws.adjoint) isa JLArray{Float64, 1}
+            λ_jl, stats = Ariadne.krylov_solve(
+                Krylov.gmres, Krylov.gmres!, transpose(A), JLArray(g), nothing, nothing,
+                ws.adjoint; memory = 50, rtol = 1.0e-10, atol = 0.0
+            )
+            @test stats.solved
+            @test λ_jl === Krylov.solution(ws.adjoint)
+            @test Array(λ_jl) ≈ λ
+
+            ws = ImplicitFunctionWorkspace(ju, Val(2))
+            @test Krylov.solution(ws.adjoint) isa JLArray{Float64, 2}
+            @test Ariadne.block_like(ju, 2) isa JLArray{Float64, 2}
+            G = Ariadne.as_block(ju, [g g2])
+            @test G isa JLArray{Float64, 2}
+            @test Ariadne.as_block(ju, G) === G
+            columns = Ariadne.tuple_of_vectors(G, size(ju))
+            @test columns isa NTuple{2, JLArray{Float64, 1}}
+            @test Array(columns[2]) == g2
+            Λ, stats = Ariadne.krylov_solve(
+                Krylov.block_gmres, Krylov.block_gmres!, transpose(A), G, nothing, nothing,
+                ws.adjoint; memory = 50, rtol = 1.0e-10, atol = 0.0
+            )
+            @test stats.solved
+            @test Λ isa JLArray{Float64, 2}
+            @test Array(Λ) ≈ [λ λ2]
         end
 
         @testset "implicit_solve! (batched, other width than the workspace)" begin

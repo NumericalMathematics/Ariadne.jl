@@ -1,6 +1,7 @@
 [deps]
 Ariadne = "0be81120-40bf-4f8b-adf0-26103efb66f1"
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+JLArrays = "27aeb0d3-9eb9-45fb-866b-73c2ecf80fcb"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 ParallelTestRunner = "d3525ed8-44d0-4b2c-a655-542cee43accc"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"

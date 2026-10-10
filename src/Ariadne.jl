@@ -206,6 +206,11 @@ if VERSION >= v"1.11.0"
         end
     end
 
+    # Other dense arrays (e.g., GPU arrays), whose contiguous column views have the array type
+    function tuple_of_vectors(M::DenseMatrix, shape)
+        return ntuple(i -> reshape(view(M, :, i), shape), size(M, 2))
+    end
+
     function mul!(Out, J::BatchedJacobianOperator{N}, V) where {N}
         @assert size(Out, 2) == size(V, 2)
         out = tuple_of_vectors(Out, size(J.res))
