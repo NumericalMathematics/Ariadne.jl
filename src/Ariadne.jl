@@ -630,6 +630,10 @@ const KWARGS_DOCS = """
     `stats.krylov_failures`).
   - `callback`: A function called once for the initial guess and then after each Newton iteration,
                with signature `callback(u, res, norm_res)`.
+  - `iteration_callback`: A function called after each Newton iteration with signature
+    `iteration_callback(ws, info)`, where `info` is a `NamedTuple` with the fields
+    `iteration`, `norm_res`, `norm_res_prior`, `η`, `krylov_iterations`,
+    `krylov_solved`, and `krylov_status`.
 
 ## Return value
 `(u, (; solved, status, stats, t))`, where `status` is
@@ -747,6 +751,7 @@ function newton_krylov!(
         krylov_kwargs = (;),
         on_krylov_failure::Symbol = :stop,
         callback = (args...) -> nothing,
+        iteration_callback = nothing,
     )
     if !(on_krylov_failure in (:continue, :stop))
         throw(ArgumentError("on_krylov_failure must be :continue or :stop, got :$on_krylov_failure"))
@@ -827,6 +832,16 @@ function newton_krylov!(
         callback(ws.u, ws.res, norm_res)
 
         stats = update(stats, krylov_stats.niter, norm_res, krylov_solved)
+
+        if iteration_callback !== nothing
+            iteration_callback(
+                ws, (;
+                    iteration = stats.outer_iterations, norm_res, norm_res_prior, η,
+                    krylov_iterations = krylov_stats.niter, krylov_solved,
+                    krylov_status = krylov_stats.status,
+                )
+            )
+        end
 
         if !isfinite(norm_res)
             status = :nonfinite
