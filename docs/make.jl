@@ -6,6 +6,13 @@ using Literate
 using PlutoStaticHTML
 using DocumenterCitations
 
+# On Julia < 1.12, Enzyme.jl runs the LLVM Attributor, which can delete stores into freshly
+# allocated GC objects and corrupt the GC (EnzymeAD/Enzyme.jl#3793). This made the
+# examples abort the docs build intermittently, so disable it for the docs.
+if VERSION < v"1.12"
+    Ariadne.Enzyme.Compiler.RunAttributor[] = false
+end
+
 const NOTEBOOK_DIR = joinpath(@__DIR__, "src", "notebooks")
 
 """
