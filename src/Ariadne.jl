@@ -376,7 +376,7 @@ Statistics of a [`newton_krylov!`](@ref) solve.
 
 - `outer_iterations`: number of Newton iterations
 - `inner_iterations`: total number of Krylov iterations
-- `norm_res`: norm of the final residual
+- `norm_res`: norm of the final residual (computed with the `norm` of the workspace)
 - `krylov_failures`: number of Newton iterations in which the Krylov solver did not
   reach its tolerance
 """
@@ -531,7 +531,7 @@ are allocated during the Newton iteration.
 ## Constructor
 
     NewtonKrylovWorkspace(F!, u, p, res, alg=Val(:gmres); assume_p_const = false,
-                          lazy_zero_shadows = false, krylov_kwargs = (;))
+                          lazy_zero_shadows = false, krylov_kwargs = (;), norm = LinearAlgebra.norm)
 
 - `F!`: in-place residual function `F!(res, u, p)`
 - `u`: initial-guess array (used as template; the workspace holds a reference to it)
@@ -544,6 +544,12 @@ are allocated during the Newton iteration.
   basis of GMRES and FGMRES) are passed to `Krylov.krylov_workspace`, all other keys are
   ignored. The same `krylov_kwargs` can therefore also be passed to
   [`newton_krylov!(ws)`](@ref), which ignores the workspace keys.
+- `norm`: norm of the residual used for the forcing term, the termination criteria,
+  the line searches, and the Krylov solves, e.g., a [`ScaledNorm`](@ref). For a
+  `ScaledNorm` `‖S⁻¹ x‖` (with the diagonal matrix `S` of the scales) and the Krylov
+  methods `:gmres` and `:fgmres`, the inner product `W = S⁻²` is passed to the Krylov
+  solver, so that it minimizes the linear residual in the same norm and the inexact
+  Newton condition `‖F + J d‖ <= η ‖F‖` holds in it.
 
 ## Example
 
@@ -556,7 +562,7 @@ are allocated during the Newton iteration.
 ```
 
 """
-struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW}
+struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW, N, W}
     f::F
     u::A
     res::A
@@ -564,11 +570,14 @@ struct NewtonKrylovWorkspace{F, A, P, JOp <: AbstractJacobianOperator, KW}
     p::P
     J::JOp
     krylov::KW
+    norm::N
+    # `nothing`, or the inner product `W` of the Krylov solver, see `krylov_inner_product`
+    W::W
 end
 
 function NewtonKrylovWorkspace(
         F!, u::AbstractArray, p, res::AbstractArray, ::Val{Algo} = Val(:gmres);
-        assume_p_const::Bool = false, lazy_zero_shadows::Bool = false, krylov_kwargs = (;)
+        assume_p_const::Bool = false, lazy_zero_shadows::Bool = false, krylov_kwargs = (;), norm = LinearAlgebra.norm
     ) where {Algo}
     # res .= 0 might ignore ghost cells
     # memory allocated with similar might contain NaN/Inf
@@ -578,17 +587,105 @@ function NewtonKrylovWorkspace(
     J = JacobianOperator(F!, res, u, p; assume_p_const, lazy_zero_shadows)
     kc = KrylovConstructor(res)
     krylov = krylov_workspace(Val(Algo), kc; krylov_workspace_kwargs(krylov_kwargs)...)
-    return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov)
+    norm = bind_norm(norm, res)
+    W = krylov_inner_product(Val(Algo), norm)
+    return NewtonKrylovWorkspace(F!, u, res, neg_res, p, J, krylov, norm, W)
 end
 
 """
     Ariadne.evaluate!(ws::NewtonKrylovWorkspace) -> norm_res
 
-Evaluate `F!(ws.res, ws.u, ws.p)` in-place and return `norm(ws.res)`.
+Evaluate `F!(ws.res, ws.u, ws.p)` in-place and return `ws.norm(ws.res)`.
 """
 function evaluate!(ws::NewtonKrylovWorkspace)
     ws.f(ws.res, ws.u, ws.p)
-    return norm(ws.res)
+    return ws.norm(ws.res)
+end
+
+"""
+    ScaledNorm(scale)
+
+The Euclidean norm of `x ./ scale`, where `scale` is either an array of the same size
+as `x` or a tuple/vector of `n` scales that is applied cyclically, i.e., `x[i]` is divided
+by `scale[mod1(i, n)]`. The latter fits state vectors whose variables are stored
+interleaved, e.g., `[ρ₁, ρu₁, ρE₁, ρ₂, ρu₂, ρE₂, …]`, and allows to weight variables of
+very different magnitude equally in the Newton termination criteria.
+
+A [`NewtonKrylovWorkspace`](@ref) expands the scales once to an array of the type of the
+residual and evaluates the norm with broadcasting and `LinearAlgebra.norm`, so that array
+types that implement these (e.g., distributed or GPU arrays) compute it without scalar
+indexing. A cyclic `scale` assumes that the residual is a single interleaved array; for
+other layouts, pass an array of scales of the same size and type as the residual.
+"""
+struct ScaledNorm{S}
+    scale::S
+end
+
+(n::ScaledNorm)(x::AbstractArray) = bind_norm(n, x)(x)
+
+# A `ScaledNorm` whose scales are expanded to an array `inv_scale = 1 ./ scale` of the
+# type and size of the residual. The norm only uses broadcasting and `LinearAlgebra.norm`
+# of that array type, so that, e.g., distributed arrays perform their own reduction.
+struct BoundScaledNorm{A}
+    inv_scale::A
+    buffer::A
+end
+
+function (n::BoundScaledNorm)(x::AbstractArray)
+    n.buffer .= x .* n.inv_scale
+    return LinearAlgebra.norm(n.buffer)
+end
+
+# Prepare a norm for residuals like `res`
+bind_norm(n, res) = n
+function bind_norm(n::ScaledNorm, res)
+    scale = n.scale
+    inv_scale = similar(res)
+    if scale isa AbstractArray && size(scale) == size(res)
+        inv_scale .= inv.(scale)
+    else
+        m = length(scale)
+        copyto!(inv_scale, [inv(scale[mod1(i, m)]) for i in 1:length(res)])
+    end
+    return BoundScaledNorm(inv_scale, similar(res))
+end
+
+# The inner product `W` with `norm(x) == sqrt(x' * W * x)` that is passed to the Krylov
+# solver, or `nothing` if the norm or the Krylov method has none
+krylov_inner_product(algo, norm) = nothing
+function krylov_inner_product(::Union{Val{:gmres}, Val{:fgmres}}, n::BoundScaledNorm)
+    return Diagonal(vec(n.inv_scale .^ 2))
+end
+
+"""
+    variable_residual_ratio(res, res₀, n_variables)
+
+Per-variable normalized residual reduction as used for the CFL evolution of
+pseudo-transient continuation in Lodares et al. (2022), Eq. (123):
+for each variable `q` (stored interleaved with `n_variables` variables),
+`f_q = max(‖R_q‖₂ / ‖R_q⁰‖₂, ‖R_q‖∞ / ‖R_q⁰‖∞)`, and the result is the median of all `f_q`.
+Variables with `‖R_q⁰‖ = 0` are treated as converged and skipped. If all variables are
+skipped, the result is `0`.
+
+- D. Lodares, J. Manzanero, E. Ferrer, E. Valero (2022)
+  An entropy-stable discontinuous Galerkin approximation of the Spalart-Allmaras
+  turbulence model for the compressible Reynolds averaged Navier-Stokes equations.
+  Journal of Computational Physics 455, 110998.
+"""
+function variable_residual_ratio(res, res₀, n_variables::Integer)
+    T = float(real(promote_type(eltype(res), eltype(res₀))))
+    f = T[]
+    for q in 1:n_variables
+        r = view(res, q:n_variables:length(res))
+        r₀ = view(res₀, q:n_variables:length(res₀))
+        # `‖R_q⁰‖₂ = 0` iff `‖R_q⁰‖∞ = 0`
+        iszero(norm(r₀, Inf)) && continue
+        push!(f, max(norm(r) / norm(r₀), norm(r, Inf) / norm(r₀, Inf)))
+    end
+    isempty(f) && return zero(T)
+    sort!(f)
+    m = length(f)
+    return isodd(m) ? f[(m + 1) ÷ 2] : (f[m ÷ 2] + f[m ÷ 2 + 1]) / 2
 end
 
 ##
@@ -598,7 +695,7 @@ end
 include("linesearches.jl")
 import .LineSearches: AbstractLineSearch, NoLineSearch, BacktrackingLineSearch
 export NoLineSearch, BacktrackingLineSearch
-export AbstractPreconditioner, LaggedPreconditioner, refresh!
+export AbstractPreconditioner, LaggedPreconditioner, refresh!, ScaledNorm
 
 
 const KWARGS_DOCS = """
@@ -630,6 +727,12 @@ const KWARGS_DOCS = """
     `stats.krylov_failures`).
   - `callback`: A function called once for the initial guess and then after each Newton iteration,
                with signature `callback(u, res, norm_res)`.
+
+The norm of the residual is the `norm` of the workspace (keyword argument of
+[`NewtonKrylovWorkspace`](@ref) and of the convenience methods). It is also used by the
+line searches and, for a [`ScaledNorm`](@ref) and the Krylov methods `:gmres` and
+`:fgmres`, by the Krylov solver (as the inner product `W`; with a left preconditioner `M`,
+the Krylov solver minimizes `‖M (F + J d)‖` in this norm).
 
 ## Return value
 `(u, (; solved, status, stats, t))`, where `status` is
@@ -675,10 +778,10 @@ $(KWARGS_DOCS)
 function newton_krylov!(
         F!, u₀::AbstractArray, p = nothing, M::Int = length(u₀);
         algo::Symbol = :gmres, assume_p_const::Bool = false,
-        krylov_kwargs = (;), kwargs...
+        krylov_kwargs = (;), norm = LinearAlgebra.norm, kwargs...
     )
     res = similar(u₀, M)
-    ws = NewtonKrylovWorkspace(F!, u₀, p, res, Val(algo); assume_p_const, krylov_kwargs)
+    ws = NewtonKrylovWorkspace(F!, u₀, p, res, Val(algo); assume_p_const, krylov_kwargs, norm)
     return newton_krylov!(ws; krylov_kwargs, kwargs...)
 end
 
@@ -700,9 +803,10 @@ function newton_krylov!(
         algo::Symbol = :gmres,
         assume_p_const::Bool = false,
         krylov_kwargs = (;),
+        norm = LinearAlgebra.norm,
         kwargs...,
     )
-    ws = NewtonKrylovWorkspace(F!, u, p, res, Val(algo); assume_p_const, krylov_kwargs)
+    ws = NewtonKrylovWorkspace(F!, u, p, res, Val(algo); assume_p_const, krylov_kwargs, norm)
     return newton_krylov!(ws; krylov_kwargs, kwargs...)
 end
 
@@ -778,6 +882,10 @@ function newton_krylov!(
             # The same preconditioner object may be passed as `M` and `N`; prepare it once
             M_op = M === N ? N_op : instantiate_preconditioner(M, ws.J)
             kwargs = (; M = M_op, kwargs...)
+        end
+        if ws.W !== nothing
+            # Minimize the linear residual in the norm of the workspace
+            kwargs = (; W = ws.W, kwargs...)
         end
         if forcing !== nothing
             # The termination criterion of the inner Krylov solver is

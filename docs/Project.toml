@@ -22,6 +22,7 @@ Trixi = "a7f1ee26-1774-49b1-8366-f1abc58fbfcb"
 [sources]
 Ariadne = {path = ".."}
 Theseus = {path = "../libs/Theseus"}
+Krylov = {url = "https://github.com/vchuravy/Krylov.jl", rev = "vc/gmres-inner-product"}
 
 [compat]
 Trixi = "0.16"
