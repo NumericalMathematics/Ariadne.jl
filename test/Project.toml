@@ -9,7 +9,6 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [sources]
 Ariadne = {path = ".."}
-Krylov = {url = "https://github.com/vchuravy/Krylov.jl", rev = "vc/gmres-inner-product"}
 
 [compat]
 ParallelTestRunner = "2"

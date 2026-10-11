@@ -11,9 +11,6 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
 Enzyme = "0.13.50"
-Krylov = "0.10.1"
+Krylov = "0.10.11"
 LinearAlgebra = "1.10"
 julia = "1.10"
-
-[sources]
-Krylov = {url = "https://github.com/vchuravy/Krylov.jl", rev = "vc/gmres-inner-product"}
