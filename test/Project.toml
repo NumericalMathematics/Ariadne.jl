@@ -1,6 +1,7 @@
 [deps]
 Ariadne = "0be81120-40bf-4f8b-adf0-26103efb66f1"
 Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+Krylov = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 ParallelTestRunner = "d3525ed8-44d0-4b2c-a655-542cee43accc"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
@@ -11,6 +12,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [sources]
 Ariadne = {path = ".."}
+Krylov = {url = "https://github.com/vchuravy/Krylov.jl", rev = "vc/gmres-inner-product"}
 
 [compat]
 ParallelTestRunner = "2"

@@ -24,3 +24,6 @@ LinearAlgebra = "1.10"
 SparseConnectivityTracer = "1"
 SparseMatrixColorings = "0.4.23"
 julia = "1.10"
+
+[sources]
+Krylov = {url = "https://github.com/vchuravy/Krylov.jl", rev = "vc/gmres-inner-product"}
