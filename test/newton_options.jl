@@ -56,3 +56,84 @@ end
     @test result.status === :nonfinite
     @test result.stats.outer_iterations == 0
 end
+
+@testset "scaled norms" begin
+    # Variables of very different magnitude
+    S!(res, x, _) = (res[1] = x[1] - 1.0e6; res[2] = x[2] - 1.0e-6; nothing)
+    scale = (1.0e6, 1.0e-6)
+
+    n = ScaledNorm(scale)
+    @test n([1.0e6, 1.0e-6]) ≈ sqrt(2)
+    @test n([2.0e6, 0.0, 1.0e6, 1.0e-6]) ≈ sqrt(4 + 0 + 1 + 1)
+    @test ScaledNorm([2.0, 4.0])([2.0, 4.0]) ≈ sqrt(2)
+
+    # The workspace uses the given norm for the residual
+    ws = NewtonKrylovWorkspace(S!, [0.0, 0.0], nothing, zeros(2); norm = n)
+    @test evaluate!(ws) ≈ sqrt(2)
+
+    # With the unscaled norm, the second variable is ignored by the termination criterion
+    x, result = newton_krylov!(
+        S!, [0.0, 0.0]; forcing = Ariadne.Fixed(0.5),
+        tol_rel = 1.0e-3, tol_abs = 0.0
+    )
+    @test result.solved
+    # With the scaled norm, both variables are solved to the relative tolerance
+    x_scaled, result = newton_krylov!(
+        S!, [0.0, 0.0]; forcing = Ariadne.Fixed(0.5),
+        tol_rel = 1.0e-3, tol_abs = 0.0, norm = n
+    )
+    @test result.solved
+    @test abs(x_scaled[2] - 1.0e-6) <= 1.0e-3 * 1.0e-6 * sqrt(2)
+    @test abs(x_scaled[1] - 1.0e6) <= 1.0e-3 * 1.0e6 * sqrt(2)
+
+    # The Krylov solver minimizes the linear residual in the scaled norm: for the linear
+    # problem A x = b, one inexact Newton step reduces the scaled residual by at least η.
+    # Without the scaling, GMRES stops after one iteration, which solves the large
+    # variable but leaves the residual of the small one unchanged.
+    L!(res, x, _) = (res[1] = x[1] - 1.0e6; res[2] = 2 * x[2] - 1.0e-6; nothing)
+    # This holds with and without a preconditioner, which stays free for the user.
+    for algo in (:gmres, :fgmres), M in (nothing, J -> I)
+        _, result = newton_krylov!(
+            L!, [0.0, 0.0]; norm = n, forcing = Ariadne.Fixed(0.5), max_niter = 1, algo, M
+        )
+        @test result.stats.norm_res <= 0.5 * sqrt(2)
+    end
+    # An exact right preconditioner stays exact in the scaled norm: one Krylov iteration
+    # solves the linear problem. Scaling only from the left, `S⁻¹ J N⁻¹ ≈ S⁻¹` would have
+    # the condition number of the scales (1e12 here) instead.
+    for algo in (:gmres, :fgmres), (ldiv, N) in ((true, Diagonal([1.0, 2.0])), (false, Diagonal([1.0, 0.5])))
+        _, result = newton_krylov!(
+            L!, [0.0, 0.0]; norm = n, forcing = Ariadne.Fixed(1.0e-10), max_niter = 1,
+            algo, N = _ -> N, krylov_kwargs = (; ldiv)
+        )
+        @test result.stats.inner_iterations == 1
+        @test result.stats.norm_res <= 1.0e-10 * sqrt(2)
+    end
+    # The inner product `W = S⁻²` of the Krylov solver
+    ws = NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2); norm = n)
+    @test ws.W ≈ Diagonal([1.0e-12, 1.0e12])
+    @test NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2)).W === nothing
+    @test NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2); norm = ScaledNorm([2.0, 4.0])).W ≈ Diagonal([1 / 4, 1 / 16])
+    # Krylov methods without an inner product use the Euclidean norm
+    @test NewtonKrylovWorkspace(L!, [0.0, 0.0], nothing, zeros(2), Val(:bicgstab); norm = n).W === nothing
+    # The norm of the workspace is evaluated without allocations
+    res = [1.0e6, 1.0e-6]
+    allocated(norm, res) = @allocated norm(res)
+    allocated(ws.norm, res)
+    @test allocated(ws.norm, res) == 0
+    @test ws.norm(res) ≈ sqrt(2)
+    # The line searches measure the residual in the norm of the workspace
+    _, result = newton_krylov!(S!, [0.0, 0.0]; norm = n, linesearch! = BacktrackingLineSearch())
+    @test result.solved
+
+    # Per-variable residual reduction (median over variables, Lodares et al. 2022)
+    res₀ = [1.0, 10.0, 100.0, 1.0, 10.0, 100.0]
+    res = [0.5, 1.0, 100.0, 0.5, 1.0, 100.0]
+    @test Ariadne.variable_residual_ratio(res, res₀, 3) ≈ 0.5
+
+    # Variables with zero initial residual are treated as converged
+    res₀ = [2.0, 0.0, 2.0, 0.0, 2.0, 0.0]
+    res = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    @test Ariadne.variable_residual_ratio(res, res₀, 2) ≈ 0.5
+    @test Ariadne.variable_residual_ratio(res, zeros(6), 2) == 0
+end
