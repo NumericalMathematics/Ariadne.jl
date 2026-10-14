@@ -20,7 +20,7 @@ abstract type RosenbrockAlgorithm{N} <: SimpleImplicitAlgorithm{N} end
 stages(::RosenbrockAlgorithm{N}) where {N} = N
 
 """
-	(::RosenbrockAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, RK, assume_p_const) where N
+	(::RosenbrockAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, RK, assume_p_const, lazy_zero_shadows, atol, rtol, itmax) where N
 
 Matrix-free implementation of Rosenbrock methods.
 Note that this is a Rosenbrock-W method, as the Jacobian is "inexact".
@@ -30,12 +30,12 @@ References:
   Solving Ordinary Differential Equations II, pag. 111 (Implementation of Rosenbrock-Type Methods)
 """
 
-function (::RosenbrockAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, RK, assume_p_const, atol, rtol, itmax) where {N}
+function (::RosenbrockAlgorithm{N})(res, uₙ, Δt, f!, du, u, p, t, stages, stage, workspace, RK, assume_p_const, lazy_zero_shadows, atol, rtol, itmax) where {N}
     invdt = inv(Δt)
     F!(du, u, p) = f!(du, u, p, t)
     @. u = uₙ
     @. res = 0
-    J = JacobianOperator(F!, du, uₙ, p, assume_p_const = assume_p_const)
+    J = JacobianOperator(F!, du, uₙ, p; assume_p_const, lazy_zero_shadows)
     M = MOperator(J, RK.gamma[stage] * Δt)
 
     for j in 1:(stage - 1)
@@ -68,6 +68,7 @@ mutable struct RosenbrockOptions{Callback}
     verbose::Int
     algo::Symbol
     assume_p_const::Bool
+    lazy_zero_shadows::Bool # see `Ariadne.JacobianOperator`
     krylov_atol::Float64
     krylov_rtol::Float64
     itmax::Int
@@ -75,13 +76,14 @@ mutable struct RosenbrockOptions{Callback}
 end
 
 
-function RosenbrockOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, assume_p_const = true, krylov_atol = 1.0e-6, krylov_rtol = 1.0e-6, itmax = 0, krylov_kwargs = (;), kwargs...)
+function RosenbrockOptions(callback, tspan; maxiters = typemax(Int), verbose = 0, krylov_algo = :gmres, assume_p_const = true, lazy_zero_shadows = false, krylov_atol = 1.0e-6, krylov_rtol = 1.0e-6, itmax = 0, krylov_kwargs = (;), kwargs...)
     return RosenbrockOptions{typeof(callback)}(
         callback, false, Inf, maxiters,
         [last(tspan)],
         verbose,
         krylov_algo,
         assume_p_const,
+        lazy_zero_shadows,
         krylov_atol,
         krylov_rtol,
         itmax,
@@ -199,7 +201,7 @@ function stage!(integrator, alg::RosenbrockAlgorithm, workspace)
     for stage in 1:stages(alg)
         alg(
             integrator.res, integrator.u, integrator.dt, integrator.f, integrator.du, integrator.u_tmp, integrator.p, integrator.t,
-            integrator.stages, stage, workspace, integrator.RK, integrator.opts.assume_p_const, integrator.opts.krylov_atol, integrator.opts.krylov_rtol, integrator.opts.itmax
+            integrator.stages, stage, workspace, integrator.RK, integrator.opts.assume_p_const, integrator.opts.lazy_zero_shadows, integrator.opts.krylov_atol, integrator.opts.krylov_rtol, integrator.opts.itmax
         )
     end
 
